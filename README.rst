@@ -10,6 +10,7 @@ Installation
 The recommended way to use this plugin is by adding it to the Digital Slide Archive's ``docker-compose`` deployment. First, check out both this repositor and ``digital_slide_archive`` from Github, if you do not yet have a running instance of the Digital Slide Archive.
 
 If you don't already use a provisioning yaml file as part of your DSA deployment, you'll want to create one, e.g. ``provision.local.yaml``. Make sure this file contains the following: ::
+
     pip:
         - /opt/wsi-superpixel-guided-labeling
     rebuild-client: True
@@ -47,6 +48,7 @@ If you don't already use a provisioning yaml file as part of your DSA deployment
         - dsarchive/superpixel:latest
 
 In ``digital_slide_archive/devops/dsa/``, you'll want to add or modify ``docker-compose.override.yaml`` in the following manner: ::
+
     ---
     version '3'
     services:
