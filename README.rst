@@ -2,7 +2,13 @@
 WSI Superpixel Guided Labeling
 ==============================
 
-Perform active learning by classifying regions of whole slide images.
+WSI Superpixel Guided Labeling is a `Girder 3 <https://github.com/girder>`_ plugin designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ to facilitate active learning on whole slide images.
+
+This plugin leverages the output of certain HistomicsTK/SlicerCLI jobs to allow end users to label superpixel regions of whole slide images to be used as input for machine learning algorithms.
+
+An example algorithm is contained within the ``dsarchive/superpixel:latest`` docker image. This can be used to generate superpixels, features, and machine learning models for active learning on a directory of images. See the installation instructions below for how to include the image as part of your Digital Slide Archive deployment.
+
+Once the appropriate data is generated, a new view becomes available for labeling and retraining.
 
 Installation
 ------------
@@ -69,4 +75,4 @@ To verify, login as the provisioned admin user and check that the "WSI Superpixe
 Features
 --------
 
-* TODO
+* Adds a new view which can be accessed from the Girder 3 UI for folders that are configured for this workflow
