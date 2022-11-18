@@ -5,7 +5,7 @@ import _ from 'underscore';
 import router from '@girder/histomicsui/router';
 import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
 
-import learningTemplate from '../../templates/body/activeLearningView2.pug';
+import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
 
 import '../../stylesheets/body/learning.styl';
