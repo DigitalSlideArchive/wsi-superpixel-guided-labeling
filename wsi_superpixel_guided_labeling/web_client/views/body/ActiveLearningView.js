@@ -1,3 +1,4 @@
+/* global $, __webpack_public_path__ */
 import View from '@girder/core/views/View';
 import { restRequest, getApiRoot } from '@girder/core/rest';
 import _ from 'underscore';
@@ -27,11 +28,11 @@ var ActiveLearningView = View.extend({
             this.activeLearningJobUrl = response.meta['active_learning_job_url'] || 'dsarchive_superpixel_latest/SuperpixelClassification';
             this.activeLearningJobType = response.meta['active_learning_job_type'] || 'dsarchive/superpixel:latest#SuperpixelClassification';
 
-            restRequest({
+            return restRequest({
                 url: 'job/all',
                 data: {
                     types: `["${this.activeLearningJobType}"]`,
-                    sort: 'updated',
+                    sort: 'updated'
                 }
             }).done((jobs) => {
                 const lastRunJob = _.filter(jobs, (job) => {
@@ -65,6 +66,7 @@ var ActiveLearningView = View.extend({
             this.vueApp.$destroy();
         }
         const el = this.$('.h-active-learning-container').get(0);
+        // eslint-disable-next-line
         const root = (__webpack_public_path__ || '/status/built').replace(/\/$/, '');
         const geojsUrl = root + '/plugins/large_image/extra/geojs.js';
         $.ajax({
@@ -102,7 +104,7 @@ var ActiveLearningView = View.extend({
                 folderId: this.trainingDataFolderId
             }
         }).then((response) => {
-            _.forEach(response, (item) => {
+            return _.forEach(response, (item) => {
                 if (item.largeImage) {
                     this.imageItemsById[item._id] = item;
                     this.annotationsByImageId[item._id] = {};
@@ -127,10 +129,10 @@ var ActiveLearningView = View.extend({
                             superpixels: superpixelAnnotations[superpixelAnnotations.length - 1]._id, // epoch 0 should have no human labels
                             labels: superpixelAnnotations[0]._id
                         };
-                        this.fetchAnnotations(annotationsToFetchByImage);
+                        return this.fetchAnnotations(annotationsToFetchByImage);
                     });
                 }
-            })
+            });
         });
     },
 
@@ -155,7 +157,7 @@ var ActiveLearningView = View.extend({
         });
         $.when(...promises).then(() => {
             this.getSortedSuperpixelIndices();
-            this.mountVueComponent();
+            return this.mountVueComponent();
         });
     },
 
@@ -241,7 +243,6 @@ var ActiveLearningView = View.extend({
                 });
             }, 2000);
         });
-
     }
 });
 
