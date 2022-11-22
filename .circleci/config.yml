@@ -1,36 +1,30 @@
 ---
 version: 2.1
-jobs:
-  test:
+executors:
+  toxandnode:
+    working_directory: ~/project
     docker:
-      - image: girder/girder_test:latest
-      - image: circleci/mongo:4.0-ram
-        command: ["mongod", "--storageEngine", "ephemeralForTest", "--dbpath", "/dev/shm/mongo"]
-
+      - image: girder/tox-and-node
+commands:
+  tox:
+    description: "Run tox"
+    parameters:
+      env:
+        type: string
+    steps:
+      - run:
+          name: Run tests via tox
+          command: tox -e << parameters.env >> | cat; test ${PIPESTATUS[0]} -eq 0
+jobs:
+  lintclient:
+    executor: toxandnode
     steps:
       - checkout
-      - run:
-          name: Run server tests
-          command: tox
-      - run:
-          name: Run web tests
-          command: |
-            npm install
-            npm run lint
-          working_directory: wsi_superpixel_guided_labeling/web_client
+      - tox:
+          env: lintclient
 
 workflows:
   version: 2
   ci:
     jobs:
-      - test
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - test
+      - lintclient
