@@ -96,43 +96,53 @@ var ActiveLearningView = View.extend({
         return this;
     },
 
+    getAnnotationsForItemPromise(item, annotationsToFetchByImage) {
+        return restRequest({
+            url: 'annotation',
+            data: {
+                itemId: item._id,
+                sort: 'created',
+                sortdir: -1
+            }
+        }).done((response) => {
+            // TODO: refine name checking
+            const predictionsAnnotations = _.filter(response, (annotation) => {
+                return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
+            });
+            const superpixelAnnotations = _.filter(response, (annotation) => {
+                return this.annotationIsValid(annotation) && !annotation.annotation.name.includes('Predictions');
+            });
+            annotationsToFetchByImage[item._id] = {
+                predictions: predictionsAnnotations[0]._id,
+                superpixels: superpixelAnnotations[superpixelAnnotations.length - 1]._id, // epoch 0 should have no human labels
+                labels: superpixelAnnotations[0]._id
+            };
+        });
+    },
+
+    waitForPromises(promises, functionToExecute, params) {
+        $.when(...promises).then(() => {
+            return functionToExecute.call(this, params);
+        });
+    },
+
     getAnnotations() {
         const annotationsToFetchByImage = {};
+        const promises = [];
         restRequest({
             url: 'item',
             data: {
                 folderId: this.trainingDataFolderId
             }
         }).then((response) => {
-            return _.forEach(response, (item) => {
+            _.forEach(response, (item) => {
                 if (item.largeImage) {
                     this.imageItemsById[item._id] = item;
                     this.annotationsByImageId[item._id] = {};
-
-                    restRequest({
-                        url: 'annotation',
-                        data: {
-                            itemId: item._id,
-                            sort: 'created',
-                            sortdir: -1
-                        }
-                    }).then((response) => {
-                        // TODO: refine name checking
-                        const predictionsAnnotations = _.filter(response, (annotation) => {
-                            return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
-                        });
-                        const superpixelAnnotations = _.filter(response, (annotation) => {
-                            return this.annotationIsValid(annotation) && !annotation.annotation.name.includes('Predictions');
-                        });
-                        annotationsToFetchByImage[item._id] = {
-                            predictions: predictionsAnnotations[0]._id,
-                            superpixels: superpixelAnnotations[superpixelAnnotations.length - 1]._id, // epoch 0 should have no human labels
-                            labels: superpixelAnnotations[0]._id
-                        };
-                        return this.fetchAnnotations(annotationsToFetchByImage);
-                    });
+                    promises.push(this.getAnnotationsForItemPromise(item, annotationsToFetchByImage));
                 }
             });
+            return this.waitForPromises(promises, this.fetchAnnotations, annotationsToFetchByImage);
         });
     },
 
