@@ -19,7 +19,7 @@ wrap(ItemListWidget, 'render', function (render) {
                     const webrootPath = settings['histomicsui.webroot_path'];
                     const btnContainer = this.parentView.$el.find('.g-folder-header-buttons');
                     btnContainer.prepend(
-                        `<a class="wsi-al-open-setup btn btn-sm btn-primary" role="button" href="#" target="_blank">
+                        `<a class="wsi-al-open-setup btn btn-sm btn-primary" role="button" href="${webrootPath}#/setup-active-learning?folder=${this.parentView.parentModel.id}" target="_blank">
                             <i class="icon-link-ext"></i>Set Up Active Learning
                         </a>`
                     );
