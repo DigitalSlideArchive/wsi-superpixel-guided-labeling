@@ -18,6 +18,7 @@ var ActiveLearningSetupView = View.extend({
         this.render();
         router.setQuery();
         this.trainingDataFolderId = router.getQuery('folder');
+        // Perhaps this could come from a plugin setting in the future
         this.activeLearningJobUrl = 'dsarchive_superpixel_latest/SuperpixelClassification';
         this.activeLearningJobType = 'dsarchive/superpixel:latest#SuperpixelClassification';
         this.fetchFoldersAndItems();
@@ -38,7 +39,6 @@ var ActiveLearningSetupView = View.extend({
 
     checkJobs() {
         // Check to see where we are in the process
-        // i.e. have categories already been determined, and we just need an initial set of labels?
         restRequest({
             url: 'job/all',
             data: {
@@ -52,28 +52,14 @@ var ActiveLearningSetupView = View.extend({
                 const runningOrSuccess = job.status === 3 || job.status === 2;
                 return runningOrSuccess && containerArgs.includes(this.trainingDataFolderId);
             });
-            if (previousJobs.length > 2) {
-                // We shouldn't be here if these jobs are all successful
-                // This would imply setup is complete and active learning is happening already
+            const initialTrainingDone = previousJobs.length > 2;
+            if (initialTrainingDone) {
                 return;
             }
             const lastRunJob = previousJobs[0];
             if (lastRunJob) {
                 if (lastRunJob.status === 2) {
-                    this.showSpinner();
-                    const poll = setInterval(() => {
-                        restRequest({
-                            url: `job/${lastRunJob._id}`
-                        }).done((update) => {
-                            if (update.status === 3) {
-                                this.initialJob = lastRunJob;
-                                clearInterval(poll);
-                                this.hideSpinner();
-                                this.getAnnotation();
-                            }
-                            // Need to handle job fail case
-                        });
-                    }, 5000);
+                    this.waitForJobCompletion(lastRunJob._id);
                 } else {
                     this.initialJob = lastRunJob;
                     this.getAnnotation();
@@ -81,6 +67,23 @@ var ActiveLearningSetupView = View.extend({
             } else {
                 this.mountVueComponent();
             }
+        });
+    },
+
+    getAnnotation() {
+        /**
+         * get the first large_image item and annotation
+         * re-render the vue component with more props
+         **/
+        this.firstLargeImageItem = _.filter(this.childItems.models, (item) => item.get('largeImage'))[0];
+        const annotations = new AnnotationCollection();
+        annotations.fetch({ itemId: this.firstLargeImageItem.get('_id') }).done(() => {
+            this.annotation = _.filter(annotations.models, (annotationModel) => {
+                const annotationObject = annotationModel.get('annotation');
+                const isSuperPixel = annotationObject['name'].includes('Superpixel');
+                return isSuperPixel;
+            })[0];
+            this.mountVueComponent();
         });
     },
 
@@ -97,7 +100,6 @@ var ActiveLearningSetupView = View.extend({
             dataType: 'script',
             cache: true
         }).done((resp) => {
-            console.log(this.annotation);
             this.vueApp = new ActiveLearningSetupContainer({
                 el,
                 propsData: {
@@ -121,19 +123,16 @@ var ActiveLearningSetupView = View.extend({
             data: data
         }).done((response) => {
             const newJobId = response._id;
-            this.showSpinner();
-            const poll = setInterval(() => {
-                restRequest({
-                    url: `job/${newJobId}`
-                }).done((update) => {
-                    if (!update || update.status === 3) {
-                        clearInterval(poll);
-                        this.hideSpinner();
-                        this.getAnnotation();
-                    }
-                });
-            }, 2000);
+            this.waitForJobCompletion(newJobId);
         });
+    },
+
+    _saveAnnotation() {
+        this.annotation.save();
+    },
+
+    debounceSaveAnnotation() {
+        _.debounce(this._saveAnnotation, 250);
     },
 
     generateInitialSuperpixels(radius, magnification) {
@@ -156,26 +155,6 @@ var ActiveLearningSetupView = View.extend({
         this.triggerJob(data);
     },
 
-    getAnnotation() {
-        // get the first large_image item and annotation
-        // re-render the vue component with more props
-        console.log('getting annotations');
-        this.firstLargeImageItem = _.filter(this.childItems.models, (item) => item.get('largeImage'))[0];
-        const annotations = new AnnotationCollection();
-        annotations.fetch({ itemId: this.firstLargeImageItem.get('_id') }).done(() => {
-            console.log(annotations);
-            this.annotation = _.filter(annotations.models, (annotationModel) => {
-                console.log(annotationModel);
-                const annotationObject = annotationModel.get('annotation');
-                console.log(annotationObject);
-                const isSuperPixel = annotationObject['name'].includes('Superpixel');
-                console.log(isSuperPixel);
-                return isSuperPixel;
-            })[0];
-            console.log(this.annotation);
-            this.mountVueComponent();
-        });
-    },
 
     showSpinner() {
         $('.h-active-learning-setup-container').append(
@@ -188,6 +167,22 @@ var ActiveLearningSetupView = View.extend({
     hideSpinner() {
         $('.g-hui-loading-overlay').remove();
     },
+
+    waitForJobCompletion(jobId) {
+        this.showSpinner();
+        const poll = setInterval(() => {
+            restRequest({
+                url: `job/${jobId}`
+            }).done((update) => {
+                if (!update || update.status === 3) {
+                    clearInterval(poll);
+                    this.hideSpinner();
+                    this.getAnnotation();
+                }
+                // TODO better handle job failed case
+            });
+        }, 2000);
+    }
 });
 
 export default ActiveLearningSetupView;
