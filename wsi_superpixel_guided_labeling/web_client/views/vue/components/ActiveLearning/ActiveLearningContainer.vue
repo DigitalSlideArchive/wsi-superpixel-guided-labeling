@@ -44,16 +44,16 @@ export default Vue.extend({
         },
         selectedIndex() {
             return store.selectedIndex;
-       },
-       page() {
-           return store.page;
-       },
-       changeLog() {
-           return store.changeLog;
-       },
-       predictions() {
-           return store.predictions;
-       }
+        },
+        page() {
+            return store.page;
+        },
+        changeLog() {
+            return store.changeLog;
+        },
+        predictions() {
+            return store.predictions;
+        }
     },
     methods: {
         updateMapBoundsForSelection() {
