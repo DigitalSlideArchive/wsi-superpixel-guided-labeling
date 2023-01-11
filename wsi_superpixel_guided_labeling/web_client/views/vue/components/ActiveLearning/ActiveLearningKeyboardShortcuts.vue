@@ -1,15 +1,13 @@
 <script>
 import Vue from 'vue';
+import store from './store.js';
+import _ from 'underscore';
 
 export default Vue.extend({
-    data() {
-        return {
-            categories: [
-                { label: 'Background' },
-                { label: 'Marker' },
-                { label: 'Tissue' }
-            ]
-        };
+    computed: {
+        categories() {
+            return store.categories;
+        }
     }
 });
 </script>
