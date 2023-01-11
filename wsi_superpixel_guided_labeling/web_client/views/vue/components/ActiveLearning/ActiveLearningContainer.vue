@@ -7,12 +7,14 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
 
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
+import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 
 import store from './store.js';
 
 export default Vue.extend({
     components: {
-        ActiveLearningFilmStrip
+        ActiveLearningFilmStrip,
+        ActiveLearningKeyboardShortcuts,
     },
     props: [
         'router',
@@ -182,6 +184,7 @@ export default Vue.extend({
 
 <template>
     <div class="h-active-learning-container">
+        <active-learning-keyboard-shortcuts />
         <div ref="map" class="h-active-learning-map"></div>
         <active-learning-film-strip />
     </div>
