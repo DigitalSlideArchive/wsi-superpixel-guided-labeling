@@ -213,6 +213,9 @@ export default Vue.extend({
                 indices: []
             });
             this.categoryIndex = this.categories.length - 1;
+        },
+        beginTraining() {
+            console.log('Beginning training...');
         }
     }
 });
@@ -295,6 +298,12 @@ export default Vue.extend({
                     @click="addCategory"
                 >
                     Add Category
+                </button>
+                <button
+                    class="btn btn-primary h-start-training-btn"
+                    @click="beginTraining"
+                >
+                    Begin training
                 </button>
 
             </div>
