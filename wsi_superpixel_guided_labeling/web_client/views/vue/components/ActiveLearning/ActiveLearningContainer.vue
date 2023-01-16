@@ -108,6 +108,11 @@ export default Vue.extend({
                 this.initialZoom = this.viewerWidget.viewer.zoom();
                 this.viewerWidget.viewer.clampBoundsX(false);
                 this.viewerWidget.viewer.clampBoundsY(false);
+
+                // Remove keyboard actions
+                const interactor = this.viewerWidget.viewer.interactor();
+                interactor.keyboard({});
+
                 this.updateMapBoundsForSelection();
                 this.drawSuperpixels();
             });
