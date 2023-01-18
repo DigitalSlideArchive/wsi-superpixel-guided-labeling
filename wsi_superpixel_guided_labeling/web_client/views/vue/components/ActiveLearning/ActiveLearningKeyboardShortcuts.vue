@@ -52,7 +52,7 @@ export default Vue.extend({
                 case '7':
                 case '8':
                 case '9':
-                    //TODO implement category selection
+                    store.lastKeyPressed = event.key;
                 default:
                     break;
             }

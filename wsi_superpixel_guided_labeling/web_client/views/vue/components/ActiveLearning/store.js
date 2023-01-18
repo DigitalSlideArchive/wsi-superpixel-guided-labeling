@@ -11,5 +11,6 @@ export default Vue.observable({
     backboneParent: null,
     predictions: false,
     currentAverageConfidence: 0,
-    categories: []
+    categories: [],
+    lastKeyPressed: ''
 });
