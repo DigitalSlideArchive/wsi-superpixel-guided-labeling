@@ -74,7 +74,6 @@ export default {
         <active-learning-film-strip-card
             v-for="superpixel, index in superpixelsToDisplay"
             :key="`${superpixel.imageId}_${superpixel.index}`"
-            :superpixel="superpixel"
             :index="index"
         />
         <button
