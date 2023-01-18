@@ -177,10 +177,7 @@ export default Vue.extend({
 
         // TODO refactor this
         const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
-        const validCategories = _.filter(predictionAnnotation.get('annotation').elements[0].categories, (cat) => {
-            return cat.label !== 'default';
-        });
-        store.categories = validCategories;
+        store.categories = predictionAnnotation.get('annotation').elements[0].categories;
 
         const startIndex = 0;
         const endIndex = Math.min(startIndex + 8, this.sortedSuperpixelIndices.length);

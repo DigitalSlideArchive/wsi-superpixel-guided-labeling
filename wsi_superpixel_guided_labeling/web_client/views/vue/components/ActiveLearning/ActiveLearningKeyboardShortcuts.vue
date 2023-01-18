@@ -7,30 +7,41 @@ export default Vue.extend({
     computed: {
         categories() {
             return store.categories;
+        },
+        nonDefaultCategories() {
+            // Expect 'default' to be at index 0 ALWAYS
+            return _.filter(store.categories, (category) => {
+                return category.label !== 'default';
+            });
         }
     },
     methods: {
+        selectPreviousCard() {
+            if (store.selectedIndex === 0) {
+                if (store.page !== 0) {
+                    store.selectedIndex = 7;
+                }
+                store.page = Math.max(0, store.page - 1);
+            } else {
+                store.selectedIndex--;
+            }
+        },
+        selectNextCard() {
+            if (store.selectedIndex === 7) {
+                // TODO prevent going past the max
+                store.page += 1;
+                store.selectedIndex = 0;
+            } else {
+                store.selectedIndex++;
+            }
+        },
         keydownListener(event) {
             switch(event.key) {
                 case 'ArrowRight':
-                    if (store.selectedIndex === 7) {
-                        // TODO prevent going past the max
-                        store.page += 1;
-                        store.selectedIndex = 0;
-                    } else {
-                        store.selectedIndex++;
-                    }
+                    this.selectNextCard();
                     break;
                 case 'ArrowLeft':
-                    store.selectedIndex = store.selectedIndex === 0 ? 0 : store.selectedIndex - 1;
-                    if (store.selectedIndex === 0) {
-                        if (store.page !== 0) {
-                            store.selectedIndex = 7;
-                        }
-                        store.page = Math.max(0, store.page - 1);
-                    } else {
-                        store.selectedIndex--;
-                    }
+                    this.selectPreviousCard();
                     break;
                 case '1':
                 case '2':
@@ -59,7 +70,7 @@ export default Vue.extend({
             Hotkeys
         </h4>
         <span
-            v-for="(category, index) in categories"
+            v-for="(category, index) in nonDefaultCategories"
             :key="category.label"
         >
              {{ index + 1}} - {{ category.label }}
