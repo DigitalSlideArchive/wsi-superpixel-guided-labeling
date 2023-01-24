@@ -69,6 +69,12 @@ export default Vue.extend({
         <h4>
             Hotkeys
         </h4>
+        <span>
+            Right Arrow - Next Superpixel
+        </span>
+        <span>
+            Left Arrow - Previous Superpixel
+        </span>
         <span
             v-for="(category, index) in nonDefaultCategories"
             :key="category.label"
