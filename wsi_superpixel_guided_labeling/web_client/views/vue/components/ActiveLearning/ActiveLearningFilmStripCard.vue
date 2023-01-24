@@ -140,21 +140,31 @@ export default Vue.extend({
             store.changeLog.push(this.superpixelDecision);
         },
         lastKeyPressed(key, oldKey) {
-            if (this.isSelected) {
-                const numberKey = parseInt(key);
-                if (numberKey && numberKey <= this.superpixelDecision.categories.length) {
-                    // Be extra careful to select the correct category
-                    const newCategory = store.categories[parseInt(key)];
-                    const newCategoryIndex = this.categoryIndex(newCategory.label)
-                    this.superpixelDecision.selectedCategory = newCategoryIndex;
-                    if (newCategoryIndex === this.superpixelDecision.prediction) {
-                        this.superpixelDecision.agreeChoice = 'Yes';
-                    } else {
-                        this.superpixelDecision.agreeChoice = 'No';
-                    }
-                    // Go to the next card
-                    this.$nextTick(() => this.goToNextCard());
+            if (!this.isSelected) {
+                return;
+            }
+            const numberKey = parseInt(key);
+            if (numberKey === NaN) {
+                return;
+            }
+
+            if (numberKey === 0) {
+                console.log('handling 0');
+                // Reset
+                this.superpixelDecision.agreeChoice = undefined;
+            }
+            else if (numberKey <= this.superpixelDecision.categories.length) {
+                // Be extra careful to select the correct category
+                const newCategory = store.categories[parseInt(key)];
+                const newCategoryIndex = this.categoryIndex(newCategory.label)
+                this.superpixelDecision.selectedCategory = newCategoryIndex;
+                if (newCategoryIndex === this.superpixelDecision.prediction) {
+                    this.superpixelDecision.agreeChoice = 'Yes';
+                } else {
+                    this.superpixelDecision.agreeChoice = 'No';
                 }
+                // Go to the next card
+                this.$nextTick(() => this.goToNextCard());
             }
         }
     },

@@ -52,6 +52,7 @@ export default Vue.extend({
                 case '7':
                 case '8':
                 case '9':
+                case '0':
                     store.lastKeyPressed = event.key;
                 default:
                     break;
