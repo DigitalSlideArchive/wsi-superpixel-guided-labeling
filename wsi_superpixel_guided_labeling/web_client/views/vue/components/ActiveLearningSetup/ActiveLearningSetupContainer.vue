@@ -157,12 +157,17 @@ export default Vue.extend({
             const index = overlayElement.get('boundaries') ? (event.index - event.index % 2) : event.index;
             const offset = this.boundaries ? 1 : 0;
             const data = this.overlayLayer.data();
-            // the +1 accounts for the default
+            // the +1 accounts for the default, reset to default if already labeled
             const categoryIndex = data[index] === 0 ? this.categoryIndex + 1 : 0;
             data[index] = data[index + offset] = categoryIndex;
             // TODO: save new pixelmap value
             this.overlayLayer.indexModified(index, index + offset).draw();
-            this.categories[this.categoryIndex].indices.push(index);
+            const currentCategoryIndices = this.categories[this.categoryIndex].indices;
+            if (categoryIndex === 0) {
+                this.categories[this.categoryIndex].indices = _.filter(currentCategoryIndices, (i) => i !== index);
+            } else {
+                currentCategoryIndices.push(index);
+            }
         },
         _onPixelmapRendered() {
             this.pixelmapRendered = true;
@@ -314,7 +319,7 @@ export default Vue.extend({
                         v-for="(categoryLabels, index) in categories"
                         :key="index"
                     >
-                        {{ categoryLabels.category.label }}: {{ categoryLabels.indices }}
+                        {{ categoryLabels.category.label }}: {{ categoryLabels.indices.length }} superpixels labeled
                     </div>
                 </div>
             </div>
@@ -349,7 +354,7 @@ export default Vue.extend({
     flex-direction: row;
 }
 .h-setup-categories-map {
-    width: 50%;
+    width: 67%;
     height: 100%;
 }
 </style>
