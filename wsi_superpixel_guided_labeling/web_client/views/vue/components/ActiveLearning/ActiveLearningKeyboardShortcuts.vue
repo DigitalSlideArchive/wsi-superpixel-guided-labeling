@@ -4,6 +4,11 @@ import store from './store.js';
 import _ from 'underscore';
 
 export default Vue.extend({
+    data() {
+        return {
+            showShortcuts: true
+        };
+    },
     computed: {
         categories() {
             return store.categories;
@@ -67,21 +72,40 @@ export default Vue.extend({
 
 <template>
     <div class="h-hotkeys-container">
-        <h4>
-            Hotkeys
-        </h4>
-        <span>
-            Right Arrow - Next Superpixel
-        </span>
-        <span>
-            Left Arrow - Previous Superpixel
-        </span>
-        <span
-            v-for="(category, index) in nonDefaultCategories"
-            :key="category.label"
+        <div class="h-hotkeys-header">
+        <h5>Hotkeys</h5>
+        <button
+            class="h-hotkeys-toggle"
+            @click="showShortcuts = !showShortcuts"
         >
-             {{ index + 1}} - {{ category.label }}
-        </span>
+            <i
+                v-if="showShortcuts"
+                class="icon-up-open"
+            />
+            <i
+                v-else
+                class="icon-down-open"
+            />
+        </button>
+        </div>
+        <div v-if="showShortcuts">
+            <h6>Navigation</h6>
+            <span class="h-hotkey">
+                Right Arrow - Next Superpixel
+            </span>
+            <span class="h-hotkey">
+                Left Arrow - Previous Superpixel
+            </span>
+            <h6>Labeling</h6>
+            <span class="h-hotkey">0 - Reset selection</span>
+            <span
+                class="h-hotkey"
+                v-for="(category, index) in nonDefaultCategories"
+                :key="category.label"
+            >
+                {{ index + 1}} - {{ category.label }}
+            </span>
+        </div>
     </div>
 </template>
 
@@ -92,10 +116,26 @@ export default Vue.extend({
     top: 5px;
     left: 5px;
     padding: 5px;
+    min-width: 200px;
     display: flex;
     flex-direction: column;
     background-color: white;
     border-radius: 1px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+}
+
+.h-hotkeys-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.h-hotkeys-toggle {
+    background-color: transparent;
+    border: none;
+}
+
+.h-hotkey {
+    font-size: 12px;
+    display: flex;
 }
 </style>
