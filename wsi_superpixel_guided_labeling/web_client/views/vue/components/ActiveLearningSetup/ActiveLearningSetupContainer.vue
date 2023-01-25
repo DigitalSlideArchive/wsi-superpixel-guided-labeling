@@ -3,8 +3,10 @@ import Vue from 'vue';
 import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
+import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
 const boundaryColor = 'rgba(0, 0, 0, 1)';
+const defaultColor = 'rgb(255, 0, 0)';
 const defaultCategory = {
     label: 'default',
     fillColor: 'rgba(0, 0, 0, 0)',
@@ -14,6 +16,9 @@ const defaultCategory = {
 
 export default Vue.extend({
     props: ['backboneParent', 'largeImageItem', 'superpixelAnnotation'],
+    components: {
+        ColorPickerInput
+    },
     mounted() {
         this.setupViewer();
     },
@@ -31,7 +36,7 @@ export default Vue.extend({
             superpixelElement: null,
             pixelmapRendered: false,
             currentCategoryLabel: 'New Category',
-            currentCategoryFillColor: 'rgba(255, 0, 0, 1)',
+            currentCategoryFillColor: defaultColor,
             lastClickEventId: 0
         };
     },
@@ -212,7 +217,7 @@ export default Vue.extend({
             this.categories.push({
                 category: {
                     label: 'New Category',
-                    fillColor: 'rgba(255, 0, 0, 1)',
+                    fillColor: defaultColor,
                     strokeColor: boundaryColor
                 },
                 indices: []
@@ -278,11 +283,12 @@ export default Vue.extend({
                 </div>
                 <div class="form-group">
                     <label for="fill-color">Fill Color</label>
-                    <input
-                        id="fill-color"
-                        class="form-control input-sm h-active-learning-input"
-                        v-model.lazy="currentCategoryFillColor"
-                    >
+                    <color-picker-input
+                        :key="categoryIndex"
+                        style="width: 30%"
+                        :color="currentCategoryFillColor"
+                        v-model="currentCategoryFillColor"
+                    />
                 </div>
                 <button
                     class="btn btn-primary h-previous-category-btn"
