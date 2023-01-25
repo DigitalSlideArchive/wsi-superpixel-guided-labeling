@@ -139,7 +139,7 @@ export default Vue.extend({
             element.values = values;
             store.changeLog.push(this.superpixelDecision);
         },
-        lastKeyPressed(key, oldKey) {
+        lastKeyPressed(key) {
             if (!this.isSelected) {
                 return;
             }
@@ -147,9 +147,7 @@ export default Vue.extend({
             if (numberKey === NaN) {
                 return;
             }
-
             if (numberKey === 0) {
-                console.log('handling 0');
                 // Reset
                 this.superpixelDecision.agreeChoice = undefined;
             }
