@@ -33,9 +33,11 @@ export default Vue.extend({
         },
         selectNextCard() {
             if (store.selectedIndex === 7) {
-                // TODO prevent going past the max
-                store.page += 1;
-                store.selectedIndex = 0;
+                if (store.page < store.maxPage) {
+                    store.page += 1;
+                    store.selectedIndex = 0;
+                }
+                return;
             } else {
                 store.selectedIndex++;
             }

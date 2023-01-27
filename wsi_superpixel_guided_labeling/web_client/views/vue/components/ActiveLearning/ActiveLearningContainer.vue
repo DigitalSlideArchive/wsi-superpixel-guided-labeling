@@ -171,11 +171,11 @@ export default Vue.extend({
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         store.page = 0;
+        store.maxPage = this.sortedSuperpixelIndices.length / 8;
         store.selectedIndex = 0;
         store.predictions = false;
         store.currentAverageConfidence = this.currentAverageConfidence;
 
-        // TODO refactor this
         const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
         store.categories = predictionAnnotation.get('annotation').elements[0].categories;
 

@@ -12,5 +12,6 @@ export default Vue.observable({
     predictions: false,
     currentAverageConfidence: 0,
     categories: [],
-    lastKeyPressed: ''
+    lastKeyPressed: '',
+    maxPage: 1
 });
