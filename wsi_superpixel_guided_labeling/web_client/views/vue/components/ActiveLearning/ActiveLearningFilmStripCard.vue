@@ -2,7 +2,7 @@
 import Vue from 'vue';
 import _ from 'underscore';
 
-import store from './store';
+import { store, nextCard } from './store';
 
 export default Vue.extend({
     props: ['index'],
@@ -105,15 +105,6 @@ export default Vue.extend({
          */
         categoryIndex(label) {
             return _.map(this.superpixelDecision.categories, (category) => category.label).indexOf(label);
-        },
-        goToNextCard() {
-            if (store.selectedIndex === 7) {
-                store.page += 1;
-                store.selectedIndex = 0;
-            } else {
-                store.selectedIndex += 1;
-            }
-            store.lastKeyPressed = '';
         }
     },
     watch: {
@@ -148,7 +139,6 @@ export default Vue.extend({
                 return;
             }
             if (numberKey === 0) {
-                // Reset
                 this.superpixelDecision.agreeChoice = undefined;
             }
             else if (numberKey <= this.superpixelDecision.categories.length) {
@@ -161,8 +151,7 @@ export default Vue.extend({
                 } else {
                     this.superpixelDecision.agreeChoice = 'No';
                 }
-                // Go to the next card
-                this.$nextTick(() => this.goToNextCard());
+                this.$nextTick(() => nextCard());
             }
         }
     },

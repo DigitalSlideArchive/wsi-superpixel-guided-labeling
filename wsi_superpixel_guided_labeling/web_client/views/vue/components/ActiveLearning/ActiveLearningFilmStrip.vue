@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
-import store from './store.js';
+import { store } from './store.js';
 
 export default {
     components: {

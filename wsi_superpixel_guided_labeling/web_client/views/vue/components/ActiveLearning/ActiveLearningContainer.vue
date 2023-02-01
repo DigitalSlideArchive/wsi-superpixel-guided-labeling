@@ -9,7 +9,7 @@ import AnnotationModel from '@girder/large_image_annotation/models/AnnotationMod
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 
-import store from './store.js';
+import { store } from './store.js';
 
 export default Vue.extend({
     components: {

@@ -1,6 +1,6 @@
 <script>
 import Vue from 'vue';
-import store from './store.js';
+import { store, previousCard, nextCard } from './store.js';
 import _ from 'underscore';
 
 export default Vue.extend({
@@ -21,34 +21,13 @@ export default Vue.extend({
         }
     },
     methods: {
-        selectPreviousCard() {
-            if (store.selectedIndex === 0) {
-                if (store.page !== 0) {
-                    store.selectedIndex = 7;
-                }
-                store.page = Math.max(0, store.page - 1);
-            } else {
-                store.selectedIndex--;
-            }
-        },
-        selectNextCard() {
-            if (store.selectedIndex === 7) {
-                if (store.page < store.maxPage) {
-                    store.page += 1;
-                    store.selectedIndex = 0;
-                }
-                return;
-            } else {
-                store.selectedIndex++;
-            }
-        },
         keydownListener(event) {
             switch(event.key) {
                 case 'ArrowRight':
-                    this.selectNextCard();
+                    nextCard();
                     break;
                 case 'ArrowLeft':
-                    this.selectPreviousCard();
+                    previousCard();
                     break;
                 case '1':
                 case '2':
@@ -61,7 +40,6 @@ export default Vue.extend({
                 case '9':
                 case '0':
                     store.lastKeyPressed = event.key;
-                default:
                     break;
             }
         }
