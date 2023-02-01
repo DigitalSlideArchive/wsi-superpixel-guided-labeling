@@ -127,7 +127,6 @@ export default Vue.extend({
     watch: {
         selectedIndex() {
             const newImageId = this.superpixelsToDisplay[this.selectedIndex].imageId;
-            console.log(newImageId, this.selectedImageId);
             if (newImageId !== this.selectedImageId) {
                 this.selectedImageId = newImageId;
                 restRequest({

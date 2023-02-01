@@ -22,26 +22,20 @@ export default Vue.extend({
     },
     methods: {
         keydownListener(event) {
+            // If support for > 9 categories is necessary, this will
+            // need to be revisited. Perhaps a map from event.key to
+            // category index could replace the simple parseInt call.
+            if (!isNaN(parseInt(event.key))) {
+                store.lastCategorySelected = parseInt(event.key);
+                return;
+            }
+            console.log('after number check', event.key);
             switch(event.key) {
                 case 'ArrowRight':
                     nextCard();
                     break;
                 case 'ArrowLeft':
                     previousCard();
-                    break;
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '0':
-                    // If supporting > 9 categories, we'll need a more sophisticated
-                    // way to map key presses to category selection
-                    store.lastCategorySelected = parseInt(event.key);
                     break;
             }
         }
