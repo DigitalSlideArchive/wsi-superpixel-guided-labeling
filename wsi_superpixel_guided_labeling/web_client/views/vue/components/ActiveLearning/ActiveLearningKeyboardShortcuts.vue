@@ -39,7 +39,9 @@ export default Vue.extend({
                 case '8':
                 case '9':
                 case '0':
-                    store.lastKeyPressed = event.key;
+                    // If supporting > 9 categories, we'll need a more sophisticated
+                    // way to map key presses to category selection
+                    store.lastCategorySelected = parseInt(event.key);
                     break;
             }
         }

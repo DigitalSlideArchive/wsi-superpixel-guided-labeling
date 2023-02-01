@@ -12,7 +12,7 @@ const store = Vue.observable({
     predictions: false,
     currentAverageConfidence: 0,
     categories: [],
-    lastKeyPressed: '',
+    lastCategorySelected: null,
     maxPage: 1
 });
 

@@ -28,8 +28,8 @@ export default Vue.extend({
         selectedIndex() {
             return store.selectedIndex;
         },
-        lastKeyPressed() {
-            return store.lastKeyPressed;
+        lastCategorySelected() {
+            return store.lastCategorySelected;
         },
         isSelected() {
             return this.selectedIndex === this.index;
@@ -130,20 +130,15 @@ export default Vue.extend({
             element.values = values;
             store.changeLog.push(this.superpixelDecision);
         },
-        lastKeyPressed(key) {
-            if (!this.isSelected) {
+        lastCategorySelected(categoryNumber) {
+            if (!this.isSelected || typeof categoryNumber !== 'number') {
                 return;
             }
-            const numberKey = parseInt(key);
-            if (numberKey === NaN) {
-                return;
-            }
-            if (numberKey === 0) {
+            if (categoryNumber === 0) {
                 this.superpixelDecision.agreeChoice = undefined;
-            }
-            else if (numberKey <= this.superpixelDecision.categories.length) {
+            } else if (categoryNumber <= this.superpixelDecision.categories.length) {
                 // Be extra careful to select the correct category
-                const newCategory = store.categories[parseInt(key)];
+                const newCategory = store.categories[categoryNumber];
                 const newCategoryIndex = this.categoryIndex(newCategory.label)
                 this.superpixelDecision.selectedCategory = newCategoryIndex;
                 if (newCategoryIndex === this.superpixelDecision.prediction) {
@@ -153,6 +148,7 @@ export default Vue.extend({
                 }
                 this.$nextTick(() => nextCard());
             }
+            store.lastCategorySelected = null; // reset state
         }
     },
     mounted() {
