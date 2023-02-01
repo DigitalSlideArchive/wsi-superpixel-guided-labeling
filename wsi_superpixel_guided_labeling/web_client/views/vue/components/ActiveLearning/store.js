@@ -20,7 +20,6 @@ const store = Vue.observable({
 const previousCard = () => {
     if (store.selectedIndex === 0) {
         if (store.page !== 0) {
-            store.selectedIndex = store.pageSize - 1;
             store.page--;
         }
     } else {
@@ -31,7 +30,6 @@ const previousCard = () => {
 const nextCard = () => {
     if (store.selectedIndex === store.pageSize - 1) {
         if (store.page < store.maxPage) {
-            store.selectedIndex = 0;
             store.page++;
         }
     } else {
