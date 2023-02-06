@@ -29,7 +29,6 @@ export default Vue.extend({
                 store.lastCategorySelected = parseInt(event.key);
                 return;
             }
-            console.log('after number check', event.key);
             switch(event.key) {
                 case 'ArrowRight':
                     nextCard();
