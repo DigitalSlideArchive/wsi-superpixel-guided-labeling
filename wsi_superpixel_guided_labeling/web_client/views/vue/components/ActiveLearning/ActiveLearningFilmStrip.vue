@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
-import store from './store.js';
+import { store } from './store.js';
 
 export default {
     components: {
@@ -74,7 +74,6 @@ export default {
         <active-learning-film-strip-card
             v-for="superpixel, index in superpixelsToDisplay"
             :key="`${superpixel.imageId}_${superpixel.index}`"
-            :superpixel="superpixel"
             :index="index"
         />
         <button

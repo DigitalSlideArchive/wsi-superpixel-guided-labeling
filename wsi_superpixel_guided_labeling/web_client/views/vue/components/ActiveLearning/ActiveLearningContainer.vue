@@ -4,15 +4,16 @@ import Vue from 'vue';
 import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
-import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
 
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
+import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 
-import store from './store.js';
+import { store } from './store.js';
 
 export default Vue.extend({
     components: {
-        ActiveLearningFilmStrip
+        ActiveLearningFilmStrip,
+        ActiveLearningKeyboardShortcuts,
     },
     props: [
         'router',
@@ -26,6 +27,7 @@ export default Vue.extend({
     ],
     data() {
         return {
+            pageSize: 8,
             currentImageId: '',
             imageItemsById: {},
             annotationsByImage: {},
@@ -106,6 +108,11 @@ export default Vue.extend({
                 this.initialZoom = this.viewerWidget.viewer.zoom();
                 this.viewerWidget.viewer.clampBoundsX(false);
                 this.viewerWidget.viewer.clampBoundsY(false);
+
+                // Remove keyboard actions
+                const interactor = this.viewerWidget.viewer.interactor();
+                interactor.keyboard({});
+
                 this.updateMapBoundsForSelection();
                 this.drawSuperpixels();
             });
@@ -133,11 +140,11 @@ export default Vue.extend({
             }
         },
         page(newPage, oldPage) {
-            const startIndex = newPage * 8;
-            const endIndex = Math.min(startIndex + 8, this.sortedSuperpixelIndices.length);
+            const startIndex = newPage * store.pageSize;
+            const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
             store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
             const oldIndex = this.selectedIndex;
-            store.selectedIndex = (newPage > oldPage) ? 0 : 7;
+            store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
             if (oldIndex === this.selectedIndex) {
                 this.updateMapBoundsForSelection();
             }
@@ -164,11 +171,17 @@ export default Vue.extend({
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         store.page = 0;
+        store.maxPage = this.sortedSuperpixelIndices.length / this.pageSize;
+        store.pageSize = this.pageSize;
         store.selectedIndex = 0;
         store.predictions = false;
         store.currentAverageConfidence = this.currentAverageConfidence;
+
+        const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
+        store.categories = predictionAnnotation.get('annotation').elements[0].categories;
+
         const startIndex = 0;
-        const endIndex = Math.min(startIndex + 8, this.sortedSuperpixelIndices.length);
+        const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
         store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
         restRequest({
             url: `item/${this.selectedImageId}/tiles`
@@ -182,6 +195,7 @@ export default Vue.extend({
 
 <template>
     <div class="h-active-learning-container">
+        <active-learning-keyboard-shortcuts />
         <div ref="map" class="h-active-learning-map"></div>
         <active-learning-film-strip />
     </div>

@@ -2,22 +2,25 @@
 import Vue from 'vue';
 import _ from 'underscore';
 
-import store from './store';
+import { store, nextCard } from './store';
 
 export default Vue.extend({
-    props: ['superpixel', 'index'],
+    props: ['index'],
     computed: {
+        superpixelDecision() {
+            return store.superpixelsToDisplay[this.index]
+        },
         agreeChoice() {
-            return this.superpixel.agreeChoice;
+            return this.superpixelDecision.agreeChoice;
         },
         predictedCategory() {
-            return this.superpixel.categories[this.superpixel.prediction];
+            return this.superpixelDecision.categories[this.superpixelDecision.prediction];
         },
         selectedCategory() {
-            return this.superpixel.selectedCategory;
+            return this.superpixelDecision.selectedCategory;
         },
         labelAnnotation() {
-            return store.annotationsByImageId[this.superpixel.imageId]['labels'];
+            return store.annotationsByImageId[this.superpixelDecision.imageId]['labels'];
         },
         apiRoot() {
             return store.apiRoot;
@@ -25,28 +28,33 @@ export default Vue.extend({
         selectedIndex() {
             return store.selectedIndex;
         },
+        lastCategorySelected() {
+            return store.lastCategorySelected;
+        },
         isSelected() {
             return this.selectedIndex === this.index;
         },
         headerStyle() {
             return {
                 'font-size': '80%',
-                'background-color': this.superpixel.categories[this.superpixel.prediction].fillColor
+                'background-color': this.superpixelDecision.categories[this.superpixelDecision.prediction].fillColor
             };
         },
         headerTitle() {
             return `Prediction: ${this.predictedCategory.label}`;
         },
         headerConfidence() {
-            return `Confidence ${this.superpixel.confidence.toFixed(5)}`;
+            return `Confidence ${this.superpixelDecision.confidence.toFixed(5)}`;
         },
         validNewCategories() {
-            const categories = this.superpixel.categories;
-            return _.filter(categories, (c, index) => index !== this.superpixel.prediction);
+            const categories = this.superpixelDecision.categories;
+            return _.filter(categories, (c, index) => {
+                return index !== this.superpixelDecision.prediction && c.label !== 'default';
+            });
         },
         wsiRegionUrl() {
-            const imageId = this.superpixel.imageId;
-            const bbox = this.superpixel.bbox;
+            const imageId = this.superpixelDecision.imageId;
+            const bbox = this.superpixelDecision.bbox;
             const regionWidth = bbox[2] - bbox[0];
             const regionHeight = bbox[3] - bbox[1];
             const scaleFactor = Math.max(regionWidth, regionHeight);
@@ -56,11 +64,11 @@ export default Vue.extend({
             return `${this.apiRoot}/item/${imageId}/tiles/region${params}`;
         },
         superpixelRegionUrl() {
-            const imageId = this.superpixel.superpixelImageId;
-            const index = this.superpixel.index;
-            const pixelVals = this.superpixel.boundaries ? [index * 2, index * 2 + 1] : [index];
-            const bbox = this.superpixel.bbox;
-            const scale = this.superpixel.scale;
+            const imageId = this.superpixelDecision.superpixelImageId;
+            const index = this.superpixelDecision.index;
+            const pixelVals = this.superpixelDecision.boundaries ? [index * 2, index * 2 + 1] : [index];
+            const bbox = this.superpixelDecision.bbox;
+            const scale = this.superpixelDecision.scale;
             const regionWidth = bbox[2] - bbox[0];
             const regionHeight = bbox[3] - bbox[1];
             const scaleFactor = Math.max(regionWidth, regionHeight);
@@ -89,21 +97,27 @@ export default Vue.extend({
             store.selectedIndex = this.index;
         },
         onCategorySelectChange() {
-            store.changeLog.push(this.superpixel);
+            store.changeLog.push(this.superpixelDecision);
         },
+        /**
+         * Have a way to map between different lists of categories so that when we set the category for
+         * the current superpixel, we use the right index.
+         */
         categoryIndex(label) {
-            return _.map(this.superpixel.categories, (category) => category.label).indexOf(label);
+            return _.map(this.superpixelDecision.categories, (category) => category.label).indexOf(label);
         }
     },
     watch: {
         agreeChoice() {
             if (this.agreeChoice === 'Yes') {
-                this.superpixel.selectedCategory = this.superpixel.prediction;
+                this.superpixelDecision.selectedCategory = this.superpixelDecision.prediction;
             } else if (this.agreeChoice === undefined) {
-                this.superpixel.selectedCategory = 0;
+                this.superpixelDecision.selectedCategory = 0;
             } else {
                 // agreeChoice === 'No'
-                this.superpixel.selectedCategory = (this.superpixel.prediction === 0) ? 1 : 0;
+                if (!this.selectedCategory) {
+                    this.superpixelDecision.selectedCategory = this.categoryIndex(this.validNewCategories[0].label);
+                }
             }
         },
         selectedCategory(newCat, oldCat) {
@@ -112,14 +126,34 @@ export default Vue.extend({
             }
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
-            values[this.superpixel.index] = this.superpixel.selectedCategory;
+            values[this.superpixelDecision.index] = this.superpixelDecision.selectedCategory;
             element.values = values;
-            store.changeLog.push(this.superpixel);
+            store.changeLog.push(this.superpixelDecision);
+        },
+        lastCategorySelected(categoryNumber) {
+            if (!this.isSelected || typeof categoryNumber !== 'number') {
+                return;
+            }
+            if (categoryNumber === 0) {
+                this.superpixelDecision.agreeChoice = undefined;
+            } else if (categoryNumber <= this.superpixelDecision.categories.length) {
+                // Be extra careful to select the correct category
+                const newCategory = store.categories[categoryNumber];
+                const newCategoryIndex = this.categoryIndex(newCategory.label)
+                this.superpixelDecision.selectedCategory = newCategoryIndex;
+                if (newCategoryIndex === this.superpixelDecision.prediction) {
+                    this.superpixelDecision.agreeChoice = 'Yes';
+                } else {
+                    this.superpixelDecision.agreeChoice = 'No';
+                }
+                this.$nextTick(() => nextCard());
+            }
+            store.lastCategorySelected = null; // reset state
         }
     },
     mounted() {
-        if(!this.superpixel.selectedCategory) {
-           this.superpixel.selectedCategory = 0;
+        if(!this.superpixelDecision.selectedCategory) {
+           this.superpixelDecision.selectedCategory = 0;
         }
     }
 });
@@ -153,16 +187,26 @@ export default Vue.extend({
             <div class="h-superpixel-card-agree h-superpixel-card-footer-content">
                 <label>Agree? </label>
                 <label for="radio-yes">Yes</label>
-                <input id="radio-yes" type="radio" value="Yes" v-model="superpixel.agreeChoice" />
+                <input
+                    id="radio-yes"
+                    type="radio"
+                    value="Yes"
+                    v-model="superpixelDecision.agreeChoice"
+                />
                 <label for="radio-no">No</label>
-                <input id="radio-no" type="radio" value="No" v-model="superpixel.agreeChoice" />
+                <input
+                    id="radio-no"
+                    type="radio"
+                    value="No"
+                    v-model="superpixelDecision.agreeChoice"
+                />
             </div>
             <div
-                v-if="superpixel.agreeChoice === 'No'"
+                v-if="superpixelDecision.agreeChoice === 'No'"
                 class="h-superpixel-card-footer-content"
             >
                 <select
-                    v-model="superpixel.selectedCategory"
+                    v-model="superpixelDecision.selectedCategory"
                     class="h-superpixel-card-select"
                 >
                     <option
@@ -174,7 +218,7 @@ export default Vue.extend({
                     </option>
                 </select>
             </div>
-            <div
+            <!-- <div
                 v-else
                 class="h-superpixel-card-footer-content"
             >
@@ -186,7 +230,7 @@ export default Vue.extend({
                         Class: {{ predictedCategory.label }}
                     </option>
                 </select>
-            </div>
+            </div> -->
         </div>
     </div>
 </template>
@@ -199,6 +243,7 @@ export default Vue.extend({
     background-color: white;
     border-radius: 5px;
     width: 140px;
+    min-height: 185px;
 }
 
 .h-superpixel-card--selected {
