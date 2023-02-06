@@ -59,12 +59,14 @@ export default Vue.extend({
         },
         categories: {
             handler() {
-                const annotation = this.superpixelAnnotation.get('annotation');
-                console.log('annotation', annotation);
                 if (!annotation || annotation.elements.length === 0) {
                     return;
                 }
+                const annotation = this.superpixelAnnotation.get('annotation');
                 const superpixelElement = annotation.elements[0];
+                const newCategories = JSON.parse(JSON.stringify(this.allNewCategories));
+                superpixelElement.categories = newCategories;
+                console.log('annotation', annotation);
                 console.log('element', superpixelElement);
                 // this.saveAnnotation();
                 this._updatePixelmapLayerStyle();
@@ -172,7 +174,8 @@ export default Vue.extend({
 
             const annotation = this.superpixelAnnotation.get('annotation');
             const superpixelElement = annotation.elements[0];
-            superpixelElement.values[index / 2] = categoryIndex;
+            const superpixelElementValueIndex = this.boundaries ? index / 2 : index;
+            superpixelElement.values[superpixelElementValueIndex] = categoryIndex;
             const currentCategoryIndices = this.categories[this.categoryIndex].indices;
             if (categoryIndex === 0) {
                 this.categories[this.categoryIndex].indices = _.filter(currentCategoryIndices, (i) => i !== index);
