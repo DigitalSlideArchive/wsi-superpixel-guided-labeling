@@ -6,11 +6,11 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
 const boundaryColor = 'rgba(0, 0, 0, 1)';
-const defaultColor = 'rgb(255, 0, 0)';
+const defaultNewCategoryColor = 'rgba(255, 0, 0, 1)';
 const defaultCategory = {
     label: 'default',
     fillColor: 'rgba(0, 0, 0, 0)',
-    strokeColor: 'rbga(0, 0, 0, 1)'
+    strokeColor: 'rgba(0, 0, 0, 1)'
 };
 
 
@@ -36,7 +36,7 @@ export default Vue.extend({
             superpixelElement: null,
             pixelmapRendered: false,
             currentCategoryLabel: 'New Category',
-            currentCategoryFillColor: defaultColor,
+            currentCategoryFillColor: defaultNewCategoryColor,
             lastClickEventId: 0
         };
     },
@@ -59,16 +59,14 @@ export default Vue.extend({
         },
         categories: {
             handler() {
+                const annotation = this.superpixelAnnotation.get('annotation');
+                const superpixelElement = annotation.elements[0];
                 if (!annotation || annotation.elements.length === 0) {
                     return;
                 }
-                const annotation = this.superpixelAnnotation.get('annotation');
-                const superpixelElement = annotation.elements[0];
-                const newCategories = JSON.parse(JSON.stringify(this.allNewCategories));
-                superpixelElement.categories = newCategories;
-                console.log('annotation', annotation);
-                console.log('element', superpixelElement);
-                // this.saveAnnotation();
+                // update the annotation when categories change
+                superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                this.saveAnnotation();
                 this._updatePixelmapLayerStyle();
             },
             deep: true
@@ -102,12 +100,12 @@ export default Vue.extend({
             const pixelmapElement = this.superpixelAnnotation.get('annotation').elements[0];
             _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
                 if (categoryIndex !== 0) {
-                    const labeledSuperpixels = _.chain(pixelmapElement.values)
-                        .map((value, valueIndex) => {
-                            value === categoryIndex ? valueIndex : 0;
-                        })
-                        .filter((value) => value !== 0)
-                        .result();
+                    const labeledSuperpixels = [];
+                    _.forEach(pixelmapElement.values, (value, index) => {
+                        if (value === categoryIndex) {
+                            labeledSuperpixels.push(index);
+                        }
+                    });
                     this.categories.push({
                         category: category,
                         indices: labeledSuperpixels
@@ -163,24 +161,32 @@ export default Vue.extend({
             }
             this.lastClickEventId = event.eventID;
 
-            const index = overlayElement.get('boundaries') ? (event.index - event.index % 2) : event.index;
-            const offset = this.boundaries ? 1 : 0;
+            const boundaries = overlayElement.get('boundaries');
+            const index = boundaries ? (event.index - event.index % 2) : event.index;
+            const offset = boundaries ? 1 : 0;
             const data = this.overlayLayer.data();
             // the +1 accounts for the default, reset to default if already labeled
             const categoryIndex = data[index] === 0 ? this.categoryIndex + 1 : 0;
             data[index] = data[index + offset] = categoryIndex;
-            // TODO: save new pixelmap value
             this.overlayLayer.indexModified(index, index + offset).draw();
 
+            // Save annotation
             const annotation = this.superpixelAnnotation.get('annotation');
             const superpixelElement = annotation.elements[0];
-            const superpixelElementValueIndex = this.boundaries ? index / 2 : index;
-            superpixelElement.values[superpixelElementValueIndex] = categoryIndex;
+            let newData = _.clone(data);
+            if (boundaries) {
+                newData = _.filter(newData, (d, i) => i % 2 === 0);
+            }
+            superpixelElement.values = newData;
+            this.debounceSaveAnnotation();
+
+            // Update running count
+            const elementValueIndex = boundaries ? index / 2 : index;
             const currentCategoryIndices = this.categories[this.categoryIndex].indices;
             if (categoryIndex === 0) {
-                this.categories[this.categoryIndex].indices = _.filter(currentCategoryIndices, (i) => i !== index);
+                this.categories[this.categoryIndex].indices = _.filter(currentCategoryIndices, (i) => i !== elementValueIndex);
             } else {
-                currentCategoryIndices.push(index);
+                currentCategoryIndices.push(elementValueIndex);
             }
         },
         _onPixelmapRendered() {
@@ -226,7 +232,7 @@ export default Vue.extend({
             this.categories.push({
                 category: {
                     label: 'New Category',
-                    fillColor: defaultColor,
+                    fillColor: defaultNewCategoryColor,
                     strokeColor: boundaryColor
                 },
                 indices: []
