@@ -4,8 +4,6 @@ import { exposePluginConfig } from '@girder/core/utilities/PluginUtils';
 import girderEvents from '@girder/core/events';
 
 import ActiveLearningView from './views/body/ActiveLearningView';
-import ActiveLearningSetupView from './views/body/ActiveLearningSetupView';
-import './views/HierarchyWidget';
 import './views/itemList';
 import * as WSISuperpixelGuidedLabeling from './index';
 
@@ -17,8 +15,4 @@ exposePluginConfig(pluginName, configRoute);
 
 router.route('active-learning', 'active-learning', function () {
     girderEvents.trigger('g:navigateTo', ActiveLearningView, {});
-});
-
-router.route('setup-active-learning', 'setup-active-learning', function () {
-    girderEvents.trigger('g:navigateTo', ActiveLearningSetupView, {});
 });

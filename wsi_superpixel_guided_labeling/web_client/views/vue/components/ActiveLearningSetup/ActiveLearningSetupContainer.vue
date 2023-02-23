@@ -93,7 +93,7 @@ export default Vue.extend({
             this.backboneParent.generateInitialSuperpixels(this.radius, this.magnification);
         },
         saveAnnotation() {
-            this.backboneParent._saveAnnotation();
+            this.backboneParent.saveLabelAnnotations();
         },
         createCategories() {
             // TODO handle missing default, default in wrong position
@@ -201,7 +201,7 @@ export default Vue.extend({
             this.viewerWidget = new ViewerWidget.geojs({
                 parentView: this.backboneParent,
                 el: this.$refs.map,
-                itemId: this.largeImageItem.id,
+                itemId: this.largeImageItem._id,
             });
             this.viewerWidget.on('g:imageRendered', this._drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
@@ -217,7 +217,7 @@ export default Vue.extend({
                 return;
             }
             restRequest({
-                url: `item/${this.largeImageItem.id}/tiles`
+                url: `item/${this.largeImageItem._id}/tiles`
             }).done((imageMetadata) => {
                 this._drawBaseImageLayer()
             })
