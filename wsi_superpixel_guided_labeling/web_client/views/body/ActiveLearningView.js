@@ -115,20 +115,16 @@ var ActiveLearningView = View.extend({
                     }
                 });
             } else {
-                let imageId, annotation;
-                _.forEach(Object.keys(this.annotationsByImageId), (itemId) => {
-                    if (annotation) {
-                        return;
-                    }
-                    imageId = itemId;
-                    annotation = this.annotationsByImageId[itemId]['labels'];
+                const imageNamesById = {};
+                _.forEach(Object.keys(this.imageItemsById), (imageId) => {
+                    imageNamesById[imageId] = this.imageItemsById[imageId].name;
                 });
                 vm = new ActiveLearningSetupContainer({
                     el,
                     propsData: {
                         backboneParent: this,
-                        superpixelAnnotation: annotation,
-                        largeImageItem: this.imageItemsById[imageId]
+                        imageNamesById: imageNamesById,
+                        annotationsByImageId: this.annotationsByImageId
                     }
                 });
             }

@@ -15,11 +15,13 @@ const defaultCategory = {
 
 
 export default Vue.extend({
-    props: ['backboneParent', 'largeImageItem', 'superpixelAnnotation'],
+    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     components: {
         ColorPickerInput
     },
     mounted() {
+        this.currentImageId = Object.keys(this.imageNamesById)[0];
+        this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId]['labels'];
         this.setupViewer();
     },
     created() {
@@ -37,7 +39,9 @@ export default Vue.extend({
             pixelmapRendered: false,
             currentCategoryLabel: 'New Category',
             currentCategoryFillColor: defaultNewCategoryColor,
-            lastClickEventId: 0
+            lastClickEventId: 0,
+            currentImageId: '',
+            superpixelAnnotation: null
         };
     },
     watch: {
@@ -70,6 +74,10 @@ export default Vue.extend({
                 this._updatePixelmapLayerStyle();
             },
             deep: true
+        },
+        currentImageId() {
+            this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId]['labels'];
+            this.setupViewer();
         }
     },
     computed: {
@@ -201,7 +209,7 @@ export default Vue.extend({
             this.viewerWidget = new ViewerWidget.geojs({
                 parentView: this.backboneParent,
                 el: this.$refs.map,
-                itemId: this.largeImageItem._id,
+                itemId: this.currentImageId,
             });
             this.viewerWidget.on('g:imageRendered', this._drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
@@ -217,7 +225,7 @@ export default Vue.extend({
                 return;
             }
             restRequest({
-                url: `item/${this.largeImageItem._id}/tiles`
+                url: `item/${this.currentImageId}/tiles`
             }).done((imageMetadata) => {
                 this._drawBaseImageLayer()
             })
@@ -247,7 +255,7 @@ export default Vue.extend({
 </script>
 
 <template>
-    <div class="h-active-learning-setup-container">
+    <div class="h-active-learning-container">
         <div
             class="h-al-setup-superpixels"
             v-if="!superpixelAnnotation"
@@ -331,7 +339,21 @@ export default Vue.extend({
                 >
                     Begin training
                 </button>
-
+                <div class="h-al-image-selector">
+                    <span>Image: </span>
+                    <select
+                        v-model="currentImageId"
+                        class="h-al-image-select"
+                    >
+                        <option
+                            v-for="imageId in Object.keys(imageNamesById)"
+                            :key="imageId"
+                            :value="imageId"
+                        >
+                            {{ imageNamesById[imageId] }}
+                        </option>
+                    </select>
+                </div>
             </div>
             <div class="h-setup-categories-body">
                 <div ref="map" class="h-setup-categories-map"></div>
@@ -349,7 +371,7 @@ export default Vue.extend({
 </template>
 
 <style scoped>
-.h-active-learning-setup-container {
+.h-active-learning-container {
     margin-left: 10px;
     width: 100%;
     height: 100%;
@@ -377,5 +399,9 @@ export default Vue.extend({
 .h-setup-categories-map {
     width: 67%;
     height: 100%;
+}
+.h-al-image-selector {
+    display: block;
+    padding-top: 8px;
 }
 </style>
