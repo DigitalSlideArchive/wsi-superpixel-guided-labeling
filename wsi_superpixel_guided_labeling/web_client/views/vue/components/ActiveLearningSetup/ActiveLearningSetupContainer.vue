@@ -63,13 +63,12 @@ export default Vue.extend({
         },
         categories: {
             handler() {
-                const annotation = this.superpixelAnnotation.get('annotation');
-                const superpixelElement = annotation.elements[0];
-                if (!annotation || annotation.elements.length === 0) {
-                    return;
-                }
-                // update the annotation when categories change
-                superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
+                    const superpixelElement = annotations['labels'].get('annotation').elements[0];
+                    if (superpixelElement) {
+                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                    }
+                });
                 this.saveAnnotation();
                 this._updatePixelmapLayerStyle();
             },
@@ -94,6 +93,21 @@ export default Vue.extend({
         allNewCategories() {
             const activeLearningCategories = _.map(this.categories, (category) => category.category);
             return [defaultCategory, ...activeLearningCategories];
+        },
+        labeledSuperpixelCounts() {
+            const counts = {};
+            _.forEach(this.categories, (categoryAndIndices) => {
+                const label = categoryAndIndices.category.label;
+                counts[label] = 0;
+                if (label !== 'default') {
+                    const indicesByImage = categoryAndIndices.indices;
+                    console.log(indicesByImage);
+                    _.forEach(Object.values(indicesByImage), (indicesArray) => {
+                        counts[label] += indicesArray.length;
+                    });
+                }
+            });
+            return counts;
         }
     },
     methods: {
@@ -105,20 +119,30 @@ export default Vue.extend({
         },
         createCategories() {
             // TODO handle missing default, default in wrong position
-            const pixelmapElement = this.superpixelAnnotation.get('annotation').elements[0];
-            _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
-                if (categoryIndex !== 0) {
-                    const labeledSuperpixels = [];
-                    _.forEach(pixelmapElement.values, (value, index) => {
-                        if (value === categoryIndex) {
-                            labeledSuperpixels.push(index);
+            _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
+                const pixelmapElement = annotations['labels'].get('annotation').elements[0];
+                const existingCategories = _.map(this.categories, (category) => category.category.label);
+                _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
+                    if (categoryIndex !== 0) {
+                        const labeledSuperpixels = [];
+                        _.forEach(pixelmapElement.values, (value, index) => {
+                            if (value === categoryIndex) {
+                                labeledSuperpixels.push(index);
+                            }
+                        });
+                        if (!existingCategories.includes(category.label)) {
+                            const indices = {};
+                            indices[this.currentImageId] = labeledSuperpixels;
+                            this.categories.push({
+                                category: category,
+                                indices: indices
+                            });
+                        } else if (labeledSuperpixels.length) {
+                            const categoryToUpdateIndex = _.findIndex(this.categories, (categoryAndIndices) => categoryAndIndices.category.label === category.label);
+                            this.categories[categoryToUpdateIndex]['indices'][imageId] = labeledSuperpixels;
                         }
-                    });
-                    this.categories.push({
-                        category: category,
-                        indices: labeledSuperpixels
-                    });
-                }
+                    }
+                });
             });
             if(this.categories.length === 0) {
                 this.categories.push({
@@ -127,7 +151,7 @@ export default Vue.extend({
                         fillColor: 'rgba(255, 0, 0, 1)',
                         strokeColor: boundaryColor
                     },
-                    indices: []
+                    indices: {}
                 });
             }
             this.categoryIndex = 0;
@@ -190,11 +214,15 @@ export default Vue.extend({
 
             // Update running count
             const elementValueIndex = boundaries ? index / 2 : index;
-            const currentCategoryIndices = this.categories[this.categoryIndex].indices;
+            const currentCategoryIndices = this.categories[this.categoryIndex].indices[this.currentImageId] || [];
             if (categoryIndex === 0) {
-                this.categories[this.categoryIndex].indices = _.filter(currentCategoryIndices, (i) => i !== elementValueIndex);
+                this.categories[this.categoryIndex].indices[this.currentImageId] = _.filter(currentCategoryIndices, (i) => i !== elementValueIndex);
             } else {
                 currentCategoryIndices.push(elementValueIndex);
+                this.categories[this.categoryIndex].indices[this.currentImageId] = currentCategoryIndices;
+                // Force computed properties to update
+                const newCategoryData = Object.assign({}, this.categories[this.categoryIndex]);
+                this.categories.splice(this.categoryIndex, 1, newCategoryData);
             }
         },
         _onPixelmapRendered() {
@@ -359,10 +387,10 @@ export default Vue.extend({
                 <div ref="map" class="h-setup-categories-map"></div>
                 <div class="h-category-setup-progress">
                     <div
-                        v-for="(categoryLabels, index) in categories"
+                        v-for="(label, index) in Object.keys(labeledSuperpixelCounts)"
                         :key="index"
                     >
-                        {{ categoryLabels.category.label }}: {{ categoryLabels.indices.length }} superpixels labeled
+                        {{ label }}: {{ labeledSuperpixelCounts[label] }} superpixels labeled
                     </div>
                 </div>
             </div>
