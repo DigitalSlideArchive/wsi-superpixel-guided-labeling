@@ -12,6 +12,7 @@ const defaultCategory = {
     fillColor: 'rgba(0, 0, 0, 0)',
     strokeColor: 'rgba(0, 0, 0, 1)'
 };
+const colorPattern = /^(#[0-9a-fA-F]{3,6}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*\d+,\s*\d+,\s*(\d?\.|)\d+\))$/;
 
 
 export default Vue.extend({
@@ -41,7 +42,8 @@ export default Vue.extend({
             currentCategoryFillColor: defaultNewCategoryColor,
             lastClickEventId: 0,
             currentImageId: '',
-            superpixelAnnotation: null
+            superpixelAnnotation: null,
+            hasLoaded: false
         };
     },
     watch: {
@@ -52,7 +54,7 @@ export default Vue.extend({
             this.categories[this.categoryIndex]['category']['label'] = this.currentCategoryLabel;
         },
         currentCategoryFillColor(newColor, oldColor) {
-            if (newColor === oldColor) {
+            if (newColor === oldColor || !colorPattern.test(newColor)) {
                 return;
             }
             this.categories[this.categoryIndex]['category']['fillColor'] = this.currentCategoryFillColor;
@@ -227,7 +229,10 @@ export default Vue.extend({
         },
         _onPixelmapRendered() {
             this.pixelmapRendered = true;
-            this.createCategories();
+            if (!this.hasLoaded) {
+                this.createCategories();
+                this.hasLoaded = true;
+            }
             this.viewerWidget.on('g:mouseClickAnnotationOverlay', this._handlePixelmapClicked);
         },
         _drawBaseImageLayer() {
