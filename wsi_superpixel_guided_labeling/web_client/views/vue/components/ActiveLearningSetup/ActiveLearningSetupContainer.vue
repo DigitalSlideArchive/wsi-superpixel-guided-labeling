@@ -281,7 +281,7 @@ export default Vue.extend({
             this.categoryIndex = this.categories.length - 1;
         },
         beginTraining() {
-            console.log('Beginning training...');
+            this.backboneParent.retrain(true);
         }
     }
 });

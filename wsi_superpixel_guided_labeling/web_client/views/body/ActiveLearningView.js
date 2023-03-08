@@ -292,7 +292,7 @@ var ActiveLearningView = View.extend({
         });
     },
 
-    retrain() {
+    retrain(goToNextStep) {
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
@@ -301,7 +301,7 @@ var ActiveLearningView = View.extend({
                 randominput: false
             }
         }).done((job) => {
-            this.waitForJobCompletion(job._id);
+            this.waitForJobCompletion(job._id, goToNextStep);
         });
     },
 
@@ -362,7 +362,8 @@ var ActiveLearningView = View.extend({
                     clearInterval(poll);
                     this.hideSpinner();
                     if (goToNextStep) {
-                        this.activeLearningStep = Math.min(this.activeLearningStep + 1, 2);
+                        // We might need to go back to the server for more data
+                        this.checkJobs();
                     }
                     this.lastRunJobId = jobId;
                     this.startActiveLearning();
