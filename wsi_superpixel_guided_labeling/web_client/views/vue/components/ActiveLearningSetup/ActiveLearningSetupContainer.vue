@@ -4,6 +4,7 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
+import ActiveLearningInitialSuperpixels from './ActiveLearningInitialSuperpixels.vue';
 
 const boundaryColor = 'rgba(0, 0, 0, 1)';
 const defaultNewCategoryColor = 'rgba(255, 0, 0, 1)';
@@ -18,7 +19,8 @@ const colorPattern = /^(#[0-9a-fA-F]{3,6}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*
 export default Vue.extend({
     props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     components: {
-        ColorPickerInput
+        ColorPickerInput,
+        ActiveLearningInitialSuperpixels
     },
     mounted() {
         this.currentImageId = Object.keys(this.imageNamesById)[0];
@@ -32,8 +34,6 @@ export default Vue.extend({
         return {
             categories: [],
             categoryIndex: 0,
-            radius: 100,
-            magnification: 5,
             viewerWidget: null,
             overlayLayer: null,
             superpixelElement: null,
@@ -82,9 +82,6 @@ export default Vue.extend({
         }
     },
     computed: {
-        validForm() {
-            return this.radius > 0 && this.magnification > 0;
-        },
         validCategory() {
             return true;
         },
@@ -113,9 +110,6 @@ export default Vue.extend({
         }
     },
     methods: {
-        generateInitialSuperpixels() {
-            this.backboneParent.generateInitialSuperpixels(this.radius, this.magnification);
-        },
         saveAnnotation() {
             this.backboneParent.saveLabelAnnotations();
         },
@@ -289,38 +283,10 @@ export default Vue.extend({
 
 <template>
     <div class="h-active-learning-container">
-        <div
-            class="h-al-setup-superpixels"
+        <active-learning-initial-superpixels
             v-if="!superpixelAnnotation"
-        >
-            <div class="form-group">
-                <label for="radius">Superpixel Radius</label>
-                <div class="form-group-description">Approximate superpixel radius in pixels</div>
-                <input
-                    id="radius"
-                    class="form-control input-sm h-active-learning-input"
-                    v-model.number="radius"
-                    type="number"
-                >
-            </div>
-            <div class="form-group">
-                <label for="magnification">Magnification</label>
-                <div class="form-group-description">Image magnification for superpixel generation</div>
-                <input
-                    id="magnification"
-                    class="form-control input-sm h-active-learning-input"
-                    v-model.number="magnification"
-                    type="number"
-                >
-            </div>
-            <button
-                class="btn btn-primary h-generate-superpixel-btn"
-                :disabled="!validForm"
-                @click="generateInitialSuperpixels"
-            >
-                Generate superpixels
-            </button>
-        </div>
+            :backboneParent="backboneParent"
+        />
         <div
             class="h-al-setup-categories"
             v-else
@@ -409,12 +375,6 @@ export default Vue.extend({
     width: 100%;
     height: 100%;
     position: absolute;
-}
-.h-active-learning-input {
-    width: 30%;
-}
-.h-generate-superpixel-btn {
-    display: block;
 }
 .h-al-setup-categories {
     width: 100%;
