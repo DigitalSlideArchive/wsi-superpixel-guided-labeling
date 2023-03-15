@@ -124,7 +124,8 @@ var ActiveLearningView = View.extend({
                     propsData: {
                         backboneParent: this,
                         imageNamesById: imageNamesById,
-                        annotationsByImageId: this.annotationsByImageId
+                        annotationsByImageId: this.annotationsByImageId,
+                        activeLearningStep: this.activeLearningStep
                     }
                 });
             }
