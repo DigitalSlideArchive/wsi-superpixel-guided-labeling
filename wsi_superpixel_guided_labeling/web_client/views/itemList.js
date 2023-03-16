@@ -9,17 +9,16 @@ wrap(ItemListWidget, 'render', function (render) {
     if (activeLearningFolder) {
         const largeImageItems = _.filter(this.collection.models, (model) => model.attributes.largeImage);
         // don't make the request if the button already exists
-        if (largeImageItems.length && !this.parentView.$el.find('.wsi-al-open-setup').length) {
+        if (largeImageItems.length && !this.parentView.$el.find('.wsi-al-open').length) {
             restRequest({
                 type: 'GET',
                 url: 'histomicsui/settings'
             }).then((settings) => {
-                // prevent double-rendering
-                if (!this.parentView.$el.find('.wsi-al-open-setup').length) {
+                if (!this.parentView.$el.find('.wsi-al-open').length) {
                     const webrootPath = settings['histomicsui.webroot_path'];
                     const btnContainer = this.parentView.$el.find('.g-folder-header-buttons');
                     btnContainer.prepend(
-                        `<a class="wsi-al-open-setup btn btn-sm btn-primary" role="button" href="${webrootPath}#/active-learning?folder=${this.parentView.parentModel.id}" target="_blank">
+                        `<a class="wsi-al-open btn btn-sm btn-primary" role="button" href="${webrootPath}#/active-learning?folder=${this.parentView.parentModel.id}" target="_blank">
                             <i class="icon-link-ext"></i>Active Learning
                         </a>`
                     );
