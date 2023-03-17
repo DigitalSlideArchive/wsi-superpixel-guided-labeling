@@ -13,7 +13,7 @@ const defaultCategory = {
     fillColor: 'rgba(0, 0, 0, 0)',
     strokeColor: 'rgba(0, 0, 0, 1)'
 };
-const colorPattern = /^(#[0-9a-fA-F]{3,6}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*\d+,\s*\d+,\s*(\d?\.|)\d+\))$/;
+const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*\d+,\s*\d+,\s*(\d?\.|)\d+\))$/;
 
 export default Vue.extend({
     props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
@@ -125,7 +125,7 @@ export default Vue.extend({
                 this.categories.push({
                     category: {
                         label: 'New Category',
-                        fillColor: 'rgba(255, 0, 0, 1)',
+                        fillColor: defaultNewCategoryColor,
                         strokeColor: boundaryColor
                     },
                     indices: {}
@@ -189,6 +189,10 @@ export default Vue.extend({
                 || overlayElement.get('type') !== 'pixelmap'  // Not a pixelmap event
                 || !event.mouse.buttonsDown.left              // Not a left click
             ) {
+                if (this.lastClickEventId === event.eventID) {
+                    // console.log(this.lastClickEvent || null, event)
+                    // this.lastClickEvent = event
+                }
                 return;
             }
             this.lastClickEventId = event.eventID;
@@ -280,7 +284,7 @@ export default Vue.extend({
                         superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
                     }
                 });
-                this.saveAnnotations();
+                this.debounceSaveAnnotations();
                 this.updatePixelmapLayerStyle();
             },
             deep: true
