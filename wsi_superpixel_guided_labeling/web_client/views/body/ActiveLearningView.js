@@ -7,6 +7,7 @@ import router from '@girder/histomicsui/router';
 import FolderCollection from '@girder/core/collections/FolderCollection';
 import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
 import ItemCollection from '@girder/core/collections/ItemCollection';
+import JobStatus from '@girder/jobs/JobStatus.js';
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
@@ -23,7 +24,7 @@ const activeLearningSteps = {
 var ActiveLearningView = View.extend({
     initialize(settings) {
         this.render();
-        router.setQuery(); // I don't think I should need to do this, but it doesn't work otherwise
+        router.setQuery(); // Ensure we can get the folder from the router
         this.trainingDataFolderId = router.getQuery('folder');
         // TODO create a plugin-level settings for these
         this.activeLearningJobUrl = 'dsarchive_superpixel_latest/SuperpixelClassification';
@@ -60,7 +61,7 @@ var ActiveLearningView = View.extend({
             const previousJobs = _.filter(jobs, (job) => {
                 const kwargs = job.kwargs || {};
                 const containerArgs = kwargs.container_args || [];
-                const runningOrSuccess = job.status === 3 || job.status === 2;
+                const runningOrSuccess = job.status === JobStatus.SUCCESS || job.status === JobStatus.RUNNING;
                 return runningOrSuccess && containerArgs.includes(this.trainingDataFolderId);
             });
             this.activeLearningStep = Math.min(previousJobs.length, 2);
@@ -68,7 +69,7 @@ var ActiveLearningView = View.extend({
                 this.lastRunJobId = previousJobs[0]._id || '';
             }
 
-            if (!previousJobs[0] || previousJobs[0].status !== 2) {
+            if (!previousJobs[0] || previousJobs[0].status !== JobStatus.RUNNING) {
                 this.startActiveLearning();
             } else {
                 // There is a job running
@@ -81,7 +82,6 @@ var ActiveLearningView = View.extend({
         if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
             this.mountVueComponent();
         } else {
-            // this.activeLearningStep === activeLearningSteps.GuidedLabling
             this.getAnnotations();
         }
     },
@@ -265,6 +265,7 @@ var ActiveLearningView = View.extend({
                 superPixelConfidenceData.push({
                     index: index,
                     confidence: score,
+                    labelingOrderMetric: score,
                     imageId: imageId,
                     superpixelImageId: superpixelImageId,
                     boundaries: boundaries,
@@ -277,7 +278,7 @@ var ActiveLearningView = View.extend({
                 });
             });
         });
-        this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'confidence');
+        this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'labelingOrderMetric');
     },
 
     /*****************************************************************
@@ -359,7 +360,7 @@ var ActiveLearningView = View.extend({
             restRequest({
                 url: `job/${jobId}`
             }).done((update) => {
-                if (update.status === 3) {
+                if (update.status === JobStatus.SUCCESS) {
                     clearInterval(poll);
                     this.hideSpinner();
                     if (goToNextStep) {
