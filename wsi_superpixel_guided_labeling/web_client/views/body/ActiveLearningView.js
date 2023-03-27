@@ -357,6 +357,9 @@ var ActiveLearningView = View.extend({
     waitForJobCompletion(jobId, goToNextStep) {
         this.showSpinner();
         const poll = setInterval(() => {
+            if (!this.$('.h-active-learning-container').get(0)) {
+                clearInterval(poll);
+            }
             restRequest({
                 url: `job/${jobId}`
             }).done((update) => {
