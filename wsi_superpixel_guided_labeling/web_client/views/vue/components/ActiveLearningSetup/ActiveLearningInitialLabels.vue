@@ -189,10 +189,6 @@ export default Vue.extend({
                 || overlayElement.get('type') !== 'pixelmap'  // Not a pixelmap event
                 || !event.mouse.buttonsDown.left              // Not a left click
             ) {
-                if (this.lastClickEventId === event.eventID) {
-                    // console.log(this.lastClickEvent || null, event)
-                    // this.lastClickEvent = event
-                }
                 return;
             }
             this.lastClickEventId = event.eventID;
@@ -206,17 +202,19 @@ export default Vue.extend({
             data[index] = data[index + offset] = categoryIndex;
             this.overlayLayer.indexModified(index, index + offset).draw();
 
-            // Save annotation
+            this.saveNewPixelmapData(boundaries, _.clone(data));
+            this.updateRunningLabelCounts(boundaries, index, categoryIndex);
+        },
+        saveNewPixelmapData(boundaries, data) {
             const annotation = this.superpixelAnnotation.get('annotation');
             const superpixelElement = annotation.elements[0];
-            let newData = _.clone(data);
             if (boundaries) {
-                newData = _.filter(newData, (d, i) => i % 2 === 0);
+                data = _.filter(data, (d, i) => i % 2 === 0);
             }
-            superpixelElement.values = newData;
+            superpixelElement.values = data;
             this.debounceSaveAnnotations();
-
-            // Update running count
+        },
+        updateRunningLabelCounts(boundaries, index, categoryIndex) {
             const elementValueIndex = boundaries ? index / 2 : index;
             const currentCategoryIndices = this.categories[this.categoryIndex].indices[this.currentImageId] || [];
             if (categoryIndex === 0) {
