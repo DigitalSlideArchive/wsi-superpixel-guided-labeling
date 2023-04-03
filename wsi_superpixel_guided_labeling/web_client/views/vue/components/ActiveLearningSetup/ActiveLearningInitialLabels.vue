@@ -45,7 +45,6 @@ export default Vue.extend({
             viewerWidget: null,
             overlayLayer: null,
             pixelmapRendered: false,
-            lastClickEventId: 0,
         }
     },
     computed: {
@@ -185,13 +184,11 @@ export default Vue.extend({
         },
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
-                this.lastClickEventId === event.eventID       // Duplicate event firing
-                || overlayElement.get('type') !== 'pixelmap'  // Not a pixelmap event
+                overlayElement.get('type') !== 'pixelmap'  // Not a pixelmap event
                 || !event.mouse.buttonsDown.left              // Not a left click
             ) {
                 return;
             }
-            this.lastClickEventId = event.eventID;
 
             const boundaries = overlayElement.get('boundaries');
             const index = boundaries ? (event.index - event.index % 2) : event.index;
