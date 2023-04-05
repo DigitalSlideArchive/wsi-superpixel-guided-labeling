@@ -307,14 +307,14 @@ var ActiveLearningView = View.extend({
         });
     },
 
-    triggerJob(data) {
+    triggerJob(data, goToNextStep) {
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/run`,
             data: data
         }).done((response) => {
             const newJobId = response._id;
-            this.waitForJobCompletion(newJobId);
+            this.waitForJobCompletion(newJobId, goToNextStep);
         });
     },
 
@@ -335,7 +335,7 @@ var ActiveLearningView = View.extend({
             girderApiUrl: '',
             girderToken: ''
         };
-        this.triggerJob(data);
+        this.triggerJob(data, true);
     },
 
     /****************************************************************
