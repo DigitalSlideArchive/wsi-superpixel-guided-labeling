@@ -265,7 +265,7 @@ var ActiveLearningView = View.extend({
                 superPixelConfidenceData.push({
                     index: index,
                     confidence: score,
-                    labelingOrderMetric: score,
+                    certainty: score,
                     imageId: imageId,
                     superpixelImageId: superpixelImageId,
                     boundaries: boundaries,
@@ -278,7 +278,7 @@ var ActiveLearningView = View.extend({
                 });
             });
         });
-        this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'labelingOrderMetric');
+        this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'certainty');
     },
 
     /*****************************************************************
