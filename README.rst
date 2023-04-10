@@ -84,19 +84,27 @@ To enable launching the Active Learning UI from the folder, you'll need to set m
 .. image:: docs/screenshots/active_learning_metadata.png
    :alt: Metadata to add. Key: active_learning, Value: true
 
-Upload the whole slide images you'd like to use for active learning to this folder, using the green upload button. Then, open any of the images in HistomicsUI using the link next to the image name.
+Upload the whole slide images you'd like to use for active learning to this folder, using the green upload button. Once your images have been uploaded, the ``Active Learning`` button should appear in the top right. If not, try refreshing the page. Click the ``Active Learning`` button to begin generating features and models for active learning.
 
-.. image:: docs/screenshots/histomics_ui_link.png
-   :alt: Launch link for HistomicsUI from the Data folder
+.. image:: docs/screenshots/active_learning_button.png
+    :alt: Button to launch the Active Learning workflow
 
-Next we will generate the superpixel features and pixelmap images using the slicer CLI image. From the HistomicsUI page, click on ``Analyses`` at the top right of the page. Then click ``dsarchive/superpixel > latest > SuperpixelClassification``. Look at the sidebar, which allows you to set the parameters for the Superpixel Classification algorithm. *Image Directory*, *Feature Directory*, *Model Directory*, and *Annotation Directory* should be automatically populated. You can change the value of *Labels* to reflect what you are trying to classify in your images. Check the *Random Input* box to start with some initial labels. Scroll up and click ``Submit``. Depending on the host machine and the number and size of images, this job could take some time.
+The first step is to generate the superpixels and feature vectors. Using the form, you can control the approximate size of the superpixels generated (default is 100 pixels), and the magnification level at which to generate the superpixels (default is 5). Once you have chosen values for these fields, click the ``Generate Superpixels`` button. This will start a background process which can be monitored from the Girder Admin Console. This job could take some time to finish, and will take longer the more images you have in your folder. Feel free to close the page or navigate away while the work is being done. If you remain on the page, you will be taken to the next step automatically once the job has finished.
 
-.. image:: docs/screenshots/histomics_ui_job_sidebar.png
+.. image:: docs/screenshots/superpixel_generation.png
+    :alt: The form for superpixel generation
 
-Once the job is complete, return to the **Data** folder, and click the ``Active Learning`` button in the top right.
+Once superpixels and features have been generated, you will be able to create a set of categories for the superpixels, and label superpixels across your dataset to begin training the active learning models.
+
+.. image:: docs/screenshots/initial_labels.png
+    :alt: The initial label user interface
+
+This view allows users to create new categories, and use those categories to label superpixels by interacting with the image viewer. The top form and buttons underneath are for creating the categories, and navigating between them. Right below that, the ``Image`` drop down menu allows switching the current image shown in the image viewer. Clicking on a superpixel in the image viewer will label that superpixel with the currently displayed category. Clicking again on that superpixel will remove the label. A running total of superpixels labeled per category is available to the right of the image viewer.
+
+Clicking on ``Begin Training`` will kick off a background process to begin trainging the active learning model using the labels provided in this step. Once that task is completed, you will be presented with a new view containing predictions as described below.
 
 .. image:: docs/screenshots/active_learning_view.png
-   :alt: The active learning view
+    :alt: The active learning view
 
 From here, you can label superpixel features using the film strip area at the bottom to retrain the model. Each block of the film strip depicts one superpixel. The bar at the top of each block shows the most recent prediction. Hovering over this section shows the confidence of that prediction. The superpixels shown are sorted so that users are shown the least confident predictions first. Users can add a label by either agreeing or disagreeing by using the radion buttons. If disagree is chosen, the drop down menu becomes active, and users can add a label by selecting the correct category from the drop down menu.
 
