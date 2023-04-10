@@ -139,7 +139,7 @@ export default Vue.extend({
             } else if (categoryNumber <= this.superpixelDecision.categories.length) {
                 // Be extra careful to select the correct category
                 const newCategory = store.categories[categoryNumber];
-                const newCategoryIndex = this.categoryIndex(newCategory.label)
+                const newCategoryIndex = this.categoryIndex(newCategory.label);
                 this.superpixelDecision.selectedCategory = newCategoryIndex;
                 if (newCategoryIndex === this.superpixelDecision.prediction) {
                     this.superpixelDecision.agreeChoice = 'Yes';

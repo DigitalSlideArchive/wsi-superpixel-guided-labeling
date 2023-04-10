@@ -46,16 +46,16 @@ export default Vue.extend({
         },
         selectedIndex() {
             return store.selectedIndex;
-       },
-       page() {
-           return store.page;
-       },
-       changeLog() {
-           return store.changeLog;
-       },
-       predictions() {
-           return store.predictions;
-       }
+        },
+        page() {
+            return store.page;
+        },
+        changeLog() {
+            return store.changeLog;
+        },
+        predictions() {
+            return store.predictions;
+        }
     },
     methods: {
         updateMapBoundsForSelection() {
@@ -178,7 +178,16 @@ export default Vue.extend({
         store.currentAverageConfidence = this.currentAverageConfidence;
 
         const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
-        store.categories = predictionAnnotation.get('annotation').elements[0].categories;
+        const predictionCategories = predictionAnnotation.get('annotation').elements[0].categories;
+        const nonDefaultPredictionsCategories = _.filter(predictionCategories, (category) => category.label !== 'default');
+        store.categories = [
+            {
+                label: 'default',
+                fillColor: 'rgba(0, 0, 0, 0)',
+                strokeColor: 'rgb(0, 0, 0)'
+            },
+            ...nonDefaultPredictionsCategories
+        ];
 
         const startIndex = 0;
         const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
