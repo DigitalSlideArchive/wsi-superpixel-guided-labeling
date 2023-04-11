@@ -21,7 +21,8 @@
         "webpack": "webpack.helper"
     },
     "scripts": {
-        "lint": "eslint . && pug-lint . && stylint"
+        "lint": "eslint . && pug-lint . && stylint",
+        "format": "eslint --cache --fix ."
     },
     "dependencies": {
         "@vue/compiler-sfc": "^3.2.33",
