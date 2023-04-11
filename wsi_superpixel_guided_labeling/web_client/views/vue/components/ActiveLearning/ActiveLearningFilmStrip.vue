@@ -32,6 +32,8 @@ export default {
             return store.backboneParent;
         }
     },
+    mounted() {
+    },
     methods: {
         previousPage() {
             store.page = store.page - 1;
@@ -55,63 +57,61 @@ export default {
         triggerRetrain() {
             this.backboneParent.retrain();
         }
-    },
-    mounted() {
     }
-}
+};
 </script>
 
 <template>
-    <div class="h-filmstrip">
-        <!-- previous button -->
-        <button
-            class="h-filmstrip-page-btn h-filmstrip-page-btn--prev btn"
-            @click="previousPage"
-            :disabled="page === 0"
-        >
-            <i class="icon-left-circled h-filmstrip-page-icon"></i>
-        </button>
-        <active-learning-film-strip-card
-            v-for="superpixel, index in superpixelsToDisplay"
-            :key="`${superpixel.imageId}_${superpixel.index}`"
-            :index="index"
-        />
-        <button
-            class="h-filmstrip-page-btn h-filmstrip-page-btn--next btn"
-            @click="nextPage"
-            :disabled="page === maxPage"
-        >
-            <i class="icon-right-circled h-filmstrip-page-icon"></i>
-        </button>
-        <div class="h-filmstrip-workflow-btns">
-            <active-learning-stats />
-            <button
-                class="h-filmstrip-workflow-btn btn btn-primary"
-                title="Show or hide the most recent predictions"
-                @click="togglePredictions"
-            >
-                Show/hide predictions
-            </button>
-            <button
-                class="h-filmstrip-workflow-btn btn btn-primary"
-                @click="resetAll"
-            >
-                Reset All
-            </button>
-            <button
-                class="h-filmstrip-workflow-btn btn btn-primary"
-                @click="agreeAll"
-            >
-                Agree to All
-            </button>
-            <button
-                class="h-filmstrip-workflow-btn btn btn-success"
-                @click="triggerRetrain"
-            >
-                Retrain
-            </button>
-        </div>
+  <div class="h-filmstrip">
+    <!-- previous button -->
+    <button
+      class="h-filmstrip-page-btn h-filmstrip-page-btn--prev btn"
+      :disabled="page === 0"
+      @click="previousPage"
+    >
+      <i class="icon-left-circled h-filmstrip-page-icon" />
+    </button>
+    <active-learning-film-strip-card
+      v-for="superpixel, index in superpixelsToDisplay"
+      :key="`${superpixel.imageId}_${superpixel.index}`"
+      :index="index"
+    />
+    <button
+      class="h-filmstrip-page-btn h-filmstrip-page-btn--next btn"
+      :disabled="page === maxPage"
+      @click="nextPage"
+    >
+      <i class="icon-right-circled h-filmstrip-page-icon" />
+    </button>
+    <div class="h-filmstrip-workflow-btns">
+      <active-learning-stats />
+      <button
+        class="h-filmstrip-workflow-btn btn btn-primary"
+        title="Show or hide the most recent predictions"
+        @click="togglePredictions"
+      >
+        Show/hide predictions
+      </button>
+      <button
+        class="h-filmstrip-workflow-btn btn btn-primary"
+        @click="resetAll"
+      >
+        Reset All
+      </button>
+      <button
+        class="h-filmstrip-workflow-btn btn btn-primary"
+        @click="agreeAll"
+      >
+        Agree to All
+      </button>
+      <button
+        class="h-filmstrip-workflow-btn btn btn-success"
+        @click="triggerRetrain"
+      >
+        Retrain
+      </button>
     </div>
+  </div>
 </template>
 
 <style scoped>

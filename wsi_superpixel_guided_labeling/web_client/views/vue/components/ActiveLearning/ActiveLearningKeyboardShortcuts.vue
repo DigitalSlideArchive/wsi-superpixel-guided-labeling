@@ -1,7 +1,9 @@
 <script>
 import Vue from 'vue';
-import { store, previousCard, nextCard } from './store.js';
+
 import _ from 'underscore';
+
+import { store, previousCard, nextCard } from './store.js';
 
 export default Vue.extend({
     data() {
@@ -20,6 +22,9 @@ export default Vue.extend({
             });
         }
     },
+    mounted() {
+        window.addEventListener('keydown', this.keydownListener);
+    },
     methods: {
         keydownListener(event) {
             // If support for > 9 categories is necessary, this will
@@ -29,7 +34,7 @@ export default Vue.extend({
                 store.lastCategorySelected = parseInt(event.key);
                 return;
             }
-            switch(event.key) {
+            switch (event.key) {
                 case 'ArrowRight':
                     nextCard();
                     break;
@@ -38,50 +43,47 @@ export default Vue.extend({
                     break;
             }
         }
-    },
-    mounted() {
-        window.addEventListener('keydown', this.keydownListener);
     }
 });
 </script>
 
 <template>
-    <div class="h-hotkeys-container">
-        <div class="h-hotkeys-header">
-        <h5>Hotkeys</h5>
-        <button
-            class="h-hotkeys-toggle"
-            @click="showShortcuts = !showShortcuts"
-        >
-            <i
-                v-if="showShortcuts"
-                class="icon-up-open"
-            />
-            <i
-                v-else
-                class="icon-down-open"
-            />
-        </button>
-        </div>
-        <div v-if="showShortcuts">
-            <h6>Navigation</h6>
-            <span class="h-hotkey">
-                Right Arrow - Next Superpixel
-            </span>
-            <span class="h-hotkey">
-                Left Arrow - Previous Superpixel
-            </span>
-            <h6>Labeling</h6>
-            <span class="h-hotkey">0 - Reset selection</span>
-            <span
-                class="h-hotkey"
-                v-for="(category, index) in nonDefaultCategories"
-                :key="category.label"
-            >
-                {{ index + 1}} - {{ category.label }}
-            </span>
-        </div>
+  <div class="h-hotkeys-container">
+    <div class="h-hotkeys-header">
+      <h5>Hotkeys</h5>
+      <button
+        class="h-hotkeys-toggle"
+        @click="showShortcuts = !showShortcuts"
+      >
+        <i
+          v-if="showShortcuts"
+          class="icon-up-open"
+        />
+        <i
+          v-else
+          class="icon-down-open"
+        />
+      </button>
     </div>
+    <div v-if="showShortcuts">
+      <h6>Navigation</h6>
+      <span class="h-hotkey">
+        Right Arrow - Next Superpixel
+      </span>
+      <span class="h-hotkey">
+        Left Arrow - Previous Superpixel
+      </span>
+      <h6>Labeling</h6>
+      <span class="h-hotkey">0 - Reset selection</span>
+      <span
+        v-for="(category, index) in nonDefaultCategories"
+        :key="category.label"
+        class="h-hotkey"
+      >
+        {{ index + 1 }} - {{ category.label }}
+      </span>
+    </div>
+  </div>
 </template>
 
 <style scoped>

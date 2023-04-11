@@ -21,7 +21,7 @@ const activeLearningSteps = {
     GuidedLabeling: 2
 };
 
-var ActiveLearningView = View.extend({
+const ActiveLearningView = View.extend({
     initialize(settings) {
         this.render();
         router.setQuery(); // Ensure we can get the folder from the router
@@ -104,7 +104,7 @@ var ActiveLearningView = View.extend({
                 vm = new ActiveLearningContainer({
                     el,
                     propsData: {
-                        router: router,
+                        router,
                         trainingDataFolderId: this.trainingDataFolderId,
                         annotationsByImageId: this.annotationsByImageId,
                         annotationBaseName: this.annotationBaseName,
@@ -123,7 +123,7 @@ var ActiveLearningView = View.extend({
                     el,
                     propsData: {
                         backboneParent: this,
-                        imageNamesById: imageNamesById,
+                        imageNamesById,
                         annotationsByImageId: this.annotationsByImageId,
                         activeLearningStep: this.activeLearningStep
                     }
@@ -263,18 +263,18 @@ var ActiveLearningView = View.extend({
                 const agreeChoice = (labelValues[index] === 0) ? undefined : (labelValues[index] === pixelmapValues[index]) ? 'Yes' : 'No';
                 const selectedCategory = (labelValues[index] === 0) ? undefined : labelValues[index];
                 superPixelConfidenceData.push({
-                    index: index,
+                    index,
                     confidence: score,
                     certainty: score,
-                    imageId: imageId,
-                    superpixelImageId: superpixelImageId,
-                    boundaries: boundaries,
-                    scale: scale,
-                    bbox: bbox,
+                    imageId,
+                    superpixelImageId,
+                    boundaries,
+                    scale,
+                    bbox,
                     prediction: pixelmapValues[index],
                     categories: superpixelCategories,
-                    agreeChoice: agreeChoice,
-                    selectedCategory: selectedCategory
+                    agreeChoice,
+                    selectedCategory
                 });
             });
         });
@@ -311,7 +311,7 @@ var ActiveLearningView = View.extend({
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/run`,
-            data: data
+            data
         }).done((response) => {
             const newJobId = response._id;
             this.waitForJobCompletion(newJobId, goToNextStep);
@@ -328,8 +328,8 @@ var ActiveLearningView = View.extend({
             images: this.trainingDataFolderId,
             annotationDir: annotationsFolderId,
             features: featuresFolderId,
-            magnification: magnification,
-            radius: radius,
+            magnification,
+            radius,
             labels: JSON.stringify([]),
             modeldir: modelsFolderId,
             girderApiUrl: '',

@@ -5,7 +5,7 @@ import { restRequest } from '@girder/core/rest';
 
 wrap(ItemListWidget, 'render', function (render) {
     render.call(this);
-    const activeLearningFolder = this.parentView.parentModel.get('meta')['active_learning'];
+    const activeLearningFolder = this.parentView.parentModel.get('meta').active_learning;
     if (activeLearningFolder) {
         const largeImageItems = _.filter(this.collection.models, (model) => model.attributes.largeImage);
         // don't make the request if the button already exists

@@ -8,7 +8,7 @@ export default Vue.extend({
     props: ['index'],
     computed: {
         superpixelDecision() {
-            return store.superpixelsToDisplay[this.index]
+            return store.superpixelsToDisplay[this.index];
         },
         agreeChoice() {
             return this.superpixelDecision.agreeChoice;
@@ -20,7 +20,7 @@ export default Vue.extend({
             return this.superpixelDecision.selectedCategory;
         },
         labelAnnotation() {
-            return store.annotationsByImageId[this.superpixelDecision.imageId]['labels'];
+            return store.annotationsByImageId[this.superpixelDecision.imageId].labels;
         },
         apiRoot() {
             return store.apiRoot;
@@ -91,22 +91,6 @@ export default Vue.extend({
             return `${this.apiRoot}/item/${imageId}/tiles/region${params}${functionParam}`;
         }
     },
-
-    methods: {
-        selectSuperpixelCard() {
-            store.selectedIndex = this.index;
-        },
-        onCategorySelectChange() {
-            store.changeLog.push(this.superpixelDecision);
-        },
-        /**
-         * Have a way to map between different lists of categories so that when we set the category for
-         * the current superpixel, we use the right index.
-         */
-        categoryIndex(label) {
-            return _.map(this.superpixelDecision.categories, (category) => category.label).indexOf(label);
-        }
-    },
     watch: {
         agreeChoice() {
             if (this.agreeChoice === 'Yes') {
@@ -152,73 +136,89 @@ export default Vue.extend({
         }
     },
     mounted() {
-        if(!this.superpixelDecision.selectedCategory) {
-           this.superpixelDecision.selectedCategory = 0;
+        if (!this.superpixelDecision.selectedCategory) {
+            this.superpixelDecision.selectedCategory = 0;
+        }
+    },
+
+    methods: {
+        selectSuperpixelCard() {
+            store.selectedIndex = this.index;
+        },
+        onCategorySelectChange() {
+            store.changeLog.push(this.superpixelDecision);
+        },
+        /**
+         * Have a way to map between different lists of categories so that when we set the category for
+         * the current superpixel, we use the right index.
+         */
+        categoryIndex(label) {
+            return _.map(this.superpixelDecision.categories, (category) => category.label).indexOf(label);
         }
     }
 });
 </script>
 
 <template>
-    <div :class="{'h-superpixel-card': true, 'h-superpixel-card--selected': isSelected }">
-        <div
-            class="h-superpixel-card-header"
-            :style="headerStyle"
-            :title="headerConfidence"
+  <div :class="{'h-superpixel-card': true, 'h-superpixel-card--selected': isSelected }">
+    <div
+      class="h-superpixel-card-header"
+      :style="headerStyle"
+      :title="headerConfidence"
+    >
+      {{ headerTitle }}
+    </div>
+    <div class="h-superpixel-body">
+      <div
+        class="h-superpixel-container"
+        @click="selectSuperpixelCard"
+      >
+        <img
+          class="h-superpixel-img h-wsi-region"
+          :src="wsiRegionUrl"
         >
-            {{ headerTitle }}
-        </div>
-        <div class="h-superpixel-body">
-            <div
-                class="h-superpixel-container"
-                @click="selectSuperpixelCard"
-            >
-                <img
-                    class="h-superpixel-img h-wsi-region"
-                    :src="wsiRegionUrl"
-                />
-                <img
-                    class="h-superpixel-img h-superpixel-region"
-                    :src="superpixelRegionUrl"
-                />
-            </div>
-        </div>
-        <div class="h-superpixel-card-footer">
-            <div class="h-superpixel-card-agree h-superpixel-card-footer-content">
-                <label>Agree? </label>
-                <label for="radio-yes">Yes</label>
-                <input
-                    id="radio-yes"
-                    type="radio"
-                    value="Yes"
-                    v-model="superpixelDecision.agreeChoice"
-                />
-                <label for="radio-no">No</label>
-                <input
-                    id="radio-no"
-                    type="radio"
-                    value="No"
-                    v-model="superpixelDecision.agreeChoice"
-                />
-            </div>
-            <div
-                v-if="superpixelDecision.agreeChoice === 'No'"
-                class="h-superpixel-card-footer-content"
-            >
-                <select
-                    v-model="superpixelDecision.selectedCategory"
-                    class="h-superpixel-card-select"
-                >
-                    <option
-                        v-for="category in validNewCategories"
-                        :key="category.label"
-                        :value="categoryIndex(category.label)"
-                    >
-                        Class: {{ category.label }}
-                    </option>
-                </select>
-            </div>
-            <!-- <div
+        <img
+          class="h-superpixel-img h-superpixel-region"
+          :src="superpixelRegionUrl"
+        >
+      </div>
+    </div>
+    <div class="h-superpixel-card-footer">
+      <div class="h-superpixel-card-agree h-superpixel-card-footer-content">
+        <label>Agree? </label>
+        <label for="radio-yes">Yes</label>
+        <input
+          id="radio-yes"
+          v-model="superpixelDecision.agreeChoice"
+          type="radio"
+          value="Yes"
+        >
+        <label for="radio-no">No</label>
+        <input
+          id="radio-no"
+          v-model="superpixelDecision.agreeChoice"
+          type="radio"
+          value="No"
+        >
+      </div>
+      <div
+        v-if="superpixelDecision.agreeChoice === 'No'"
+        class="h-superpixel-card-footer-content"
+      >
+        <select
+          v-model="superpixelDecision.selectedCategory"
+          class="h-superpixel-card-select"
+        >
+          <option
+            v-for="category in validNewCategories"
+            :key="category.label"
+            :value="categoryIndex(category.label)"
+          >
+            Class: {{ category.label }}
+          </option>
+        </select>
+      </div>
+      <!-- <div
                 v-else
                 class="h-superpixel-card-footer-content"
             >
@@ -231,8 +231,8 @@ export default Vue.extend({
                     </option>
                 </select>
             </div> -->
-        </div>
     </div>
+  </div>
 </template>
 
 <style scoped>

@@ -16,18 +16,10 @@ const defaultCategory = {
 const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*\d+,\s*\d+,\s*(\d?\.|)\d+\))$/;
 
 export default Vue.extend({
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     components: {
         ColorPickerInput
     },
-    mounted() {
-        this.currentImageId = Object.keys(this.imageNamesById)[0];
-        this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
-        this.setupViewer();
-    },
-    created() {
-        this.debounceSaveAnnotations = _.debounce(this.saveAnnotations, 250);
-    },
+    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     data() {
         return {
             hasLoaded: false,
@@ -44,8 +36,8 @@ export default Vue.extend({
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
             overlayLayer: null,
-            pixelmapRendered: false,
-        }
+            pixelmapRendered: false
+        };
     },
     computed: {
         usingBoundaries() {
@@ -70,6 +62,49 @@ export default Vue.extend({
             return counts;
         }
     },
+    watch: {
+        currentCategoryLabel(newLabel, oldLabel) {
+            if (newLabel === oldLabel) {
+                return;
+            }
+            this.categories[this.categoryIndex].category.label = this.currentCategoryLabel;
+        },
+        currentCategoryFillColor(newColor, oldColor) {
+            if (newColor === oldColor || !colorPattern.test(newColor)) {
+                return;
+            }
+            this.categories[this.categoryIndex].category.fillColor = this.currentCategoryFillColor;
+        },
+        categoryIndex() {
+            this.currentCategoryLabel = this.categories[this.categoryIndex].category.label;
+            this.currentCategoryFillColor = this.categories[this.categoryIndex].category.fillColor;
+        },
+        categories: {
+            handler() {
+                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
+                    const superpixelElement = annotations.labels.get('annotation').elements[0];
+                    if (superpixelElement) {
+                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                    }
+                });
+                this.debounceSaveAnnotations();
+                this.updatePixelmapLayerStyle();
+            },
+            deep: true
+        },
+        currentImageId() {
+            this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+            this.setupViewer();
+        }
+    },
+    mounted() {
+        this.currentImageId = Object.keys(this.imageNamesById)[0];
+        this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+        this.setupViewer();
+    },
+    created() {
+        this.debounceSaveAnnotations = _.debounce(this.saveAnnotations, 250);
+    },
     methods: {
         /***********************************
          * IMAGE VIEWER AND CATEGORY SETUP *
@@ -88,7 +123,7 @@ export default Vue.extend({
             if (this.viewerWidget) {
                 this.viewerWidget.destroy();
             }
-            this.viewerWidget = new ViewerWidget.geojs({
+            this.viewerWidget = new ViewerWidget.geojs({ // eslint-disable-line new-cap
                 parentView: this.backboneParent,
                 el: this.$refs.map,
                 itemId: this.currentImageId
@@ -116,11 +151,11 @@ export default Vue.extend({
         createCategories() {
             // TODO handle missing default, default in wrong position
             _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
-                const pixelmapElement = annotations['labels'].get('annotation').elements[0];
+                const pixelmapElement = annotations.labels.get('annotation').elements[0];
                 const existingCategories = _.map(this.categories, (category) => category.category.label);
                 this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
             });
-            if(this.categories.length === 0) {
+            if (this.categories.length === 0) {
                 this.categories.push({
                     category: {
                         label: 'New Category',
@@ -131,8 +166,8 @@ export default Vue.extend({
                 });
             }
             this.categoryIndex = 0;
-            this.currentCategoryLabel = this.categories[0]['category']['label'];
-            this.currentCategoryFillColor = this.categories[0]['category']['fillColor'];
+            this.currentCategoryLabel = this.categories[0].category.label;
+            this.currentCategoryFillColor = this.categories[0].category.fillColor;
         },
         createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories) {
             _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
@@ -151,12 +186,12 @@ export default Vue.extend({
                         const indices = {};
                         indices[this.currentImageId] = labeledSuperpixels;
                         this.categories.push({
-                            category: category,
-                            indices: indices
+                            category,
+                            indices
                         });
                     } else if (labeledSuperpixels.length) {
                         const categoryToUpdateIndex = _.findIndex(this.categories, (categoryAndIndices) => categoryAndIndices.category.label === category.label);
-                        this.categories[categoryToUpdateIndex]['indices'][imageId] = labeledSuperpixels;
+                        this.categories[categoryToUpdateIndex].indices[imageId] = labeledSuperpixels;
                     }
                 }
             });
@@ -184,8 +219,8 @@ export default Vue.extend({
         },
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
-                overlayElement.get('type') !== 'pixelmap'  // Not a pixelmap event
-                || !event.mouse.buttonsDown.left              // Not a left click
+                overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
+                !event.mouse.buttonsDown.left // Not a left click
             ) {
                 return;
             }
@@ -253,122 +288,90 @@ export default Vue.extend({
         saveAnnotations() {
             this.backboneParent.saveLabelAnnotations();
         }
-    },
-    watch: {
-        currentCategoryLabel(newLabel, oldLabel) {
-            if (newLabel === oldLabel) {
-                return;
-            }
-            this.categories[this.categoryIndex]['category']['label'] = this.currentCategoryLabel;
-        },
-        currentCategoryFillColor(newColor, oldColor) {
-            if (newColor === oldColor || !colorPattern.test(newColor)) {
-                return;
-            }
-            this.categories[this.categoryIndex]['category']['fillColor'] = this.currentCategoryFillColor;
-        },
-        categoryIndex() {
-            this.currentCategoryLabel = this.categories[this.categoryIndex]['category']['label'];
-            this.currentCategoryFillColor = this.categories[this.categoryIndex]['category']['fillColor'];
-        },
-        categories: {
-            handler() {
-                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
-                    const superpixelElement = annotations['labels'].get('annotation').elements[0];
-                    if (superpixelElement) {
-                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
-                    }
-                });
-                this.debounceSaveAnnotations();
-                this.updatePixelmapLayerStyle();
-            },
-            deep: true
-        },
-        currentImageId() {
-            this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId]['labels'];
-            this.setupViewer();
-        }
     }
 });
 </script>
 
 <template>
-    <div class="h-al-setup-categories">
-        <div
-            v-if="pixelmapRendered"
-            class="h-add-new-category"
+  <div class="h-al-setup-categories">
+    <div
+      v-if="pixelmapRendered"
+      class="h-add-new-category"
+    >
+      <div class="form-group">
+        <label for="category-label">Label</label>
+        <input
+          id="category-label"
+          v-model.lazy="currentCategoryLabel"
+          class="form-control input-sm h-active-learning-input"
         >
-            <div class="form-group">
-                <label for="category-label">Label</label>
-                <input
-                    id="category-label"
-                    class="form-control input-sm h-active-learning-input"
-                    v-model.lazy="currentCategoryLabel"
-                >
-            </div>
-            <div class="form-group">
-                <label for="fill-color">Fill Color</label>
-                <color-picker-input
-                    :key="categoryIndex"
-                    style="width: 30%"
-                    :color="currentCategoryFillColor"
-                    v-model="currentCategoryFillColor"
-                />
-            </div>
-            <button
-                class="btn btn-primary h-previous-category-btn"
-                :disabled="categoryIndex === 0"
-                @click="previousCategory"
-            >
-                Previous
-            </button>
-            <button
-                class="btn btn-primary h-next-category-btn"
-                :disabled="categoryIndex >= categories.length - 1"
-                @click="nextCategory"
-            >
-                Next
-            </button>
-            <button
-                class="btn btn-primary h-add-category-btn"
-                @click="addCategory"
-            >
-                Add Category
-            </button>
-            <button
-                class="btn btn-primary h-start-training-btn"
-                @click="beginTraining"
-            >
-                Begin training
-            </button>
-            <div class="h-al-image-selector">
-                <span>Image: </span>
-                <select
-                    v-model="currentImageId"
-                    class="h-al-image-select"
-                >
-                    <option
-                        v-for="imageId in Object.keys(imageNamesById)"
-                        :key="imageId"
-                        :value="imageId"
-                    >
-                        {{ imageNamesById[imageId] }}
-                    </option>
-                </select>
-            </div>
-        </div>
-        <div class="h-setup-categories-body">
-            <div ref="map" class="h-setup-categories-map"></div>
-            <div class="h-category-setup-progress">
-                <div
-                    v-for="(label, index) in Object.keys(labeledSuperpixelCounts)"
-                    :key="index"
-                >
-                    {{ label }}: {{ labeledSuperpixelCounts[label] }} superpixels labeled
-                </div>
-            </div>
-        </div>
+      </div>
+      <div class="form-group">
+        <label for="fill-color">Fill Color</label>
+        <color-picker-input
+          :key="categoryIndex"
+          v-model="currentCategoryFillColor"
+          style="width: 30%"
+          :color="currentCategoryFillColor"
+        />
+      </div>
+      <button
+        class="btn btn-primary h-previous-category-btn"
+        :disabled="categoryIndex === 0"
+        @click="previousCategory"
+      >
+        Previous
+      </button>
+      <button
+        class="btn btn-primary h-next-category-btn"
+        :disabled="categoryIndex >= categories.length - 1"
+        @click="nextCategory"
+      >
+        Next
+      </button>
+      <button
+        class="btn btn-primary h-add-category-btn"
+        @click="addCategory"
+      >
+        Add Category
+      </button>
+      <button
+        class="btn btn-primary h-start-training-btn"
+        @click="beginTraining"
+      >
+        Begin training
+      </button>
+      <div class="h-al-image-selector">
+        <span>Image: </span>
+        <select
+          v-model="currentImageId"
+          class="h-al-image-select"
+        >
+          <option
+            v-for="imageId in Object.keys(imageNamesById)"
+            :key="imageId"
+            :value="imageId"
+          >
+            {{ imageNamesById[imageId] }}
+          </option>
+        </select>
+      </div>
     </div>
+    <div class="h-setup-categories-body">
+      <div
+        ref="map"
+        class="h-setup-categories-map"
+      />
+      <div class="h-category-setup-progress">
+        <div
+          v-for="(label, index) in Object.keys(labeledSuperpixelCounts)"
+          :key="index"
+        >
+          {{ label }}: {{ labeledSuperpixelCounts[label] }} superpixels labeled
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
