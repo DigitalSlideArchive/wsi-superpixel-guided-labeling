@@ -48,11 +48,26 @@
         "eslint-plugin-node": "*",
         "eslint-plugin-promise": "*",
         "eslint-plugin-standard": "*",
+        "eslint-plugin-vue": "^9.10.0",
         "pug-lint": "^2",
         "stylint": "^2"
     },
     "eslintConfig": {
-        "extends": "@girder",
+        "extends": [
+            "@girder",
+            "plugin:vue/recommend"
+        ],
+        "overrides": [
+            {
+                "files": [
+                    "*.js",
+                    "*.vue"
+                ]
+            }
+        ],
+        "rules": {
+            "vue/require-prop-types": "off"
+        },
         "root": true
     },
     "pugLintConfig": {
