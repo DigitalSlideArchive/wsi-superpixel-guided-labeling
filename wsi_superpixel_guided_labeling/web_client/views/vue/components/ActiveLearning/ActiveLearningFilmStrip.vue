@@ -32,8 +32,6 @@ export default {
             return store.backboneParent;
         }
     },
-    mounted() {
-    },
     methods: {
         previousPage() {
             store.page = store.page - 1;

@@ -218,19 +218,6 @@ export default Vue.extend({
           </option>
         </select>
       </div>
-      <!-- <div
-                v-else
-                class="h-superpixel-card-footer-content"
-            >
-                <select
-                    disabled="true"
-                    class="h-superpixel-card-select"
-                >
-                    <option :value="predictedCategory">
-                        Class: {{ predictedCategory.label }}
-                    </option>
-                </select>
-            </div> -->
     </div>
   </div>
 </template>
