@@ -101,7 +101,7 @@ Once superpixels and features have been generated, you will be able to create a 
 
 This view allows users to create new categories, and use those categories to label superpixels by interacting with the image viewer. The top form and buttons underneath are for creating the categories, and navigating between them. Right below that, the ``Image`` drop down menu allows switching the current image shown in the image viewer. Clicking on a superpixel in the image viewer will label that superpixel with the currently displayed category. Clicking again on that superpixel will remove the label. A running total of superpixels labeled per category is available to the right of the image viewer.
 
-Clicking on ``Begin Training`` will kick off a background process to begin trainging the active learning model using the labels provided in this step. Once that task is completed, you will be presented with a new view containing predictions as described below.
+Clicking on ``Begin Training`` will kick off a background process to begin training the active learning model using the labels provided in this step. Once that task is completed, you will be presented with a new view containing predictions as described below.
 
 .. image:: docs/screenshots/active_learning_view.png
     :alt: The active learning view
