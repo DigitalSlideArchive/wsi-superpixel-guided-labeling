@@ -37,6 +37,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+wsi_superpixel_guided_labeling/web_client/.eslintcache
 
 # pyenv
 .python-version
