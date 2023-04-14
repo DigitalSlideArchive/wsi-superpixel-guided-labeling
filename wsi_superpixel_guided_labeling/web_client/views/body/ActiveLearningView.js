@@ -38,7 +38,21 @@ const ActiveLearningView = View.extend({
         this._isSaving = false;
         this._saveAnnotationsForIds = new Set();
 
+        this.getHistomicsYamlConfig();
+
         this.fetchFoldersAndItems();
+    },
+
+    getHistomicsYamlConfig() {
+        restRequest({
+            url: `folder/${this.trainingDataFolderId}/yaml_config/.histomicsui_config.yaml`
+        }).done((config) => {
+            this.configAnnotationGroups = (!!config && !!config.annotationGroups)
+                ? config.annotationGroups
+                : {};
+            console.log(this.configAnnotationGroups);
+            return this.fetchFoldersAndItems();
+        });
     },
 
     fetchFoldersAndItems() {
@@ -231,6 +245,7 @@ const ActiveLearningView = View.extend({
             });
         });
         $.when(...promises).then(() => {
+            // TODO: synchronize styles in histomics config yaml with annotation categories here
             if (this.activeLearningStep === activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
             }
