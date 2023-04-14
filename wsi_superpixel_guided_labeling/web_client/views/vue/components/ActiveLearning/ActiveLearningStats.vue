@@ -16,24 +16,21 @@ export default {
         iconClicked() {
             this.showStatsCard = !this.showStatsCard;
         }
-    },
-}
+    }
+};
 </script>
 
 <template>
-    <div>
-        <div :class="{ 'h-al-stats-card': true, 'h-al-no-display': !showStatsCard }">
-            Avg. Confidence this epoch: {{ averageConfidence }}
-        </div>
-        <span
-            class="icon-help-circled h-al-stats-anchor"
-            title="Click to show epoch statistics"
-            @click="iconClicked"
-        >
-
-        </span>
+  <div>
+    <div :class="{ 'h-al-stats-card': true, 'h-al-no-display': !showStatsCard }">
+      Avg. Confidence this epoch: {{ averageConfidence }}
     </div>
-
+    <span
+      class="icon-help-circled h-al-stats-anchor"
+      title="Click to show epoch statistics"
+      @click="iconClicked"
+    />
+  </div>
 </template>
 
 <style scoped>

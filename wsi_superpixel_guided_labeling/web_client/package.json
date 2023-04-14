@@ -21,7 +21,8 @@
         "webpack": "webpack.helper"
     },
     "scripts": {
-        "lint": "eslint . && pug-lint . && stylint"
+        "lint": "eslint . && pug-lint . && stylint",
+        "format": "eslint --cache --fix ."
     },
     "dependencies": {
         "@vue/compiler-sfc": "^3.2.33",
@@ -40,19 +41,33 @@
     "devDependencies": {
         "@girder/eslint-config": "*",
         "@girder/pug-lint-config": "*",
-        "eslint": "^5",
-        "eslint-config-semistandard": "^13",
-        "eslint-config-standard": "^12",
-        "eslint-plugin-backbone": "*",
-        "eslint-plugin-import": "*",
-        "eslint-plugin-node": "*",
-        "eslint-plugin-promise": "*",
-        "eslint-plugin-standard": "*",
+        "eslint": "^8.20.0",
+        "eslint-config-semistandard": "17.0.0",
+        "eslint-config-standard": "^17.0.0",
+        "eslint-plugin-backbone": "^2.1.1",
+        "eslint-plugin-import": "^2.25.3",
+        "eslint-plugin-n": "^15.2.4",
+        "eslint-plugin-promise": "^6.0.0",
+        "eslint-plugin-vue": "^9.10.0",
         "pug-lint": "^2",
         "stylint": "^2"
     },
     "eslintConfig": {
-        "extends": "@girder",
+        "extends": [
+            "@girder",
+            "plugin:vue/recommended"
+        ],
+        "overrides": [
+            {
+                "files": [
+                    "*.js",
+                    "*.vue"
+                ]
+            }
+        ],
+        "rules": {
+            "vue/require-prop-types": "off"
+        },
         "root": true
     },
     "pugLintConfig": {

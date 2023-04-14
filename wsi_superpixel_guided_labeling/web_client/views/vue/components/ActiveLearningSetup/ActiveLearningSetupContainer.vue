@@ -1,32 +1,31 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
+
 import ActiveLearningInitialSuperpixels from './ActiveLearningInitialSuperpixels.vue';
-import ActiveLearningInitialLabels from './ActiveLearningInitialLabels.vue'
+import ActiveLearningInitialLabels from './ActiveLearningInitialLabels.vue';
 
 export default Vue.extend({
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'activeLearningStep'],
     components: {
         ActiveLearningInitialSuperpixels,
         ActiveLearningInitialLabels
-    }
+    },
+    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'activeLearningStep']
 });
 </script>
 
 <template>
-    <div class="h-active-learning-container">
-        <active-learning-initial-superpixels
-            v-if="activeLearningStep === 0"
-            :backboneParent="backboneParent"
-        />
-        <active-learning-initial-labels
-            v-else
-            :backboneParent="backboneParent"
-            :imageNamesById="imageNamesById"
-            :annotationsByImageId="annotationsByImageId"
-        />
-
-    </div>
+  <div class="h-active-learning-container">
+    <active-learning-initial-superpixels
+      v-if="activeLearningStep === 0"
+      :backbone-parent="backboneParent"
+    />
+    <active-learning-initial-labels
+      v-else
+      :backbone-parent="backboneParent"
+      :image-names-by-id="imageNamesById"
+      :annotations-by-image-id="annotationsByImageId"
+    />
+  </div>
 </template>
 
 <style scoped>
