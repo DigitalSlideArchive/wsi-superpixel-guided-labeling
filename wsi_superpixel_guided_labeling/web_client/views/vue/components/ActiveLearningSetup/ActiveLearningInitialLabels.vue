@@ -128,6 +128,7 @@ export default Vue.extend({
                 el: this.$refs.map,
                 itemId: this.currentImageId
             });
+            this.viewerWidget.setUnclampBoundsForOverlay(false);
             this.viewerWidget.on('g:imageRendered', this.drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
@@ -390,7 +391,8 @@ export default Vue.extend({
 }
 .h-setup-categories-map {
     width: 67%;
-    height: 100%;
+    height: 600px;
+    border: 1px solid #f0f0f0;
 }
 .h-al-image-selector {
     display: block;
