@@ -8,6 +8,7 @@ import FolderCollection from '@girder/core/collections/FolderCollection';
 import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
 import ItemCollection from '@girder/core/collections/ItemCollection';
 import JobStatus from '@girder/jobs/JobStatus.js';
+import { parse } from '@girder/slicer_cli_web/parser';
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
@@ -80,7 +81,7 @@ const ActiveLearningView = View.extend({
 
     startActiveLearning() {
         if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
-            this.mountVueComponent();
+            this.getJobXmlUrl();
         } else {
             this.getAnnotations();
         }
@@ -279,6 +280,70 @@ const ActiveLearningView = View.extend({
             });
         });
         this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'certainty');
+    },
+
+    getJobXmlUrl() {
+        restRequest({
+            url: 'slicer_cli_web/docker_image'
+        }).then((dockerImages) => {
+            const imageAndJob = this.activeLearningJobType.split('#');
+            const image = imageAndJob[0].split(':')[0];
+            const version = imageAndJob[0].split(':')[1];
+            const jobInfo = ((dockerImages[image] || {})[version] || {})[imageAndJob[1]];
+            if (!jobInfo) {
+                throw new Error('Unable to find specified superpixel classification image.');
+            }
+            return this.getJobCertaintyChoices(jobInfo.xmlspec);
+        });
+    },
+
+    /**
+     * Flattens a slicer XML spec gui as parsed by girder/slicer_cli_spec to
+     * make it easier to quickly extract parameters.
+     *
+     * @param {object} gui An object returned by parsing a slicer XML spec
+     * as returned by the imported `parse` function
+     */
+    flattenParse(gui) {
+        const result = { parameters: {} };
+        _.forEach(Object.keys(gui), (key) => {
+            if (key !== 'panels') {
+                result[key] = gui[key];
+            }
+        });
+        _.forEach(gui.panels, (panel, panelIndex) => {
+            _.forEach(panel.groups, (group, groupIndex) => {
+                _.forEach(group.parameters, (parameter) => {
+                    const param = Object.assign({}, parameter);
+                    param.group = {
+                        panelIndex,
+                        groupIndex
+                    };
+                    _.forEach(Object.keys(group), (key) => {
+                        if (key !== 'parameters') {
+                            result.parameters[param.id] = param;
+                        }
+                    });
+                });
+            });
+        });
+        return result;
+    },
+
+    getJobCertaintyChoices(xmlUrl) {
+        restRequest({
+            url: xmlUrl
+        }).then((xmlSpec) => {
+            const gui = parse(xmlSpec);
+            const flattenedSpec = this.flattenParse(gui);
+            const hasCertaintyOptions = (
+                flattenedSpec.parameters.certainty &&
+                flattenedSpec.parameters.certainty.values &&
+                flattenedSpec.parameters.certainty.values.length
+            );
+            this.certaintyOptions = hasCertaintyOptions ? flattenedSpec.parameters.certainty.values : null;
+            return this.mountVueComponent();
+        });
     },
 
     /*****************************************************************
