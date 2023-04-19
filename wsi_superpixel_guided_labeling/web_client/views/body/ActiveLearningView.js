@@ -126,7 +126,8 @@ const ActiveLearningView = View.extend({
                         backboneParent: this,
                         imageNamesById,
                         annotationsByImageId: this.annotationsByImageId,
-                        activeLearningStep: this.activeLearningStep
+                        activeLearningStep: this.activeLearningStep,
+                        certaintyMetrics: this.certaintyMetrics
                     }
                 });
             }
@@ -336,12 +337,12 @@ const ActiveLearningView = View.extend({
         }).then((xmlSpec) => {
             const gui = parse(xmlSpec);
             const flattenedSpec = this.flattenParse(gui);
-            const hasCertaintyOptions = (
+            const hasCertaintyMetrics = (
                 flattenedSpec.parameters.certainty &&
                 flattenedSpec.parameters.certainty.values &&
                 flattenedSpec.parameters.certainty.values.length
             );
-            this.certaintyOptions = hasCertaintyOptions ? flattenedSpec.parameters.certainty.values : null;
+            this.certaintyMetrics = hasCertaintyMetrics ? flattenedSpec.parameters.certainty.values : null;
             return this.mountVueComponent();
         });
     },
@@ -383,7 +384,7 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    generateInitialSuperpixels(radius, magnification) {
+    generateInitialSuperpixels(radius, magnification, certaintyMetric) {
         // get the folders to store annotations, models, features
         const folders = this.childFolders.models;
         const annotationsFolderId = _.filter(folders, (folder) => folder.get('name') === 'Annotations')[0].get('_id');
@@ -398,7 +399,8 @@ const ActiveLearningView = View.extend({
             labels: JSON.stringify([]),
             modeldir: modelsFolderId,
             girderApiUrl: '',
-            girderToken: ''
+            girderToken: '',
+            certainty: certaintyMetric
         };
         this.triggerJob(data, true);
     },
