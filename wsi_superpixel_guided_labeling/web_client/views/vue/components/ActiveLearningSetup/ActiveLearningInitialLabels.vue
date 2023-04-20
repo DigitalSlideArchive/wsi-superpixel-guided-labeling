@@ -40,6 +40,18 @@ export default Vue.extend({
         };
     },
     computed: {
+        currentLabelErrors() {
+            const errors = [];
+            const inactiveCategories = _.filter(this.categories, (category, idx) => idx !== this.categoryIndex);
+            const otherCategoryNames = _.map(inactiveCategories, (category) => category.category.label);
+            if (otherCategoryNames.includes(this.currentCategoryLabel)) {
+                errors.push('A category with this label already exists');
+            }
+            return errors;
+        },
+        currentCategoryFormValid() {
+            return this.currentLabelErrors.length === 0;
+        },
         usingBoundaries() {
             return this.superpixelElement.boundaries;
         },
@@ -85,6 +97,9 @@ export default Vue.extend({
         },
         categories: {
             handler() {
+                if (!this.currentCategoryFormValid) {
+                    return;
+                }
                 _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
                     const superpixelElement = annotations.labels.get('annotation').elements[0];
                     if (superpixelElement) {
@@ -224,7 +239,8 @@ export default Vue.extend({
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
-                !event.mouse.buttonsDown.left // Not a left click
+                !event.mouse.buttonsDown.left || // Not a left click
+                !this.currentCategoryFormValid // no valid category selected
             ) {
                 return;
             }
@@ -312,9 +328,18 @@ export default Vue.extend({
         <label for="category-label">Label</label>
         <input
           id="category-label"
-          v-model.lazy="currentCategoryLabel"
+          v-model="currentCategoryLabel"
           class="form-control input-sm h-active-learning-input"
         >
+        <div v-if="currentLabelErrors.length > 0">
+          <p
+            v-for="error in currentLabelErrors"
+            :key="error"
+            class="form-validation-error"
+          >
+            {{ error }}
+          </p>
+        </div>
       </div>
       <div class="form-group">
         <label for="fill-color">Fill Color</label>
@@ -327,30 +352,38 @@ export default Vue.extend({
       </div>
       <button
         class="btn btn-primary h-previous-category-btn"
-        :disabled="categoryIndex === 0"
+        :disabled="categoryIndex === 0 || !currentCategoryFormValid"
         @click="previousCategory"
       >
         Previous
       </button>
       <button
         class="btn btn-primary h-next-category-btn"
-        :disabled="categoryIndex >= categories.length - 1"
+        :disabled="categoryIndex >= categories.length - 1 || !currentCategoryFormValid"
         @click="nextCategory"
       >
         Next
       </button>
       <button
         class="btn btn-primary h-add-category-btn"
+        :disabled="!currentCategoryFormValid"
         @click="addCategory"
       >
         Add Category
       </button>
       <button
         class="btn btn-primary h-start-training-btn"
+        :disabled="!currentCategoryFormValid"
         @click="beginTraining"
       >
         Begin training
       </button>
+      <p
+        v-if="!currentCategoryFormValid"
+        class="form-validation-error"
+      >
+        Please fix the validation errors to continue
+      </p>
       <div class="h-al-image-selector">
         <span>Image: </span>
         <select
@@ -408,5 +441,8 @@ export default Vue.extend({
 }
 .h-active-learning-input {
     width: 30%;
+}
+.form-validation-error {
+    color: red;
 }
 </style>
