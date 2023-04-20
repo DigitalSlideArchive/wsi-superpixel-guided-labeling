@@ -23,7 +23,7 @@ export default Vue.extend({
         'sortedSuperpixelIndices',
         'apiRoot',
         'backboneParent',
-        'currentAverageConfidence'
+        'currentAverageCertainty'
     ],
     data() {
         return {
@@ -108,7 +108,7 @@ export default Vue.extend({
         store.pageSize = this.pageSize;
         store.selectedIndex = 0;
         store.predictions = false;
-        store.currentAverageConfidence = this.currentAverageConfidence;
+        store.currentAverageCertainty = this.currentAverageCertainty;
 
         const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
         const predictionCategories = predictionAnnotation.get('annotation').elements[0].categories;
