@@ -43,8 +43,8 @@ export default Vue.extend({
         headerTitle() {
             return `Prediction: ${this.predictedCategory.label}`;
         },
-        headerConfidence() {
-            return `Confidence ${this.superpixelDecision.confidence.toFixed(5)}`;
+        headerCertainty() {
+            return `Certainty ${this.superpixelDecision.certainty.toFixed(5)}`;
         },
         validNewCategories() {
             const categories = this.superpixelDecision.categories;
@@ -164,7 +164,7 @@ export default Vue.extend({
     <div
       class="h-superpixel-card-header"
       :style="headerStyle"
-      :title="headerConfidence"
+      :title="headerCertainty"
     >
       {{ headerTitle }}
     </div>

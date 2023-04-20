@@ -112,7 +112,7 @@ const ActiveLearningView = View.extend({
                         sortedSuperpixelIndices: this.sortedSuperpixelIndices,
                         apiRoot: getApiRoot(),
                         backboneParent: this,
-                        currentAverageConfidence: this.currentAverageConfidence
+                        currentAverageCertainty: this.currentAverageCertainty
                     }
                 });
             } else {
@@ -243,13 +243,13 @@ const ActiveLearningView = View.extend({
     },
 
     computeAverageCertainty(annotation) {
-        const confidenceArray = annotation.get('annotation').elements[0].user.confidence;
-        const sum = _.reduce(confidenceArray, (sum, num) => sum + num, 0);
-        this.currentAverageConfidence = sum / confidenceArray.length;
+        const certaintyArray = annotation.get('annotation').elements[0].user.certainty;
+        const sum = _.reduce(certaintyArray, (sum, num) => sum + num, 0);
+        this.currentAverageCertainty = sum / certaintyArray.length;
     },
 
     getSortedSuperpixelIndices() {
-        const superPixelConfidenceData = [];
+        const superpixelPredictionsData = [];
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             const annotation = this.annotationsByImageId[imageId].predictions.get('annotation');
             const labels = this.annotationsByImageId[imageId].labels.get('annotation');
@@ -260,13 +260,13 @@ const ActiveLearningView = View.extend({
             const superpixelCategories = annotation.elements[0].categories;
             const boundaries = annotation.elements[0].boundaries;
             const scale = annotation.elements[0].transform.matrix[0][0];
-            _.forEach(userData.confidence, (score, index) => {
+            _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
                 const agreeChoice = (labelValues[index] === 0) ? undefined : (labelValues[index] === pixelmapValues[index]) ? 'Yes' : 'No';
                 const selectedCategory = (labelValues[index] === 0) ? undefined : labelValues[index];
-                superPixelConfidenceData.push({
+                superpixelPredictionsData.push({
                     index,
-                    confidence: score,
+                    confidence: userData.confidence[index],
                     certainty: score,
                     imageId,
                     superpixelImageId,
@@ -280,7 +280,7 @@ const ActiveLearningView = View.extend({
                 });
             });
         });
-        this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'certainty');
+        this.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
     },
 
     getJobXmlUrl() {
