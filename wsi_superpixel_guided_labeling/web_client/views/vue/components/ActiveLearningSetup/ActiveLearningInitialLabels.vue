@@ -40,6 +40,18 @@ export default Vue.extend({
         };
     },
     computed: {
+        currentLabelErrors() {
+            const errors = [];
+            const inactiveCategories = _.filter(this.categories, (category, idx) => idx !== this.categoryIndex);
+            const otherCategoryNames = _.map(inactiveCategories, (category) => category.category.label);
+            if (otherCategoryNames.includes(this.currentCategoryLabel)) {
+                errors.push('A category with this label already exists');
+            }
+            return errors;
+        },
+        currentCategoryFormValid() {
+            return this.currentLabelErrors.length === 0;
+        },
         usingBoundaries() {
             return this.superpixelElement.boundaries;
         },
@@ -49,13 +61,17 @@ export default Vue.extend({
         },
         labeledSuperpixelCounts() {
             const counts = {};
-            _.forEach(this.categories, (categoryAndIndices) => {
+            _.forEach(this.categories, (categoryAndIndices, index) => {
                 const label = categoryAndIndices.category.label;
-                counts[label] = 0;
+                const key = `${index}_${label}`;
+                counts[key] = {
+                    count: 0,
+                    label
+                };
                 if (label !== 'default') {
                     const indicesByImage = categoryAndIndices.indices;
-                    _.forEach(Object.values(indicesByImage), (indicesArray) => {
-                        counts[label] += indicesArray.length;
+                    _.forEach(Object.values(indicesByImage), (indicesSet) => {
+                        counts[key].count += indicesSet.size;
                     });
                 }
             });
@@ -81,6 +97,9 @@ export default Vue.extend({
         },
         categories: {
             handler() {
+                if (!this.currentCategoryFormValid) {
+                    return;
+                }
                 _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
                     const superpixelElement = annotations.labels.get('annotation').elements[0];
                     if (superpixelElement) {
@@ -174,10 +193,10 @@ export default Vue.extend({
                 if (categoryIndex !== 0) {
                     // For each non-default category, get all the labeled indices
                     // for this superpixel element.
-                    const labeledSuperpixels = [];
+                    const labeledSuperpixels = new Set();
                     _.forEach(pixelmapElement.values, (value, index) => {
                         if (value === categoryIndex) {
-                            labeledSuperpixels.push(index);
+                            labeledSuperpixels.add(index);
                         }
                     });
                     // Either add the category to the initial label UI,
@@ -220,7 +239,8 @@ export default Vue.extend({
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
-                !event.mouse.buttonsDown.left // Not a left click
+                !event.mouse.buttonsDown.left || // Not a left click
+                !this.currentCategoryFormValid // no valid category selected
             ) {
                 return;
             }
@@ -229,13 +249,14 @@ export default Vue.extend({
             const index = boundaries ? (event.index - event.index % 2) : event.index;
             const offset = boundaries ? 1 : 0;
             const data = this.overlayLayer.data();
-            // the +1 accounts for the default, reset to default if already labeled
-            const categoryIndex = data[index] === 0 ? this.categoryIndex + 1 : 0;
-            data[index] = data[index + offset] = categoryIndex;
+            const previousLabel = data[index];
+            // the +1 accounts for the default, reset to default if already labeled with the selected category
+            const newLabel = previousLabel !== this.categoryIndex + 1 ? this.categoryIndex + 1 : 0;
+            data[index] = data[index + offset] = newLabel;
             this.overlayLayer.indexModified(index, index + offset).draw();
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
-            this.updateRunningLabelCounts(boundaries, index, categoryIndex);
+            this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);
         },
         saveNewPixelmapData(boundaries, data) {
             const annotation = this.superpixelAnnotation.get('annotation');
@@ -246,18 +267,23 @@ export default Vue.extend({
             superpixelElement.values = data;
             this.debounceSaveAnnotations();
         },
-        updateRunningLabelCounts(boundaries, index, categoryIndex) {
+        updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
-            const currentCategoryIndices = this.categories[this.categoryIndex].indices[this.currentImageId] || [];
-            if (categoryIndex === 0) {
-                this.categories[this.categoryIndex].indices[this.currentImageId] = _.filter(currentCategoryIndices, (i) => i !== elementValueIndex);
-            } else {
-                currentCategoryIndices.push(elementValueIndex);
+            const currentCategoryIndices = this.categories[this.categoryIndex].indices[this.currentImageId] || new Set();
+            if (!currentCategoryIndices.size) {
                 this.categories[this.categoryIndex].indices[this.currentImageId] = currentCategoryIndices;
-                // Force computed properties to update
-                const newCategoryData = Object.assign({}, this.categories[this.categoryIndex]);
-                this.categories.splice(this.categoryIndex, 1, newCategoryData);
             }
+            if (newLabel === 0) {
+                currentCategoryIndices.delete(elementValueIndex);
+            } else if (oldLabel === 0) {
+                currentCategoryIndices.add(elementValueIndex);
+            } else {
+                this.categories[oldLabel - 1].indices[this.currentImageId].delete(elementValueIndex);
+                currentCategoryIndices.add(elementValueIndex);
+            }
+            // Force computed properties to update
+            const newCategoryData = Object.assign({}, this.categories[this.categoryIndex]);
+            this.categories.splice(this.categoryIndex, 1, newCategoryData);
         },
         /*************************
          * RESPOND TO USER INPUT *
@@ -302,9 +328,18 @@ export default Vue.extend({
         <label for="category-label">Label</label>
         <input
           id="category-label"
-          v-model.lazy="currentCategoryLabel"
+          v-model="currentCategoryLabel"
           class="form-control input-sm h-active-learning-input"
         >
+        <div v-if="currentLabelErrors.length > 0">
+          <p
+            v-for="error in currentLabelErrors"
+            :key="error"
+            class="form-validation-error"
+          >
+            {{ error }}
+          </p>
+        </div>
       </div>
       <div class="form-group">
         <label for="fill-color">Fill Color</label>
@@ -317,30 +352,38 @@ export default Vue.extend({
       </div>
       <button
         class="btn btn-primary h-previous-category-btn"
-        :disabled="categoryIndex === 0"
+        :disabled="categoryIndex === 0 || !currentCategoryFormValid"
         @click="previousCategory"
       >
         Previous
       </button>
       <button
         class="btn btn-primary h-next-category-btn"
-        :disabled="categoryIndex >= categories.length - 1"
+        :disabled="categoryIndex >= categories.length - 1 || !currentCategoryFormValid"
         @click="nextCategory"
       >
         Next
       </button>
       <button
         class="btn btn-primary h-add-category-btn"
+        :disabled="!currentCategoryFormValid"
         @click="addCategory"
       >
         Add Category
       </button>
       <button
         class="btn btn-primary h-start-training-btn"
+        :disabled="!currentCategoryFormValid"
         @click="beginTraining"
       >
         Begin training
       </button>
+      <p
+        v-if="!currentCategoryFormValid"
+        class="form-validation-error"
+      >
+        Please fix the validation errors to continue
+      </p>
       <div class="h-al-image-selector">
         <span>Image: </span>
         <select
@@ -364,10 +407,10 @@ export default Vue.extend({
       />
       <div class="h-category-setup-progress">
         <div
-          v-for="(label, index) in Object.keys(labeledSuperpixelCounts)"
+          v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
           :key="index"
         >
-          {{ label }}: {{ labeledSuperpixelCounts[label] }} superpixels labeled
+          {{ labeledSuperpixelCounts[key].label }}: {{ labeledSuperpixelCounts[key].count }} superpixels labeled
         </div>
       </div>
     </div>
@@ -398,5 +441,8 @@ export default Vue.extend({
 }
 .h-active-learning-input {
     width: 30%;
+}
+.form-validation-error {
+    color: red;
 }
 </style>
