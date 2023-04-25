@@ -39,8 +39,7 @@ const ActiveLearningView = View.extend({
         this._saveAnnotationsForIds = new Set();
 
         this.getHistomicsYamlConfig();
-
-        this.fetchFoldersAndItems();
+        // this.fetchFoldersAndItems();
     },
 
     getHistomicsYamlConfig() {
@@ -50,7 +49,10 @@ const ActiveLearningView = View.extend({
             this.configAnnotationGroups = (!!config && !!config.annotationGroups)
                 ? config.annotationGroups
                 : {};
+            // save the config, since we might want to edit it
+            this.histomicsUIConfig = config;
             console.log(this.configAnnotationGroups);
+            console.log(this.histomicsUIConfig);
             return this.fetchFoldersAndItems();
         });
     },
@@ -136,6 +138,8 @@ const ActiveLearningView = View.extend({
                 _.forEach(Object.keys(this.imageItemsById), (imageId) => {
                     imageNamesById[imageId] = this.imageItemsById[imageId].name;
                 });
+                const categories = this.getInitialCategories();
+                console.log(categories);
                 vm = new ActiveLearningSetupContainer({
                     el,
                     propsData: {
@@ -154,6 +158,58 @@ const ActiveLearningView = View.extend({
     render() {
         this.$el.html(learningTemplate());
         return this;
+    },
+
+    /**
+     * Updates param "categories" to include any categories included on the superpixel annotation
+     * not already present.
+     *
+     * @param {object} pixelmap pixelmap annotation element
+     * @param {object} categories Should be an object whose keys are group labels (ids) and values are the group objects
+     *  {
+     *      default: { label: 'default', fillColor: ..., lineColor: ..., ...},
+     *      ...
+     *  }
+     */
+    _updateCategoriesWithPixelmap(pixelmap, categories) {
+        console.log(Object.keys(categories).length);
+        const pixelmapCategories = pixelmap.categories;
+        _.forEach(pixelmapCategories, (category) => {
+            categories[category.label] = _.clone(category);
+        });
+        console.log(Object.keys(categories).length);
+    },
+
+    _updateLabelAnnotationWithCategories(annotation, categories) {
+        console.log(annotation, categories);
+    },
+
+    /**
+     * Reconciles the differences between the groups defined in the
+     * .histomicsui_config.yaml file and in the annotations that already
+     * exist for the training.
+     *
+     * @returns list of groups to use for labelling superpixels
+     */
+    getInitialCategories() {
+        const categories = {};
+        _.forEach(this.configAnnotationGroups.groups, (group) => {
+            if (!categories[group.id]) {
+                categories[group.id] = {
+                    label: group.id,
+                    fillColor: group.fillColor,
+                    strokeColor: group.lineColor
+                };
+            }
+        });
+        _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+            const pixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
+            this._updateCategoriesWithPixelmap(pixelmapElement, categories);
+        });
+        // _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+        // this._updateLabelAnnotationWithCategories(this.annotationsByImageId[imageId].labels, categories);
+        // });
+        return categories;
     },
 
     getAnnotationsForItemPromise(item, annotationsToFetchByImage) {
