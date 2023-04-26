@@ -25,6 +25,9 @@ export default Vue.extend({
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
     },
+    destroyed() {
+        window.removeEventListener('keydown', this.keydownListener);
+    },
     methods: {
         keydownListener(event) {
             // If support for > 9 categories is necessary, this will
