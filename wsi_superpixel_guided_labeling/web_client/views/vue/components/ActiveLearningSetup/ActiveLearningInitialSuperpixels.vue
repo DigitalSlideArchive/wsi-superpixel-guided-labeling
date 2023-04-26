@@ -2,11 +2,12 @@
 import Vue from 'vue';
 
 export default Vue.extend({
-    props: ['backboneParent'],
+    props: ['backboneParent', 'certaintyMetrics'],
     data() {
         return {
             radius: 100,
-            magnification: 5
+            magnification: 5,
+            certaintyChoice: ''
         };
     },
     computed: {
@@ -14,9 +15,16 @@ export default Vue.extend({
             return this.radius > 0 && this.magnification > 0;
         }
     },
+    mounted() {
+        this.certaintyChoice = this.certaintyMetrics[0];
+    },
     methods: {
         generateInitialSuperpixels() {
-            this.backboneParent.generateInitialSuperpixels(this.radius, this.magnification);
+            this.backboneParent.generateInitialSuperpixels(
+                this.radius,
+                this.magnification,
+                this.certaintyChoice
+            );
         }
     }
 });
@@ -47,6 +55,24 @@ export default Vue.extend({
         class="form-control input-sm h-active-learning-input"
         type="number"
       >
+    </div>
+    <div class="form-group">
+      <label for="certainty-metric">Certainty Metric</label>
+      <div class="form-group-description">
+        Metric to determine the order that predictions are presented to the user
+      </div>
+      <select
+        id="certainty-metric"
+        v-model="certaintyChoice"
+      >
+        <option
+          v-for="option in certaintyMetrics"
+          :key="option"
+          :value="option"
+        >
+          {{ option }}
+        </option>
+      </select>
     </div>
     <button
       class="btn btn-primary h-generate-superpixel-btn"

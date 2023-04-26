@@ -8,6 +8,7 @@ import FolderCollection from '@girder/core/collections/FolderCollection';
 import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
 import ItemCollection from '@girder/core/collections/ItemCollection';
 import JobStatus from '@girder/jobs/JobStatus.js';
+import { parse } from '@girder/slicer_cli_web/parser';
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
@@ -80,7 +81,7 @@ const ActiveLearningView = View.extend({
 
     startActiveLearning() {
         if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
-            this.mountVueComponent();
+            this.getJobXmlUrl();
         } else {
             this.getAnnotations();
         }
@@ -111,7 +112,7 @@ const ActiveLearningView = View.extend({
                         sortedSuperpixelIndices: this.sortedSuperpixelIndices,
                         apiRoot: getApiRoot(),
                         backboneParent: this,
-                        currentAverageConfidence: this.currentAverageConfidence
+                        currentAverageCertainty: this.currentAverageCertainty
                     }
                 });
             } else {
@@ -125,7 +126,8 @@ const ActiveLearningView = View.extend({
                         backboneParent: this,
                         imageNamesById,
                         annotationsByImageId: this.annotationsByImageId,
-                        activeLearningStep: this.activeLearningStep
+                        activeLearningStep: this.activeLearningStep,
+                        certaintyMetrics: this.certaintyMetrics
                     }
                 });
             }
@@ -241,13 +243,13 @@ const ActiveLearningView = View.extend({
     },
 
     computeAverageCertainty(annotation) {
-        const confidenceArray = annotation.get('annotation').elements[0].user.confidence;
-        const sum = _.reduce(confidenceArray, (sum, num) => sum + num, 0);
-        this.currentAverageConfidence = sum / confidenceArray.length;
+        const certaintyArray = annotation.get('annotation').elements[0].user.certainty;
+        const sum = _.reduce(certaintyArray, (sum, num) => sum + num, 0);
+        this.currentAverageCertainty = sum / certaintyArray.length;
     },
 
     getSortedSuperpixelIndices() {
-        const superPixelConfidenceData = [];
+        const superpixelPredictionsData = [];
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             const annotation = this.annotationsByImageId[imageId].predictions.get('annotation');
             const labels = this.annotationsByImageId[imageId].labels.get('annotation');
@@ -258,13 +260,13 @@ const ActiveLearningView = View.extend({
             const superpixelCategories = annotation.elements[0].categories;
             const boundaries = annotation.elements[0].boundaries;
             const scale = annotation.elements[0].transform.matrix[0][0];
-            _.forEach(userData.confidence, (score, index) => {
+            _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
                 const agreeChoice = (labelValues[index] === 0) ? undefined : (labelValues[index] === pixelmapValues[index]) ? 'Yes' : 'No';
                 const selectedCategory = (labelValues[index] === 0) ? undefined : labelValues[index];
-                superPixelConfidenceData.push({
+                superpixelPredictionsData.push({
                     index,
-                    confidence: score,
+                    confidence: userData.confidence[index],
                     certainty: score,
                     imageId,
                     superpixelImageId,
@@ -278,7 +280,71 @@ const ActiveLearningView = View.extend({
                 });
             });
         });
-        this.sortedSuperpixelIndices = _.sortBy(superPixelConfidenceData, 'certainty');
+        this.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
+    },
+
+    getJobXmlUrl() {
+        restRequest({
+            url: 'slicer_cli_web/docker_image'
+        }).then((dockerImages) => {
+            const imageAndJob = this.activeLearningJobType.split('#');
+            const image = imageAndJob[0].split(':')[0];
+            const version = imageAndJob[0].split(':')[1];
+            const jobInfo = ((dockerImages[image] || {})[version] || {})[imageAndJob[1]];
+            if (!jobInfo) {
+                throw new Error('Unable to find specified superpixel classification image.');
+            }
+            return this.getJobCertaintyChoices(jobInfo.xmlspec);
+        });
+    },
+
+    /**
+     * Flattens a slicer XML spec gui as parsed by girder/slicer_cli_spec to
+     * make it easier to quickly extract parameters.
+     *
+     * @param {object} gui An object returned by parsing a slicer XML spec
+     * as returned by the imported `parse` function
+     */
+    flattenParse(gui) {
+        const result = { parameters: {} };
+        _.forEach(Object.keys(gui), (key) => {
+            if (key !== 'panels') {
+                result[key] = gui[key];
+            }
+        });
+        _.forEach(gui.panels, (panel, panelIndex) => {
+            _.forEach(panel.groups, (group, groupIndex) => {
+                _.forEach(group.parameters, (parameter) => {
+                    const param = Object.assign({}, parameter);
+                    param.group = {
+                        panelIndex,
+                        groupIndex
+                    };
+                    _.forEach(Object.keys(group), (key) => {
+                        if (key !== 'parameters') {
+                            result.parameters[param.id] = param;
+                        }
+                    });
+                });
+            });
+        });
+        return result;
+    },
+
+    getJobCertaintyChoices(xmlUrl) {
+        restRequest({
+            url: xmlUrl
+        }).then((xmlSpec) => {
+            const gui = parse(xmlSpec);
+            const flattenedSpec = this.flattenParse(gui);
+            const hasCertaintyMetrics = (
+                flattenedSpec.parameters.certainty &&
+                flattenedSpec.parameters.certainty.values &&
+                flattenedSpec.parameters.certainty.values.length
+            );
+            this.certaintyMetrics = hasCertaintyMetrics ? flattenedSpec.parameters.certainty.values : null;
+            return this.mountVueComponent();
+        });
     },
 
     /*****************************************************************
@@ -318,7 +384,7 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    generateInitialSuperpixels(radius, magnification) {
+    generateInitialSuperpixels(radius, magnification, certaintyMetric) {
         // get the folders to store annotations, models, features
         const folders = this.childFolders.models;
         const annotationsFolderId = _.filter(folders, (folder) => folder.get('name') === 'Annotations')[0].get('_id');
@@ -333,7 +399,8 @@ const ActiveLearningView = View.extend({
             labels: JSON.stringify([]),
             modeldir: modelsFolderId,
             girderApiUrl: '',
-            girderToken: ''
+            girderToken: '',
+            certainty: certaintyMetric
         };
         this.triggerJob(data, true);
     },

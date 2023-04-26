@@ -8,8 +8,8 @@ export default {
         };
     },
     computed: {
-        averageConfidence() {
-            return store.currentAverageConfidence;
+        averageCertainty() {
+            return store.currentAverageCertainty;
         }
     },
     methods: {
@@ -23,7 +23,7 @@ export default {
 <template>
   <div>
     <div :class="{ 'h-al-stats-card': true, 'h-al-no-display': !showStatsCard }">
-      Avg. Confidence this epoch: {{ averageConfidence }}
+      Avg. Certainty this epoch: {{ averageCertainty }}
     </div>
     <span
       class="icon-help-circled h-al-stats-anchor"

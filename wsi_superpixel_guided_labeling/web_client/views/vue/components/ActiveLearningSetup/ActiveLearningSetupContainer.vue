@@ -9,7 +9,13 @@ export default Vue.extend({
         ActiveLearningInitialSuperpixels,
         ActiveLearningInitialLabels
     },
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'activeLearningStep']
+    props: [
+        'backboneParent',
+        'imageNamesById',
+        'annotationsByImageId',
+        'activeLearningStep',
+        'certaintyMetrics'
+    ]
 });
 </script>
 
@@ -18,6 +24,7 @@ export default Vue.extend({
     <active-learning-initial-superpixels
       v-if="activeLearningStep === 0"
       :backbone-parent="backboneParent"
+      :certainty-metrics="certaintyMetrics"
     />
     <active-learning-initial-labels
       v-else

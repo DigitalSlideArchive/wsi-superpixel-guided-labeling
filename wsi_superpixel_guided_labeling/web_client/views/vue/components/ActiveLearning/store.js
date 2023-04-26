@@ -12,7 +12,7 @@ const store = Vue.observable({
     annotationsByImageId: {},
     backboneParent: null,
     predictions: false,
-    currentAverageConfidence: 0,
+    currentAverageCertainty: 0,
     categories: [],
     lastCategorySelected: null
 });
