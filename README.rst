@@ -31,6 +31,8 @@ If you don't already use a provisioning yaml file as part of your DSA deployment
           name: Data
           creator: resource:admin
           public: True
+          metadata: {'active_learning': "true"}
+          metadata_update: True
         - model: folder
           parent: "resource:collection/Active Learning/Data"
           parentType: folder
@@ -79,7 +81,7 @@ After following the installation instructions, you should have a folder called *
 .. image:: docs/screenshots/active_learning_folder.png
    :alt: Active Learning/Data folder after provision
 
-To enable launching the Active Learning UI from the folder, you'll need to set metadata on the folder. You can do this from here by clicking the blue plus button in the metadata header, selected ``Simple``, and adding the following metadata property.
+To enable launching the Active Learning UI from a folder, you'll need to set metadata on the folder. You can do this from here by clicking the blue plus button in the metadata header, selected ``Simple``, and adding the following metadata property.  If you used the recommended provisioning values, this will have already been done.
 
 .. image:: docs/screenshots/active_learning_metadata.png
    :alt: Metadata to add. Key: active_learning, Value: true
