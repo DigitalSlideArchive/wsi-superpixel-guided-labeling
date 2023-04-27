@@ -248,6 +248,18 @@ const ActiveLearningView = View.extend({
         this.currentAverageCertainty = sum / certaintyArray.length;
     },
 
+    getAgreeChoice(index, predictionPixelmapElement, labelPixelmapElement) {
+        if (labelPixelmapElement.values[index] === 0) {
+            // Label is default, so no choice has been made
+            return undefined;
+        }
+        const predictionCategories = predictionPixelmapElement.categories;
+        const labelCategories = labelPixelmapElement.categories;
+        const prediction = predictionPixelmapElement.values[index];
+        const label = labelPixelmapElement.values[index];
+        return predictionCategories[prediction].label === labelCategories[label].label ? 'Yes' : 'No';
+    },
+
     getSortedSuperpixelIndices() {
         const superpixelPredictionsData = [];
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
@@ -262,9 +274,9 @@ const ActiveLearningView = View.extend({
             const scale = annotation.elements[0].transform.matrix[0][0];
             _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
-                const agreeChoice = (labelValues[index] === 0) ? undefined : (labelValues[index] === pixelmapValues[index]) ? 'Yes' : 'No';
+                const agreeChoice = this.getAgreeChoice(index, annotation.elements[0], labels.elements[0]);
                 const selectedCategory = (labelValues[index] === 0) ? undefined : labelValues[index];
-                superpixelPredictionsData.push({
+                const prediction = {
                     index,
                     confidence: userData.confidence[index],
                     certainty: score,
@@ -274,10 +286,13 @@ const ActiveLearningView = View.extend({
                     scale,
                     bbox,
                     prediction: pixelmapValues[index],
-                    categories: superpixelCategories,
+                    label: labelValues[index],
+                    predictionCategories: superpixelCategories,
+                    labelCategories: labels.elements[0].categories,
                     agreeChoice,
                     selectedCategory
-                });
+                };
+                superpixelPredictionsData.push(prediction);
             });
         });
         this.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
