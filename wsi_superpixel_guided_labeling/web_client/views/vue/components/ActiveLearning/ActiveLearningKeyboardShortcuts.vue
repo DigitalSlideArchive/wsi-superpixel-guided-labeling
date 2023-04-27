@@ -23,10 +23,12 @@ export default Vue.extend({
         }
     },
     mounted() {
+        store.lastCategorySelected = null;
         window.addEventListener('keydown', this.keydownListener);
     },
     destroyed() {
         window.removeEventListener('keydown', this.keydownListener);
+        store.lastCategorySelected = null;
     },
     methods: {
         keydownListener(event) {
