@@ -22,6 +22,8 @@ const activeLearningSteps = {
     GuidedLabeling: 2
 };
 
+const epochRegex = /epoch (\d+)/i;
+
 const ActiveLearningView = View.extend({
     initialize(settings) {
         this.render();
@@ -65,13 +67,12 @@ const ActiveLearningView = View.extend({
                 const runningOrSuccess = job.status === JobStatus.SUCCESS || job.status === JobStatus.RUNNING;
                 return runningOrSuccess && containerArgs.includes(this.trainingDataFolderId);
             });
-            this.activeLearningStep = Math.min(previousJobs.length, 2);
             if (previousJobs[0]) {
                 this.lastRunJobId = previousJobs[0]._id || '';
             }
 
             if (!previousJobs[0] || previousJobs[0].status !== JobStatus.RUNNING) {
-                this.startActiveLearning();
+                this.getAnnotations();
             } else {
                 // There is a job running
                 this.waitForJobCompletion(previousJobs[0]._id);
@@ -83,7 +84,7 @@ const ActiveLearningView = View.extend({
         if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
             this.getJobXmlUrl();
         } else {
-            this.getAnnotations();
+            this.mountVueComponent();
         }
     },
 
@@ -140,7 +141,7 @@ const ActiveLearningView = View.extend({
         return this;
     },
 
-    getAllAnnotationsForItemPromise(item, annotationsToFetchByImage) {
+    getAnnotationsForItemPromise(item, annotationsToFetchByImage) {
         return restRequest({
             url: 'annotation',
             data: {
@@ -149,6 +150,20 @@ const ActiveLearningView = View.extend({
                 sortdir: -1
             }
         }).done((annotations) => {
+            // Find the current epoch of training by looking at annotation names.
+            // Start by assuming no annotations exist for training. Since running the
+            // algorithm once generates annotations for Epoch 0, represent the initial
+            // state as epoch -1
+            if (!this.epoch) {
+                this.epoch = -1;
+            }
+            _.forEach(annotations, (annotation) => {
+                const matches = epochRegex.exec(annotation.annotation.name);
+                if (matches) {
+                    this.epoch = Math.max(this.epoch, parseInt(matches[1]));
+                }
+            });
+            this.activeLearningStep = Math.min(this.epoch + 1, 2);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -156,31 +171,14 @@ const ActiveLearningView = View.extend({
             const superpixelAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && !annotation.annotation.name.includes('Predictions');
             });
+            const predictions = predictionsAnnotations[0] ? predictionsAnnotations[0]._id : null;
+            const superpixels = superpixelAnnotations[superpixelAnnotations.length - 1] ? superpixelAnnotations[superpixelAnnotations.length - 1]._id : null;
+            const labels = superpixelAnnotations[0] ? superpixelAnnotations[0]._id : null;
             annotationsToFetchByImage[item._id] = {
-                predictions: predictionsAnnotations[0]._id,
-                superpixels: superpixelAnnotations[superpixelAnnotations.length - 1]._id, // epoch 0 should have no human labels
-                labels: superpixelAnnotations[0]._id
+                predictions,
+                superpixels,
+                labels
             };
-        });
-    },
-
-    getLabelAnnotationForItemPromise(item, annotationsToFetchByImage) {
-        return restRequest({
-            url: 'annotation',
-            data: {
-                itemId: item._id,
-                sort: 'created',
-                sortdir: -1
-            }
-        }).done((annotations) => {
-            const labelAnnotation = _.filter(annotations, (annotation) => {
-                return this.annotationIsValid && !annotation.annotation.name.includes('Predicitions');
-            })[0];
-            if (labelAnnotation) {
-                annotationsToFetchByImage[item._id] = {
-                    labels: labelAnnotation._id
-                };
-            }
         });
     },
 
@@ -203,10 +201,7 @@ const ActiveLearningView = View.extend({
                 if (item.largeImage) {
                     this.imageItemsById[item._id] = item;
                     this.annotationsByImageId[item._id] = {};
-                    const promiseFunction = this.activeLearningStep === activeLearningSteps.GuidedLabeling
-                        ? this.getAllAnnotationsForItemPromise
-                        : this.getLabelAnnotationForItemPromise;
-                    promises.push(promiseFunction.apply(this, [item, annotationsToFetchByImage]));
+                    promises.push(this.getAnnotationsForItemPromise(item, annotationsToFetchByImage));
                 }
             });
             return this.waitForPromises(promises, this.fetchAnnotations, annotationsToFetchByImage);
@@ -238,7 +233,7 @@ const ActiveLearningView = View.extend({
             if (this.activeLearningStep === activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
             }
-            return this.mountVueComponent();
+            return this.startActiveLearning();
         });
     },
 
@@ -438,7 +433,7 @@ const ActiveLearningView = View.extend({
                         this.checkJobs();
                     }
                     this.lastRunJobId = jobId;
-                    this.startActiveLearning();
+                    this.getAnnotations();
                 }
                 // TODO handle job failure
             });
