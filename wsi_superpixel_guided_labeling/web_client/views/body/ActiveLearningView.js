@@ -249,14 +249,16 @@ const ActiveLearningView = View.extend({
     },
 
     getAgreeChoice(index, predictionPixelmapElement, labelPixelmapElement) {
-        if (labelPixelmapElement.values[index] === 0) {
+        const label = labelPixelmapElement.values[index];
+        const labelCategories = labelPixelmapElement.categories;
+        if (labelCategories[label].label === 'default') {
             // Label is default, so no choice has been made
+            // Once we use the config file, we can use the default
+            // category specified there insted of the raw string
             return undefined;
         }
         const predictionCategories = predictionPixelmapElement.categories;
-        const labelCategories = labelPixelmapElement.categories;
         const prediction = predictionPixelmapElement.values[index];
-        const label = labelPixelmapElement.values[index];
         return predictionCategories[prediction].label === labelCategories[label].label ? 'Yes' : 'No';
     },
 
