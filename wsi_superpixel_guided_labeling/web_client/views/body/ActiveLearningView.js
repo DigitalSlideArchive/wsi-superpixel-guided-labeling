@@ -275,7 +275,6 @@ const ActiveLearningView = View.extend({
             _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
                 const agreeChoice = this.getAgreeChoice(index, annotation.elements[0], labels.elements[0]);
-                const selectedCategory = (labelValues[index] === 0) ? undefined : labelValues[index];
                 const prediction = {
                     index,
                     confidence: userData.confidence[index],
@@ -286,11 +285,10 @@ const ActiveLearningView = View.extend({
                     scale,
                     bbox,
                     prediction: pixelmapValues[index],
-                    label: labelValues[index],
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
                     agreeChoice,
-                    selectedCategory
+                    selectedCategory: labelValues[index]
                 };
                 superpixelPredictionsData.push(prediction);
             });

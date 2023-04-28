@@ -101,7 +101,7 @@ export default Vue.extend({
                 const currentPredictionLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
                 this.superpixelDecision.selectedCategory = this.categoryIndex(currentPredictionLabel);
             } else if (this.agreeChoice === undefined || this.agreeChoice === null) {
-                this.superpixelDecision.selectedCategory = undefined;
+                this.superpixelDecision.selectedCategory = 0;
             } else {
                 // agreeChoice === 'No'
                 if (!this.superpixelDecision.selectedCategory) {
@@ -112,13 +112,6 @@ export default Vue.extend({
         selectedCategory() {
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
-            const setDefault = this.superpixelDecision.selectedCategory === null || this.superpixelDecision.selectedCategory === undefined;
-            if (setDefault) {
-                values[this.superpixelDecision.index] = 0;
-                element.values = values;
-                store.changeLog.push(this.superpixelDecision);
-                return;
-            }
             values[this.superpixelDecision.index] = this.superpixelDecision.selectedCategory;
             element.values = values;
             store.changeLog.push(this.superpixelDecision);
@@ -133,7 +126,7 @@ export default Vue.extend({
                 // Be extra careful to select the correct category
                 const newCategory = store.categories[categoryNumber];
                 const newCategoryIndex = this.categoryIndex(newCategory.label);
-                if (newCategory.label === this.predictionCategory[this.superpixelDecision.prediction].label) {
+                if (newCategory.label === this.predictedCategory.label) {
                     this.superpixelDecision.agreeChoice = 'Yes';
                 } else {
                     this.superpixelDecision.selectedCategory = newCategoryIndex;
