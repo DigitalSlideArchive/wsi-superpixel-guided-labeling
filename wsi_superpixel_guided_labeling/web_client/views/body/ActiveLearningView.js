@@ -160,7 +160,7 @@ const ActiveLearningView = View.extend({
             _.forEach(annotations, (annotation) => {
                 const matches = epochRegex.exec(annotation.annotation.name);
                 if (matches) {
-                    this.epoch = Math.max(this.epoch, parseInt(matches[0].split(' ')[1]));
+                    this.epoch = Math.max(this.epoch, parseInt(matches[1]));
                 }
             });
             this.activeLearningStep = Math.min(this.epoch + 1, 2);
