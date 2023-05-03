@@ -86,32 +86,18 @@ export default Vue.extend({
                 return;
             }
             this.categories[this.categoryIndex].category.label = this.currentCategoryLabel;
+            this.synchronizeCategories();
         },
         currentCategoryFillColor(newColor, oldColor) {
             if (newColor === oldColor || !colorPattern.test(newColor)) {
                 return;
             }
             this.categories[this.categoryIndex].category.fillColor = this.currentCategoryFillColor;
+            this.synchronizeCategories();
         },
         categoryIndex() {
             this.currentCategoryLabel = this.categories[this.categoryIndex].category.label;
             this.currentCategoryFillColor = this.categories[this.categoryIndex].category.fillColor;
-        },
-        categories: {
-            handler() {
-                if (!this.currentCategoryFormValid) {
-                    return;
-                }
-                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
-                    const superpixelElement = annotations.labels.get('annotation').elements[0];
-                    if (superpixelElement) {
-                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
-                    }
-                });
-                this.debounceSaveAnnotations();
-                this.updatePixelmapLayerStyle();
-            },
-            deep: true
         },
         currentImageId() {
             this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
@@ -122,9 +108,6 @@ export default Vue.extend({
         this.currentImageId = Object.keys(this.imageNamesById)[0];
         this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
         this.setupViewer();
-    },
-    created() {
-        this.debounceSaveAnnotations = _.debounce(this.saveAnnotations, 250);
     },
     methods: {
         /***********************************
@@ -175,6 +158,7 @@ export default Vue.extend({
             this.viewerWidget.on('g:mouseDownAnnotationOverlay', this.handleMouseDownPixelmap);
             this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
+            this.synchronizeCategories();
         },
         createCategories() {
             // TODO handle missing default, default in wrong position
@@ -312,7 +296,7 @@ export default Vue.extend({
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
             superpixelElement.values = data;
-            this.debounceSaveAnnotations();
+            this.saveAnnotations();
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
@@ -352,14 +336,30 @@ export default Vue.extend({
             });
             this.categoryIndex = this.categories.length - 1;
         },
+        /***********
+         * UTILITY *
+         ***********/
+        synchronizeCategories() {
+            if (this.currentCategoryFormValid) {
+                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
+                    const superpixelElement = annotations.labels.get('annotation').elements[0];
+                    if (superpixelElement) {
+                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                    }
+                });
+                this.saveAnnotations(true);
+                this.updatePixelmapLayerStyle();
+            }
+        },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
         beginTraining() {
             this.backboneParent.retrain(true);
         },
-        saveAnnotations() {
-            this.backboneParent.saveLabelAnnotations();
+        saveAnnotations(saveAll) {
+            const idsToSave = saveAll ? Object.keys(this.annotationsByImageId) : [this.currentImageId];
+            this.backboneParent.saveLabelAnnotations(idsToSave);
         }
     }
 });
