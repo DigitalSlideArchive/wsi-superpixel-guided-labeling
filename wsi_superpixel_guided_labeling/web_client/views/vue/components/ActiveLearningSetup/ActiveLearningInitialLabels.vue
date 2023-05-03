@@ -37,7 +37,8 @@ export default Vue.extend({
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
             overlayLayer: null,
-            pixelmapRendered: false
+            pixelmapRendered: false,
+            pixelmapPaintValue: null
         };
     },
     computed: {
@@ -129,6 +130,9 @@ export default Vue.extend({
         /***********************************
          * IMAGE VIEWER AND CATEGORY SETUP *
          ***********************************/
+        clearPixelmapPaintValue() {
+            this.pixelmapPaintValue = null;
+        },
         setupViewer() {
             if (!this.superpixelAnnotation) {
                 return;
@@ -141,6 +145,7 @@ export default Vue.extend({
         },
         drawBaseImageLayer() {
             if (this.viewerWidget) {
+                this.$refs.map.removeEventListener('mouseup', this.clearPixelmapPaintValue);
                 this.viewerWidget.destroy();
             }
             this.viewerWidget = new ViewerWidget.geojs({ // eslint-disable-line new-cap
@@ -148,6 +153,7 @@ export default Vue.extend({
                 el: this.$refs.map,
                 itemId: this.currentImageId
             });
+            this.$refs.map.addEventListener('mouseup', this.clearPixelmapPaintValue);
             this.viewerWidget.on('g:imageRendered', this.drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
@@ -266,11 +272,22 @@ export default Vue.extend({
                 return;
             }
             const index = boundaries ? (event.index - event.index % 2) : event.index;
-            const offset = boundaries ? 1 : 0;
             const data = this.overlayLayer.data();
+            let newLabel = 0;
             const previousLabel = data[index];
             // the +1 accounts for the default, reset to default if already labeled with the selected category
-            const newLabel = previousLabel !== this.categoryIndex + 1 ? this.categoryIndex + 1 : 0;
+            if (event.event === geo.event.feature.mouseover) {
+                if (this.pixelmapPaintValue === null) {
+                    this.pixelmapPaintValue = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
+                }
+                newLabel = this.pixelmapPaintValue;
+            } else if (event.event === geo.event.feature.mouseclick) {
+                newLabel = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
+            }
+            if (newLabel === previousLabel) {
+                return;
+            }
+            const offset = boundaries ? 1 : 0;
             data[index] = data[index + offset] = newLabel;
             this.overlayLayer.indexModified(index, index + offset).draw();
 
