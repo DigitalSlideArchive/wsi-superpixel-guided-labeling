@@ -35,7 +35,8 @@ const ActiveLearningView = View.extend({
         this.imageItemsById = {};
         this.annotationsByImageId = {};
         this.sortedSuperpixelIndices = [];
-        this.debounceSaveLabelAnnotations = _.debounce(this.saveLabelAnnotations, 500);
+        this._isSaving = false;
+        this._saveAnnotationsForIds = new Set();
 
         this.fetchFoldersAndItems();
     },
@@ -363,10 +364,33 @@ const ActiveLearningView = View.extend({
      * request or run a job.
      ****************************************************************/
 
-    saveLabelAnnotations() {
-        _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+    /**
+     * Save the label annotations that are queued to be saved.
+     * Prevent multiple save requests from being sent to the server
+     * simultaneously.
+     * @param {string[]} imageIds
+     */
+    saveLabelAnnotations(imageIds) {
+        _.forEach(imageIds, (id) => {
+            this._saveAnnotationsForIds.add(id);
+        });
+        if (this._isSaving) {
+            return;
+        }
+        this._isSaving = true;
+        const promises = [];
+        _.forEach(Array.from(this._saveAnnotationsForIds), (imageId) => {
             const labelAnnotation = this.annotationsByImageId[imageId].labels;
-            labelAnnotation.save();
+            const promise = labelAnnotation.save();
+            promises.push(promise);
+        });
+        this._saveAnnotationsForIds = new Set();
+        $.when(...promises).then(() => {
+            this._isSaving = false;
+            if (this._saveAnnotationsForIds.size > 0) {
+                this.saveLabelAnnotations([]);
+            }
+            return true;
         });
     },
 
