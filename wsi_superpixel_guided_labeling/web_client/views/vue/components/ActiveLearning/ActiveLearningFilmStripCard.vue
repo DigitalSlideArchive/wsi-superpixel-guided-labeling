@@ -14,13 +14,16 @@ export default Vue.extend({
             return this.superpixelDecision.agreeChoice;
         },
         predictedCategory() {
-            return this.superpixelDecision.categories[this.superpixelDecision.prediction];
+            return this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction];
         },
         selectedCategory() {
             return this.superpixelDecision.selectedCategory;
         },
         labelAnnotation() {
             return store.annotationsByImageId[this.superpixelDecision.imageId].labels;
+        },
+        predictionAnnotation() {
+            return store.annotationsByImageId[this.superpixelDecision.imageId].predictions;
         },
         apiRoot() {
             return store.apiRoot;
@@ -37,7 +40,7 @@ export default Vue.extend({
         headerStyle() {
             return {
                 'font-size': '80%',
-                'background-color': this.superpixelDecision.categories[this.superpixelDecision.prediction].fillColor
+                'background-color': this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].fillColor
             };
         },
         headerTitle() {
@@ -47,9 +50,10 @@ export default Vue.extend({
             return `Certainty ${this.superpixelDecision.certainty.toFixed(5)}`;
         },
         validNewCategories() {
-            const categories = this.superpixelDecision.categories;
-            return _.filter(categories, (c, index) => {
-                return index !== this.superpixelDecision.prediction && c.label !== 'default';
+            const categories = this.superpixelDecision.labelCategories;
+            const predictedLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
+            return _.filter(categories, (c) => {
+                return !['default', predictedLabel].includes(c.label);
             });
         },
         wsiRegionUrl() {
@@ -94,20 +98,18 @@ export default Vue.extend({
     watch: {
         agreeChoice() {
             if (this.agreeChoice === 'Yes') {
-                this.superpixelDecision.selectedCategory = this.superpixelDecision.prediction;
-            } else if (this.agreeChoice === undefined) {
+                const currentPredictionLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
+                this.superpixelDecision.selectedCategory = this.categoryIndex(currentPredictionLabel);
+            } else if (this.agreeChoice === undefined || this.agreeChoice === null) {
                 this.superpixelDecision.selectedCategory = 0;
             } else {
                 // agreeChoice === 'No'
-                if (!this.selectedCategory) {
+                if (!this.superpixelDecision.selectedCategory) {
                     this.superpixelDecision.selectedCategory = this.categoryIndex(this.validNewCategories[0].label);
                 }
             }
         },
-        selectedCategory(newCat, oldCat) {
-            if (oldCat === undefined) {
-                return;
-            }
+        selectedCategory() {
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
             values[this.superpixelDecision.index] = this.superpixelDecision.selectedCategory;
@@ -120,27 +122,24 @@ export default Vue.extend({
             }
             if (categoryNumber === 0) {
                 this.superpixelDecision.agreeChoice = undefined;
-            } else if (categoryNumber <= this.superpixelDecision.categories.length) {
+            } else if (categoryNumber <= this.superpixelDecision.predictionCategories.length) {
                 // Be extra careful to select the correct category
                 const newCategory = store.categories[categoryNumber];
                 const newCategoryIndex = this.categoryIndex(newCategory.label);
-                this.superpixelDecision.selectedCategory = newCategoryIndex;
-                if (newCategoryIndex === this.superpixelDecision.prediction) {
+                if (newCategory.label === this.predictedCategory.label) {
                     this.superpixelDecision.agreeChoice = 'Yes';
                 } else {
+                    this.superpixelDecision.selectedCategory = newCategoryIndex;
                     this.superpixelDecision.agreeChoice = 'No';
                 }
-                this.$nextTick(() => nextCard());
+                this.$nextTick(() => {
+                    store.lastCategorySelected = null;
+                    nextCard();
+                });
             }
             store.lastCategorySelected = null; // reset state
         }
     },
-    mounted() {
-        if (!this.superpixelDecision.selectedCategory) {
-            this.superpixelDecision.selectedCategory = 0;
-        }
-    },
-
     methods: {
         selectSuperpixelCard() {
             store.selectedIndex = this.index;
@@ -153,7 +152,7 @@ export default Vue.extend({
          * the current superpixel, we use the right index.
          */
         categoryIndex(label) {
-            return _.map(this.superpixelDecision.categories, (category) => category.label).indexOf(label);
+            return _.map(this.superpixelDecision.labelCategories, (category) => category.label).indexOf(label);
         }
     }
 });
