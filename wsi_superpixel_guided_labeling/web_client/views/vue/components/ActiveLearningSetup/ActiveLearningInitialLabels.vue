@@ -145,7 +145,6 @@ export default Vue.extend({
         },
         drawBaseImageLayer() {
             if (this.viewerWidget) {
-                this.$refs.map.removeEventListener('mouseup', this.clearPixelmapPaintValue);
                 this.viewerWidget.destroy();
             }
             this.viewerWidget = new ViewerWidget.geojs({ // eslint-disable-line new-cap
@@ -153,7 +152,6 @@ export default Vue.extend({
                 el: this.$refs.map,
                 itemId: this.currentImageId
             });
-            this.$refs.map.addEventListener('mouseup', this.clearPixelmapPaintValue);
             this.viewerWidget.on('g:imageRendered', this.drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
@@ -174,6 +172,8 @@ export default Vue.extend({
             }
             this.viewerWidget.on('g:mouseClickAnnotationOverlay', this.handlePixelmapClicked);
             this.viewerWidget.on('g:mouseOverAnnotationOverlay', this.handleMouseOverPixelmap);
+            this.viewerWidget.on('g:mouseDownAnnotationOverlay', this.handleMouseDownPixelmap);
+            this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
         },
         createCategories() {
@@ -266,6 +266,20 @@ export default Vue.extend({
             }
             this.updatePixelmapData(overlayElement, event);
         },
+        handleMouseDownPixelmap(overlayElement, overlayLayer, event) {
+            if (
+                overlayElement.get('type') !== 'pixelmap' ||
+                !event.mouse.buttons.left ||
+                !event.mouse.modifiers.shift ||
+                !this.currentCategoryFormValid
+            ) {
+                return;
+            }
+            if (this.pixelmapPaintValue === null) {
+                this.pixelmapPaintValue = event.data === this.categoryIndex + 1 ? 0 : this.categoryIndex + 1;
+            }
+            this.updatePixelmapData(overlayElement, event);
+        },
         updatePixelmapData(overlayElement, event) {
             const boundaries = overlayElement.get('boundaries');
             if (boundaries && event.index % 2 !== 0) {
@@ -276,10 +290,7 @@ export default Vue.extend({
             let newLabel = 0;
             const previousLabel = data[index];
             // the +1 accounts for the default, reset to default if already labeled with the selected category
-            if (event.event === geo.event.feature.mouseover) {
-                if (this.pixelmapPaintValue === null) {
-                    this.pixelmapPaintValue = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
-                }
+            if (event.event === geo.event.feature.mouseover || event.event === geo.event.feature.mousedown) {
                 newLabel = this.pixelmapPaintValue;
             } else if (event.event === geo.event.feature.mouseclick) {
                 newLabel = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
