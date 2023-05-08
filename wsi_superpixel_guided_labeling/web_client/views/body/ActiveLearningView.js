@@ -173,11 +173,9 @@ const ActiveLearningView = View.extend({
                 return this.annotationIsValid(annotation) && !annotation.annotation.name.includes('Predictions');
             });
             const predictions = predictionsAnnotations[0] ? predictionsAnnotations[0]._id : null;
-            const superpixels = superpixelAnnotations[superpixelAnnotations.length - 1] ? superpixelAnnotations[superpixelAnnotations.length - 1]._id : null;
             const labels = superpixelAnnotations[0] ? superpixelAnnotations[0]._id : null;
             annotationsToFetchByImage[item._id] = {
                 predictions,
-                superpixels,
                 labels
             };
         });
@@ -217,7 +215,7 @@ const ActiveLearningView = View.extend({
     fetchAnnotations(annotationsToFetchByImage) {
         const promises = [];
         _.forEach(Object.keys(annotationsToFetchByImage), (imageId) => {
-            _.forEach(['predictions', 'superpixels', 'labels'], (key) => {
+            _.forEach(['predictions', 'labels'], (key) => {
                 const annotationId = annotationsToFetchByImage[imageId][key];
                 if (annotationId) {
                     const backboneModel = new AnnotationModel({ _id: annotationId });

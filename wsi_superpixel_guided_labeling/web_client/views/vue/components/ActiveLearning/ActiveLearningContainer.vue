@@ -155,8 +155,8 @@ export default Vue.extend({
             ]]);
             this.featureLayer.draw();
         },
-        drawSuperpixels() {
-            const annotation = this.annotationsByImageId[this.selectedImageId].superpixels;
+        drawLabels() {
+            const annotation = this.annotationsByImageId[this.selectedImageId].labels;
             this.viewerWidget.drawAnnotation(annotation);
         },
         createImageViewer() {
@@ -189,7 +189,7 @@ export default Vue.extend({
                 interactor.keyboard({});
 
                 this.updateMapBoundsForSelection();
-                this.drawSuperpixels();
+                this.drawLabels();
             });
         }
     }
