@@ -93,7 +93,7 @@ export default Vue.extend({
         changeLog: {
             handler() {
                 const change = this.changeLog[this.changeLog.length - 1];
-                this.backboneParent.debounceSaveLabelAnnotations(change);
+                this.backboneParent.saveLabelAnnotations([change.imageId]);
             },
             deep: true
         }
@@ -190,12 +190,6 @@ export default Vue.extend({
 
                 this.updateMapBoundsForSelection();
                 this.drawSuperpixels();
-            });
-        },
-        saveLabelAnnotations() {
-            _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
-                const annotation = this.annotationsByImageId[imageId].labels;
-                annotation.save();
             });
         }
     }
