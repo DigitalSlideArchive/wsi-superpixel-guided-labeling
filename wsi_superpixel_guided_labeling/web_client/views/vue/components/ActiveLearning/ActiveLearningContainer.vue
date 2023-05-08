@@ -94,6 +94,7 @@ export default Vue.extend({
             handler() {
                 const change = this.changeLog[this.changeLog.length - 1];
                 this.backboneParent.saveLabelAnnotations([change.imageId]);
+                this.drawLabels();
             },
             deep: true
         }
