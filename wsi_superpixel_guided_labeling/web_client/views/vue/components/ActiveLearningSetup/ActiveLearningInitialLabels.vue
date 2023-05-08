@@ -1,4 +1,5 @@
 <script>
+/* global geo */ // eslint-disable-line no-unused-vars
 import Vue from 'vue';
 import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
@@ -36,7 +37,8 @@ export default Vue.extend({
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
             overlayLayer: null,
-            pixelmapRendered: false
+            pixelmapRendered: false,
+            pixelmapPaintValue: null
         };
     },
     computed: {
@@ -128,6 +130,9 @@ export default Vue.extend({
         /***********************************
          * IMAGE VIEWER AND CATEGORY SETUP *
          ***********************************/
+        clearPixelmapPaintValue() {
+            this.pixelmapPaintValue = null;
+        },
         setupViewer() {
             if (!this.superpixelAnnotation) {
                 return;
@@ -166,6 +171,10 @@ export default Vue.extend({
                 this.hasLoaded = true;
             }
             this.viewerWidget.on('g:mouseClickAnnotationOverlay', this.handlePixelmapClicked);
+            this.viewerWidget.on('g:mouseOverAnnotationOverlay', this.handleMouseOverPixelmap);
+            this.viewerWidget.on('g:mouseDownAnnotationOverlay', this.handleMouseDownPixelmap);
+            this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
+            this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
         },
         createCategories() {
             // TODO handle missing default, default in wrong position
@@ -244,14 +253,52 @@ export default Vue.extend({
             ) {
                 return;
             }
-
+            this.updatePixelmapData(overlayElement, event);
+        },
+        handleMouseOverPixelmap(overlayElement, overlayLayer, event) {
+            if (
+                overlayElement.get('type') !== 'pixelmap' ||
+                !event.mouse.buttons.left ||
+                !event.mouse.modifiers.shift ||
+                !this.currentCategoryFormValid
+            ) {
+                return;
+            }
+            this.updatePixelmapData(overlayElement, event);
+        },
+        handleMouseDownPixelmap(overlayElement, overlayLayer, event) {
+            if (
+                overlayElement.get('type') !== 'pixelmap' ||
+                !event.mouse.buttons.left ||
+                !event.mouse.modifiers.shift ||
+                !this.currentCategoryFormValid
+            ) {
+                return;
+            }
+            if (this.pixelmapPaintValue === null) {
+                this.pixelmapPaintValue = event.data === this.categoryIndex + 1 ? 0 : this.categoryIndex + 1;
+            }
+            this.updatePixelmapData(overlayElement, event);
+        },
+        updatePixelmapData(overlayElement, event) {
             const boundaries = overlayElement.get('boundaries');
+            if (boundaries && event.index % 2 !== 0) {
+                return;
+            }
             const index = boundaries ? (event.index - event.index % 2) : event.index;
-            const offset = boundaries ? 1 : 0;
             const data = this.overlayLayer.data();
+            let newLabel = 0;
             const previousLabel = data[index];
             // the +1 accounts for the default, reset to default if already labeled with the selected category
-            const newLabel = previousLabel !== this.categoryIndex + 1 ? this.categoryIndex + 1 : 0;
+            if (event.event === geo.event.feature.mouseover || event.event === geo.event.feature.mousedown) {
+                newLabel = this.pixelmapPaintValue;
+            } else if (event.event === geo.event.feature.mouseclick) {
+                newLabel = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
+            }
+            if (newLabel === previousLabel) {
+                return;
+            }
+            const offset = boundaries ? 1 : 0;
             data[index] = data[index + offset] = newLabel;
             this.overlayLayer.indexModified(index, index + offset).draw();
 

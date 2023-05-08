@@ -23,10 +23,9 @@ setup(
     description='Perform active learning with superpixel classification.',
     install_requires=[
         'histomicsui',
-        'large_image[tiff,openslide,memcached,openjpeg,converter]',
-        'girder-large-image-annotation>=1.13.0',
+        'large_image[tiff,openslide,memcached,openjpeg,converter]>=1.20.6',
+        'girder-large-image-annotation>=1.20.6',
         'girder-slicer-cli-web>=1.2.3',
-        'orjson==3.8.0'
     ],
     license='Apache Software License 2.0',
     long_description=readme,
