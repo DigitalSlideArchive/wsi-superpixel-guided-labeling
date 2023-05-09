@@ -42,7 +42,7 @@ export default Vue.extend({
         };
     },
     computed: {
-        currentLabelErrors() {
+        currentFormErrors() {
             const errors = [];
             const inactiveCategories = _.filter(this.categories, (category, idx) => idx !== this.categoryIndex);
             const otherCategoryNames = _.map(inactiveCategories, (category) => category.category.label);
@@ -52,7 +52,18 @@ export default Vue.extend({
             return errors;
         },
         currentCategoryFormValid() {
-            return this.currentLabelErrors.length === 0;
+            return this.currentFormErrors.length === 0;
+        },
+        currentLabelingErrors() {
+            const errors = [];
+            const counts = _.map(Object.keys(this.labeledSuperpixelCounts), (entry) => this.labeledSuperpixelCounts[entry].count);
+            if (_.filter(counts, (count) => count > 0).length < 2) {
+                errors.push('You must label superpixels for two different categories to continue');
+            }
+            return errors;
+        },
+        currentLabelsValid() {
+            return this.currentLabelingErrors.length === 0;
         },
         usingBoundaries() {
             return this.superpixelElement.boundaries;
@@ -379,15 +390,6 @@ export default Vue.extend({
           v-model="currentCategoryLabel"
           class="form-control input-sm h-active-learning-input"
         >
-        <div v-if="currentLabelErrors.length > 0">
-          <p
-            v-for="error in currentLabelErrors"
-            :key="error"
-            class="form-validation-error"
-          >
-            {{ error }}
-          </p>
-        </div>
       </div>
       <div class="form-group">
         <label for="fill-color">Fill Color</label>
@@ -421,17 +423,35 @@ export default Vue.extend({
       </button>
       <button
         class="btn btn-primary h-start-training-btn"
-        :disabled="!currentCategoryFormValid"
+        :disabled="!currentCategoryFormValid || !currentLabelsValid"
         @click="beginTraining"
       >
         Begin training
       </button>
       <p
-        v-if="!currentCategoryFormValid"
+        v-if="!currentCategoryFormValid || !currentLabelsValid"
         class="form-validation-error"
       >
-        Please fix the validation errors to continue
+        Please fix all errors to continue
       </p>
+      <div v-if="currentFormErrors.length > 0">
+        <p
+          v-for="error in currentFormErrors"
+          :key="error"
+          class="form-validation-error"
+        >
+          {{ error }}
+        </p>
+      </div>
+      <div v-if="currentLabelingErrors.length > 0">
+        <p
+          v-for="error in currentLabelingErrors"
+          :key="error"
+          class="form-validation-error"
+        >
+          {{ error }}
+        </p>
+      </div>
       <div class="h-al-image-selector">
         <span>Image: </span>
         <select
