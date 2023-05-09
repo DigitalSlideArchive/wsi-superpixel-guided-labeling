@@ -5,6 +5,8 @@ import girderEvents from '@girder/core/events';
 
 import ActiveLearningView from './views/body/ActiveLearningView';
 import './views/itemList';
+import './views/HeaderView';
+import './views/HeaderImageView';
 import * as WSISuperpixelGuidedLabeling from './index';
 
 const pluginName = 'wsi_superpixel_guided_labeling';
