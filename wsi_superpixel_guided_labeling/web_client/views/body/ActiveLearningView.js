@@ -78,7 +78,7 @@ const ActiveLearningView = View.extend({
             }
 
             const defaultIndex = _.findIndex(this.configAnnotationGroups.groups,
-                (group => group.id === this.configAnnotationGroups.defaultGroup)
+                (group) => group.id === this.configAnnotationGroups.defaultGroup
             );
             const defaultGroup = this.configAnnotationGroups.groups[defaultIndex];
             // Make sure the default category is inserted first
@@ -92,7 +92,7 @@ const ActiveLearningView = View.extend({
                     label: group.id,
                     fillColor: group.fillColor,
                     strokeColor: group.lineColor
-                }
+                };
             });
             // save the config, since we might want to edit it
             this.histomicsUIConfig = config;
