@@ -58,7 +58,7 @@ export default Vue.extend({
             const errors = [];
             const counts = _.map(Object.keys(this.labeledSuperpixelCounts), (entry) => this.labeledSuperpixelCounts[entry].count);
             if (_.filter(counts, (count) => count > 0).length < 2) {
-                errors.push('You must label superpixels for two different categories to continue');
+                errors.push('You must label superpixels for at least two different categories');
             }
             return errors;
         },
@@ -383,22 +383,52 @@ export default Vue.extend({
       v-if="pixelmapRendered"
       class="h-add-new-category"
     >
-      <div class="form-group">
-        <label for="category-label">Label</label>
-        <input
-          id="category-label"
-          v-model="currentCategoryLabel"
-          class="form-control input-sm h-active-learning-input"
-        >
-      </div>
-      <div class="form-group">
-        <label for="fill-color">Fill Color</label>
-        <color-picker-input
-          :key="categoryIndex"
-          v-model="currentCategoryFillColor"
-          style="width: 30%"
-          :color="currentCategoryFillColor"
-        />
+      <div class="h-category-form">
+        <div class="h-form-controls">
+          <div class="form-group">
+            <label for="category-label">Label</label>
+            <input
+              id="category-label"
+              v-model="currentCategoryLabel"
+              class="form-control input-sm h-active-learning-input"
+            >
+          </div>
+          <div class="form-group">
+            <label for="fill-color">Fill Color</label>
+            <color-picker-input
+              :key="categoryIndex"
+              v-model="currentCategoryFillColor"
+              class="h-active-learning-input"
+              :color="currentCategoryFillColor"
+            />
+          </div>
+        </div>
+        <div class="h-error-messages">
+          <p
+            v-if="!currentCategoryFormValid || !currentLabelsValid"
+            class="form-validation-error"
+          >
+            Please fix all errors to continue
+          </p>
+          <ul v-if="currentFormErrors.length > 0">
+            <li
+              v-for="error in currentFormErrors"
+              :key="error"
+              class="form-validation-error"
+            >
+              {{ error }}
+            </li>
+          </ul>
+          <ul v-if="currentLabelingErrors.length > 0">
+            <li
+              v-for="error in currentLabelingErrors"
+              :key="error"
+              class="form-validation-error"
+            >
+              {{ error }}
+            </li>
+          </ul>
+        </div>
       </div>
       <button
         class="btn btn-primary h-previous-category-btn"
@@ -428,30 +458,6 @@ export default Vue.extend({
       >
         Begin training
       </button>
-      <p
-        v-if="!currentCategoryFormValid || !currentLabelsValid"
-        class="form-validation-error"
-      >
-        Please fix all errors to continue
-      </p>
-      <div v-if="currentFormErrors.length > 0">
-        <p
-          v-for="error in currentFormErrors"
-          :key="error"
-          class="form-validation-error"
-        >
-          {{ error }}
-        </p>
-      </div>
-      <div v-if="currentLabelingErrors.length > 0">
-        <p
-          v-for="error in currentLabelingErrors"
-          :key="error"
-          class="form-validation-error"
-        >
-          {{ error }}
-        </p>
-      </div>
       <div class="h-al-image-selector">
         <span>Image: </span>
         <select
@@ -508,8 +514,17 @@ export default Vue.extend({
     display: block;
     padding-top: 8px;
 }
+.h-form-controls {
+  width: 550px;
+}
 .h-active-learning-input {
-    width: 30%;
+    width: 90%;
+}
+.h-category-form {
+  display: flex;
+}
+.h-error-messages {
+  padding-top: 25px;
 }
 .form-validation-error {
     color: red;
