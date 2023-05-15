@@ -6,14 +6,14 @@ import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
-import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
+import ControlPanel from './ControlPanel.vue';
 
 import { store } from './store.js';
 
 export default Vue.extend({
     components: {
         ActiveLearningFilmStrip,
-        ActiveLearningKeyboardShortcuts
+        ControlPanel
     },
     props: [
         'router',
@@ -199,7 +199,7 @@ export default Vue.extend({
 
 <template>
   <div class="h-active-learning-container">
-    <active-learning-keyboard-shortcuts />
+    <control-panel />
     <div
       ref="map"
       class="h-active-learning-map"

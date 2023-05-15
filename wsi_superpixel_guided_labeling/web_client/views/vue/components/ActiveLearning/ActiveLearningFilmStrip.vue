@@ -2,14 +2,10 @@
 import _ from 'underscore';
 
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
-import ActiveLearningStats from './ActiveLearningStats.vue';
 import { store } from './store.js';
 
 export default {
-    components: {
-        ActiveLearningFilmStripCard,
-        ActiveLearningStats
-    },
+    components: { ActiveLearningFilmStripCard },
     data() {
         return {
             maxPage: 500
@@ -38,9 +34,6 @@ export default {
         },
         nextPage() {
             store.page = store.page + 1;
-        },
-        togglePredictions() {
-            store.predictions = !store.predictions;
         },
         agreeAll() {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
@@ -82,14 +75,6 @@ export default {
       <i class="icon-right-circled h-filmstrip-page-icon" />
     </button>
     <div class="h-filmstrip-workflow-btns">
-      <active-learning-stats />
-      <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
-        title="Show or hide the most recent predictions"
-        @click="togglePredictions"
-      >
-        Show/hide predictions
-      </button>
       <button
         class="h-filmstrip-workflow-btn btn btn-primary"
         @click="resetAll"
@@ -121,6 +106,7 @@ export default {
     align-items: center;
     bottom: 0px;
     width: 100%;
+    height: 200px;
     padding-top: 10px;
     padding-bottom: 10px;
     background-color: rgba(0, 0, 0, 0.6);

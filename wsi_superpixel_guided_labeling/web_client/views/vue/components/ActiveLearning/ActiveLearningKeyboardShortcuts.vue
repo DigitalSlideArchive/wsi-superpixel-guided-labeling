@@ -93,17 +93,7 @@ export default Vue.extend({
 
 <style scoped>
 .h-hotkeys-container {
-    z-index: 1000;
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    padding: 5px;
-    min-width: 200px;
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    border-radius: 1px;
-    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+  background-color: white;
 }
 
 .h-hotkeys-header {
