@@ -14,7 +14,8 @@ const store = Vue.observable({
     predictions: false,
     currentAverageCertainty: 0,
     categories: [],
-    lastCategorySelected: null
+    lastCategorySelected: null,
+    guidedLabelingMode: true
 });
 
 const previousCard = () => {
