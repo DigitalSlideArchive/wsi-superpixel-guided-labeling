@@ -1,18 +1,27 @@
 <script>
 import _ from 'underscore';
 
+import { schemeCategory10 } from 'd3-scale-chromatic';
+
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
+import EditCategoryModal from './EditCategoryModal.vue';
 import { store } from './store.js';
 
 export default {
     components: {
         ActiveLearningFilmStripCard,
-        ActiveLearningStats
+        ActiveLearningStats,
+        EditCategoryModal
     },
     data() {
         return {
-            maxPage: 500
+            maxPage: 500,
+            editCategory: false,
+            editCategoryIndex: 0,
+            editCategoryColor: '',
+            editCategoryLabel: '',
+            editingCategory: false
         };
     },
     computed: {
@@ -69,6 +78,24 @@ export default {
         },
         changeMode() {
             store.guidedLabelingMode = !store.guidedLabelingMode;
+        },
+        addCategory() {
+            const color = schemeCategory10[this.categories.length + 1 % schemeCategory10.length];
+            this.categories.push({
+                label: 'New Category',
+                fillColor: color,
+                strokeColor: 'rgb(0, 0, 0)'
+            });
+            this.setEditCategory(this.categories.length - 1);
+        },
+        setEditCategory(index) {
+            this.editCategoryIndex = index;
+            this.editCategoryLabel = this.categories[index].label;
+            this.editCategoryColor = this.categories[index].color;
+            this.editingCategory = true;
+        },
+        cancelCategoryEdit() {
+            this.editingCategory = false;
         }
     }
 };
@@ -145,6 +172,7 @@ export default {
           </h4>
           <button
             class="btn btn-primary"
+            @click="addCategory"
           >
             <i class="icon-plus" />
             Add category
@@ -196,7 +224,33 @@ export default {
           </table>
         </div>
       </div>
+      <!--div class="h-filmstrip-edit-category">
+        <div class="form-group">
+          <label for="category-label">Label</label>
+          <input
+            id="category-label"
+            v-model="editCategoryLabel"
+            class="form-control input-sm h-active-learning-input"
+          >
+        </div>
+        <div class="form-group">
+          <label for="fill-color">Fill Color</label>
+          <color-picker-input
+            :key="editCategoryIndex"
+            v-model="editCategoryColor"
+            class="h-active-learning-input"
+            :color="editCategoryColor"
+          />
+        </div>
+      </div -->
     </div>
+    <edit-category-modal
+      :show-modal="editingCategory"
+      :initial-label="editCategoryLabel"
+      :initial-color="editCategoryColor"
+      @confirm="() => console.log('Saving category...')"
+      @cancel="cancelCategoryEdit"
+    />
   </div>
 </template>
 
@@ -228,6 +282,8 @@ export default {
 
 .h-filmstrip-manual-labeling {
   height: 100%;
+  display: flex;
+  flex-direction: row;
 }
 
 .h-filmstrip-categories {
@@ -298,6 +354,12 @@ export default {
 
 .edit-category-btn {
   padding: 0px;
+}
+
+.h-filmstrip-edit-category {
+  background-color: #f8f8f8;
+  padding: 5px;
+  margin-left: 15px;
 }
 
 .h-filmstrip-page-btn {
