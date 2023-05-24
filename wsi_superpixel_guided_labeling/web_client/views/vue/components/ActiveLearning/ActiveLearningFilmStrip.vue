@@ -224,25 +224,6 @@ export default {
           </table>
         </div>
       </div>
-      <!--div class="h-filmstrip-edit-category">
-        <div class="form-group">
-          <label for="category-label">Label</label>
-          <input
-            id="category-label"
-            v-model="editCategoryLabel"
-            class="form-control input-sm h-active-learning-input"
-          >
-        </div>
-        <div class="form-group">
-          <label for="fill-color">Fill Color</label>
-          <color-picker-input
-            :key="editCategoryIndex"
-            v-model="editCategoryColor"
-            class="h-active-learning-input"
-            :color="editCategoryColor"
-          />
-        </div>
-      </div -->
     </div>
     <edit-category-modal
       :show-modal="editingCategory"
