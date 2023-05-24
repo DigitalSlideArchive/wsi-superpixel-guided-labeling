@@ -2,6 +2,8 @@ import router from '@girder/histomicsui/router';
 import { registerPluginNamespace } from '@girder/core/pluginUtils';
 import { exposePluginConfig } from '@girder/core/utilities/PluginUtils';
 import girderEvents from '@girder/core/events';
+import Vue from 'vue';
+import Vuetify from 'vuetify/lib';
 
 import ActiveLearningView from './views/body/ActiveLearningView';
 import './views/itemList';
@@ -18,3 +20,9 @@ exposePluginConfig(pluginName, configRoute);
 router.route('active-learning', 'active-learning', function () {
     girderEvents.trigger('g:navigateTo', ActiveLearningView, {});
 });
+
+const vuetify = new Vuetify({
+    theme: { disable: true }
+});
+
+Vue.use(vuetify);
