@@ -1,18 +1,16 @@
 <script>
 import _ from 'underscore';
 
-import { schemeCategory10 } from 'd3-scale-chromatic';
-
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
-import EditCategoryModal from './EditCategoryModal.vue';
+import ActiveLearningFilmStripCategories from './ActiveLearningFilmStripCategories.vue';
 import { store } from './store.js';
 
 export default {
     components: {
         ActiveLearningFilmStripCard,
         ActiveLearningStats,
-        EditCategoryModal
+        ActiveLearningFilmStripCategories
     },
     data() {
         return {
@@ -21,7 +19,9 @@ export default {
             editCategoryIndex: 0,
             editCategoryColor: '',
             editCategoryLabel: '',
-            editingCategory: false
+            editingCategory: false,
+            modalTitle: 'Edit Category',
+            activeCategoryIndex: null
         };
     },
     computed: {
@@ -42,15 +42,6 @@ export default {
         },
         guidedLabelingMode() {
             return store.guidedLabelingMode;
-        },
-        categories() {
-            return [
-                {
-                    label: 'Background',
-                    fillColor: 'rgba(0, 0, 255, 0.5)',
-                    strokeColor: 'rgba(0, 0, 0)'
-                }
-            ];
         }
     },
     methods: {
@@ -78,24 +69,6 @@ export default {
         },
         changeMode() {
             store.guidedLabelingMode = !store.guidedLabelingMode;
-        },
-        addCategory() {
-            const color = schemeCategory10[this.categories.length + 1 % schemeCategory10.length];
-            this.categories.push({
-                label: 'New Category',
-                fillColor: color,
-                strokeColor: 'rgb(0, 0, 0)'
-            });
-            this.setEditCategory(this.categories.length - 1);
-        },
-        setEditCategory(index) {
-            this.editCategoryIndex = index;
-            this.editCategoryLabel = this.categories[index].label;
-            this.editCategoryColor = this.categories[index].color;
-            this.editingCategory = true;
-        },
-        cancelCategoryEdit() {
-            this.editingCategory = false;
         }
     }
 };
@@ -161,76 +134,8 @@ export default {
         </button>
       </div>
     </div>
-    <div
+    <active-learning-film-strip-categories
       v-else
-      class="h-filmstrip-manual-labeling"
-    >
-      <div class="h-filmstrip-categories">
-        <div class="h-filmstrip-categories-header">
-          <h4 style="color: #ffffff">
-            Categories
-          </h4>
-          <button
-            class="btn btn-primary"
-            @click="addCategory"
-          >
-            <i class="icon-plus" />
-            Add category
-          </button>
-        </div>
-        <div class="table-container">
-          <table class="h-filmstrip-categories-table">
-            <tr class="header-row">
-              <th class="ct-col-number" />
-              <th class="ct-color-col">
-                Fill Color
-              </th>
-              <th class="ct-label-col">
-                Label
-              </th>
-              <th class="ct-count-col">
-                No. of superpixels labeled
-              </th>
-              <th class="ct-edit-btn-col" />
-            </tr>
-            <tr
-              v-for="category, index in categories"
-              :key="index"
-              class="category-row"
-            >
-              <td class="ct-col-number">
-                {{ index + 1 }}
-              </td>
-              <td>
-                <div class="color-cell-contents">
-                  <div
-                    class="color-chip"
-                    :style="{ 'background-color': category.fillColor }"
-                  />
-                </div>
-              </td>
-              <td>
-                {{ category.label }}
-              </td>
-              <td>
-                {{ 100 }}
-              </td>
-              <td>
-                <button class="btn btn-primary edit-category-btn">
-                  <i class="icon-pencil" />
-                </button>
-              </td>
-            </tr>
-          </table>
-        </div>
-      </div>
-    </div>
-    <edit-category-modal
-      :show-modal="editingCategory"
-      :initial-label="editCategoryLabel"
-      :initial-color="editCategoryColor"
-      @confirm="() => console.log('Saving category...')"
-      @cancel="cancelCategoryEdit"
     />
   </div>
 </template>
@@ -259,88 +164,6 @@ export default {
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
-}
-
-.h-filmstrip-manual-labeling {
-  height: 100%;
-  display: flex;
-  flex-direction: row;
-}
-
-.h-filmstrip-categories {
-  width: 650px;
-  margin-left: 10px;
-  height: 100%;
-}
-
-.table-container {
-  height: 80%;
-  background-color: #f8f8f8;
-}
-
-.h-filmstrip-categories-header {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: 2px;
-}
-
-.h-filmstrip-categories-table {
-  background-color: #f8f8f8;
-  width: 100%;
-}
-
-.header-row {
-  background-color: #ffffff;
-  color: #757575;
-  height: 15px;
-}
-
-.spacer-row {
-  height: 100%;
-  background-color: #f8f8f8;
-}
-
-.ct-col-number {
-  width: 5%;
-  text-align: center;
-}
-
-.ct-color-col {
-  text-align: center;
-  width: 15%;
-}
-
-.ct-label-col {
-  width: 40%;
-}
-
-.ct-count-col {
-  width: 35%;
-}
-
-.ct-edit-btn {
-  width: 5%;
-}
-
-.color-cell-contents {
-  display: flex;
-  justify-content: center;
-}
-
-.color-chip {
-  height: 15px;
-  width: 15px;
-}
-
-.edit-category-btn {
-  padding: 0px;
-}
-
-.h-filmstrip-edit-category {
-  background-color: #f8f8f8;
-  padding: 5px;
-  margin-left: 15px;
 }
 
 .h-filmstrip-page-btn {

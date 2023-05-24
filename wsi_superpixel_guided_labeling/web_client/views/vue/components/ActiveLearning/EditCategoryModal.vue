@@ -5,16 +5,18 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 export default Vue.extend({
     components: { ColorPickerInput },
-    props: ['showModal', 'initialLabel', 'initialFillColor'],
+    props: ['showModal', 'initialLabel', 'initialFillColor', 'title'],
     data() {
         return {
             editCategoryLabel: '',
             editCategoryColor: ''
         };
     },
-    mounted() {
-        this.editCategoryLabel = this.initialLabel;
-        this.editCategoryColor = this.initialFillColor;
+    watch: {
+        showModal() {
+            this.editCategoryLabel = this.initialLabel;
+            this.editCategoryColor = this.initialFillColor;
+        }
     },
     methods: {
         confirm() {
@@ -34,7 +36,7 @@ export default Vue.extend({
   >
     <div class="modal-content">
       <div class="modal-header">
-        Edit Category
+        {{ title }}
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -56,16 +58,16 @@ export default Vue.extend({
       </div>
       <div class="modal-footer">
         <button
-          class="btn btn-primary"
-          @click="confirm"
-        >
-          Ok
-        </button>
-        <button
           class="btn"
           @click="cancel"
         >
           Cancel
+        </button>
+        <button
+          class="btn btn-primary"
+          @click="confirm"
+        >
+          Ok
         </button>
       </div>
     </div>
