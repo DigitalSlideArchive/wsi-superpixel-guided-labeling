@@ -158,6 +158,12 @@ export default Vue.extend({
         },
         drawLabels() {
             const annotation = this.annotationsByImageId[this.selectedImageId].labels;
+            this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
+                if (element.id === annotation.get('annotation').elements[0].id) {
+                    store.labelsLayer = layer;
+                    store.labelsElement = element;
+                }
+            });
             this.viewerWidget.drawAnnotation(annotation);
         },
         createImageViewer() {
@@ -188,6 +194,8 @@ export default Vue.extend({
                 // Remove keyboard actions
                 const interactor = this.viewerWidget.viewer.interactor();
                 interactor.keyboard({});
+
+                store.viewerWidget = this.viewerWidget;
 
                 this.updateMapBoundsForSelection();
                 this.drawLabels();

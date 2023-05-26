@@ -1,7 +1,10 @@
 <script>
+/* global geo */ // eslint-disable-line no-unused-vars
 import { schemeCategory10 } from 'd3-scale-chromatic';
 
 import EditCategoryModal from './EditCategoryModal.vue';
+
+import { store } from './store.js';
 
 export default {
     components: { EditCategoryModal },
@@ -18,10 +21,94 @@ export default {
                 label: 'Background',
                 fillColor: schemeCategory10[0],
                 strokeColor: '#000'
-            }]
+            }],
+            pixelmapPaintValue: null
         };
     },
+    computed: {
+        labelsLayer() {
+            return store.labelsLayer;
+        },
+        labelsElement() {
+            return store.labelsElement;
+        },
+        viewerWidget() {
+            return store.viewerWidget;
+        }
+    },
+    watch: {
+        labelsLayer() {
+            console.log('labels layer changed');
+        },
+        labelsElement() {
+            console.log('labels element changed');
+        },
+        viewerWidget() {
+            console.log('viewerWidgetChanging');
+            this.setupMouseEvents();
+        }
+    },
+    mounted() {
+        this.setupMouseEvents();
+    },
     methods: {
+        setupMouseEvents() {
+            if (!this.viewerWidget) {
+                return;
+            }
+            // TODO prevent double-binding
+            this.viewerWidget.on('g:mouseClickAnnotationOverlay', this.handlePixelmapClicked);
+            this.viewerWidget.on('g:mouseOverAnnotationOverlay', this.handleMouseOverPixelmap);
+            this.viewerWidget.on('g:mouseDownAnnotationOverlay', this.handleMouseDownPixelmap);
+            this.viewerWidget.on('g:mouseUpAnnotationOverlay', () => {
+                this.pixelmapPaintValue = null;
+            });
+            this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
+        },
+        /************************
+         * PIXELMAP INTERACTION *
+         ************************/
+        handlePixelmapClicked(overlayElement, overlayLayer, event) {
+            if (
+                overlayElement.get('type') !== 'pixelmap' ||
+                !event.mouse.buttonsDown.left ||
+                overlayElement.get('id') !== this.labelsElement.id
+            ) {
+                return;
+            }
+            this.updatePixelmapData(overlayElement, event);
+        },
+        handleMouseOverPixelmap(overlayElement, overlayLayer, event) {
+            if (
+                overlayElement.get('type') !== 'pixelmap' ||
+                !event.mouse.buttons.left ||
+                !event.mouse.modifiers.shift ||
+                overlayElement.get('id') !== this.labelsElement.id
+            ) {
+                return;
+            }
+            this.updatePixelmapData(overlayElement, event);
+        },
+        handleMouseDownPixelmap(overlayElement, overlayLayer, event) {
+            if (
+                overlayElement.get('type') !== 'pixelmap' ||
+                !event.mouse.buttons.left ||
+                !event.mouse.modifiers.shift ||
+                overlayElement.get('id') !== this.labelsElement.id
+            ) {
+                return;
+            }
+            if (this.pixelmapPaintValue === null) {
+                this.pixelmapPaintValue = event.data === this.activeCategoryIndex + 1 ? 0 : this.activeCategoryIndex + 1;
+            }
+            this.updatePixelmapData(overlayElement, event);
+        },
+        updatePixelmapData(overlayElement, event) {
+            console.log(overlayElement, event);
+        },
+        /*******************
+         * EDIT CATEGORIES *
+         *******************/
         addCategory() {
             this.modalTitle = 'New Category';
             this.editCategoryIndex = -1;
