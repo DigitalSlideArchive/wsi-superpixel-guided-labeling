@@ -153,6 +153,7 @@ export default {
 .table-container {
   height: 80%;
   background-color: #f8f8f8;
+  overflow: scroll;
 }
 
 .h-filmstrip-categories-header {
@@ -213,11 +214,4 @@ export default {
   padding: 0px;
   margin: 2px 0;
 }
-
-.h-filmstrip-edit-category {
-  background-color: #f8f8f8;
-  padding: 5px;
-  margin-left: 15px;
-}
-
 </style>
