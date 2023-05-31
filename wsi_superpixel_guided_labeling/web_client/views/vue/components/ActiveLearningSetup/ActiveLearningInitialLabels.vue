@@ -24,16 +24,18 @@ export default Vue.extend({
     data() {
         return {
             hasLoaded: false,
+
             // data tracking current categories/currently active category
             categories: [],
-            // TODO add comment describing shape of objects in this list
             categoryIndex: 0,
             currentCategoryLabel: 'New Category',
             currentCategoryFillColor: defaultNewCategoryColor,
+
             // keep track of the current image and annotation to edit
             currentImageId: '',
             superpixelAnnotation: null,
             superpixelElement: null,
+
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
             overlayLayer: null,
@@ -172,6 +174,9 @@ export default Vue.extend({
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
             this.synchronizeCategories();
         },
+        /**
+         * Parse existing label annotations to populate the categories used for labeling.
+         */
         createCategories() {
             // TODO handle missing default, default in wrong position
             _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
@@ -193,6 +198,15 @@ export default Vue.extend({
             this.currentCategoryLabel = this.categories[0].category.label;
             this.currentCategoryFillColor = this.categories[0].category.fillColor;
         },
+        /**
+         * Given a pixelmap annotation element and a list of categories, work to populate the component's
+         * `categories` data property. For each category in the annotation, add the labeled indices to that
+         * object. As a side effect, also populate the `existingCategories` parameter, which is used by the calling function
+         * above.
+         * @param {Object} pixelmapElement
+         * @param {number} imageId
+         * @param {string[]} existingCategories
+         */
         createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories) {
             _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
                 if (categoryIndex !== 0) {
@@ -223,6 +237,10 @@ export default Vue.extend({
         /************************
          * PIXELMAP INTERACTION *
          ************************/
+        /**
+         * Ensure that the label annotation is drawn correctly by keeping the geojs layer
+         * up to date with the most recent category list
+         */
         updatePixelmapLayerStyle() {
             const categoryMap = this.allNewCategories;
             const boundaries = this.usingBoundaries;
@@ -271,6 +289,8 @@ export default Vue.extend({
             ) {
                 return;
             }
+            // For shift + click painting, we can either start painting with the selected category,
+            // or paint the default category
             if (this.pixelmapPaintValue === null) {
                 this.pixelmapPaintValue = event.data === this.categoryIndex + 1 ? 0 : this.categoryIndex + 1;
             }

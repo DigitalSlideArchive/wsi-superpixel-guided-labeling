@@ -97,6 +97,9 @@ export default Vue.extend({
     },
     watch: {
         agreeChoice() {
+            // TODO investigate removing "agreeChoice." It can be derived by comparing the label of the prediction and label
+            // categories, and keeping it up to date is extra work, for little value. It is used to bind to the radio buttons on
+            // the card, but provides no value elsewhere as being a separate property of a superpixel prediction.
             if (this.agreeChoice === 'Yes') {
                 const currentPredictionLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
                 this.superpixelDecision.selectedCategory = this.categoryIndex(currentPredictionLabel);
