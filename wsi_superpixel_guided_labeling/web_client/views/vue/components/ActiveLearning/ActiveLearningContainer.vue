@@ -219,25 +219,4 @@ export default Vue.extend({
     width: 100%;
     height: 100%;
 }
-
-.h-superpixel-container {
-    position: relative;
-    height: 100px;
-    width: 100px;
-}
-
-.h-wsi-region {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    z-index: 10;
-
-}
-
-.h-superpixel-region {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    z-index: 20;
-}
 </style>

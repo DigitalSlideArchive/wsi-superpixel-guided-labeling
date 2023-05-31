@@ -152,31 +152,4 @@ export default {
 .h-filmstrip-workflow-btn {
     display: flex;
 }
-
-.h-superpixel-card {
-    display: flex;
-    flex-direction: column;
-    column-gap: 0px;
-    background-color: white;
-}
-
-.h-superpixel-container {
-    position: relative;
-    height: 125px;
-    width: 125px;
-}
-
-.h-wsi-region {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    z-index: 10;
-}
-
-.h-superpixel-region {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    z-index: 20;
-}
 </style>
