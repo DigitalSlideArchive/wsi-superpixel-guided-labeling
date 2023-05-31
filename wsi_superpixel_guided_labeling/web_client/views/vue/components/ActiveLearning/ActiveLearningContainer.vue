@@ -41,6 +41,8 @@ export default Vue.extend({
         };
     },
     computed: {
+        // For computed properties that just return store values, it probably just makes more sense
+        // to use store.<prop> instead of this.<computedProp> for readability
         superpixelsToDisplay() {
             return store.superpixelsToDisplay;
         },
@@ -62,6 +64,7 @@ export default Vue.extend({
             const newImageId = this.superpixelsToDisplay[this.selectedIndex].imageId;
             if (newImageId !== this.selectedImageId) {
                 this.selectedImageId = newImageId;
+                // TODO: consider caching image metadata for each image the first time this request gets made
                 restRequest({
                     url: `item/${this.selectedImageId}/tiles`
                 }).done((resp) => {
@@ -113,6 +116,8 @@ export default Vue.extend({
 
         const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
         const predictionCategories = predictionAnnotation.get('annotation').elements[0].categories;
+        // ensure the default category is at index 0.
+        // Once the config yaml is used, the store categories should be taken from that.
         const nonDefaultPredictionsCategories = _.filter(predictionCategories, (category) => category.label !== 'default');
         store.categories = [
             {
@@ -138,6 +143,7 @@ export default Vue.extend({
             if (!this.viewerWidget) {
                 return;
             }
+            // Center the selected superpixel
             const superpixel = this.superpixelsToDisplay[this.selectedIndex];
             const bbox = superpixel.bbox;
             const bboxWidth = bbox[2] - bbox[0];
@@ -149,6 +155,7 @@ export default Vue.extend({
                 x: (bbox[0] + bbox[2]) / 2,
                 y: (bbox[1] + bbox[3]) / 2
             };
+            // Draw bounding box around selected superpixel
             this.viewerWidget.viewer.zoom(zoom - 1.5);
             this.viewerWidget.viewer.center(center);
             this.boundingBoxFeature.data([[

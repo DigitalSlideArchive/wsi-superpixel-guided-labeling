@@ -24,6 +24,15 @@ const activeLearningSteps = {
 
 const epochRegex = /epoch (\d+)/i;
 
+/**
+ * This view acts as a container for Vue components used to control the active learning workflow.
+ * It is reponsible for fetching all of the data needed for the active learning components.
+ *
+ * Note that in the future, it would likely be better to add endpoints to the plugin to get all of the
+ * data in one trip to the server. Additionally, the endpoint could run custom mongo pipelines to provide
+ * a paginated view of the predictions for the most recent epoch. This approach would scale better as more
+ * images are added to active learning folders. Right now, the client is probably doing too much work.
+ */
 const ActiveLearningView = View.extend({
     initialize(settings) {
         this.render();
@@ -41,6 +50,10 @@ const ActiveLearningView = View.extend({
         this.fetchFoldersAndItems();
     },
 
+    /**
+     * The first of many rest requests needed to get data from the girder server for
+     * active learning. Get the child items and folders for the active learning folder.
+     */
     fetchFoldersAndItems() {
         this.childFolders = new FolderCollection();
         this.childFolders.fetch({
@@ -54,6 +67,11 @@ const ActiveLearningView = View.extend({
         });
     },
 
+    /**
+     * The second rest request. Check for previous jobs with the activeLearningJob type.
+     * If there is a job still running, be sure to wait for it to finish before continuing
+     * with data gathering and setup.
+     */
     checkJobs() {
         restRequest({
             url: 'job/all',
@@ -83,8 +101,13 @@ const ActiveLearningView = View.extend({
 
     startActiveLearning() {
         if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
+            // Case 1: no superpixel segmentation or feature generation have been done for this
+            // folder. We need to get the job XML definition to help populate the form that will
+            // be used to tune the first run of the classification job.
             this.getJobXmlUrl();
         } else {
+            // Case 2: superpixels/annotations already exist, so we can mount the vue component without
+            // retrieving the job XML.
             this.mountVueComponent();
         }
     },
@@ -97,11 +120,13 @@ const ActiveLearningView = View.extend({
         // eslint-disable-next-line
         const root = (__webpack_public_path__ || '/status/built').replace(/\/$/, '');
         const geojsUrl = root + '/plugins/large_image/extra/geojs.js';
+        // Make sure geojs is available, as it required by the image viewer widgets
         $.ajax({
             url: geojsUrl,
             dataType: 'script',
             cache: true
         }).done((resp) => {
+            // We will want to refactor the vue components so we only have one container.
             let vm;
             if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
                 vm = new ActiveLearningContainer({
@@ -142,6 +167,19 @@ const ActiveLearningView = View.extend({
         return this;
     },
 
+    /**
+     * For each item in the active learning foler, populate the annotationsToFetchByImage
+     * object with required annotations for active learning. Note that the annotations
+     * returned by this endpoint do not contain all of the annotation data, so they need
+     * to be fetched after this object is populated.
+     *
+     * @param {object} item a girder large image item
+     * @param {object} annotationsToFetchByImage an object that contains
+     * label and prediction annotations for each large image item in the
+     * active learning folder
+     * @returns a promise representing the result of obtaining all
+     * annotations for the given girder item
+     */
     getAnnotationsForItemPromise(item, annotationsToFetchByImage) {
         return restRequest({
             url: 'annotation',
@@ -181,12 +219,23 @@ const ActiveLearningView = View.extend({
         });
     },
 
+    /**
+     * Wait for a group of promises before moving on to the next setup step.
+     *
+     * @param {Promise[]} promises
+     * @param {function} functionToExecute
+     * @param {Object[]} params
+     */
     waitForPromises(promises, functionToExecute, params) {
         $.when(...promises).then(() => {
             return functionToExecute.call(this, params);
         });
     },
 
+    /**
+     * For each item in the active learning folder, fetch the annotations
+     * for that item and build the annotationsToFetchByImageId object.
+     */
     getAnnotations() {
         const annotationsToFetchByImage = {};
         const promises = [];
@@ -207,11 +256,26 @@ const ActiveLearningView = View.extend({
         });
     },
 
+    /**
+     * Determine if an annotation is relevant for active learning.
+     *
+     * @param {Object} annotation
+     * @returns true if the given annotation is part of the
+     * active learning workflow
+     */
     annotationIsValid(annotation) {
         // TODO: harden filtering of annotations
         return annotation.annotation.name.includes('Superpixel');
     },
 
+    /**
+     * Create and populate backbone models for the annotations that are needed
+     * for active learning.
+     *
+     * @param {Object} annotationsToFetchByImage an object whose keys
+     * are girder large image item ids and values are objects containing
+     * a prediction and a label annotation.
+     */
     fetchAnnotations(annotationsToFetchByImage) {
         const promises = [];
         _.forEach(Object.keys(annotationsToFetchByImage), (imageId) => {
@@ -242,6 +306,21 @@ const ActiveLearningView = View.extend({
         this.currentAverageCertainty = sum / certaintyArray.length;
     },
 
+    /**
+     * Returns 'Yes' if the predicted category matches the provided label for a superpixel. If
+     * a label exists and does not match to prediction, return 'No'. If no label exists, then
+     * return undefined
+     *
+     * TODO: use an agreeChoiceEnum instead of hard-coded Yes, No, undefined. This enum should
+     * be available to all views and components that care about this value
+     *
+     * @param {number} index
+     * @param {Object} predictionPixelmapElement
+     * @param {Object} labelPixelmapElement
+     * @returns A string representing whether or not the machine learning prediction matches
+     * the label for the superpixel at the given index. If no label exists for the superpixel,
+     * then undefined is returned
+     */
     getAgreeChoice(index, predictionPixelmapElement, labelPixelmapElement) {
         const label = labelPixelmapElement.values[index];
         const labelCategories = labelPixelmapElement.categories;
@@ -256,6 +335,9 @@ const ActiveLearningView = View.extend({
         return predictionCategories[prediction].label === labelCategories[label].label ? 'Yes' : 'No';
     },
 
+    /**
+     * Build an array of predictions on superpixels sorted by certainty.
+     */
     getSortedSuperpixelIndices() {
         const superpixelPredictionsData = [];
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
@@ -340,6 +422,10 @@ const ActiveLearningView = View.extend({
         return result;
     },
 
+    /**
+     * Extract the certainty options from the superpixel predictions job.
+     * @param {string} xmlUrl
+     */
     getJobCertaintyChoices(xmlUrl) {
         restRequest({
             url: xmlUrl
@@ -456,6 +542,8 @@ const ActiveLearningView = View.extend({
     waitForJobCompletion(jobId, goToNextStep) {
         this.showSpinner();
         const poll = setInterval(() => {
+            // If this view is no longer rendered in the tab, stop
+            // polling the server.
             if (!this.$('.h-active-learning-container').get(0)) {
                 clearInterval(poll);
             }
