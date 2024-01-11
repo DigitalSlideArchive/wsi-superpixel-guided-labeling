@@ -5,7 +5,12 @@ import _ from 'underscore';
 
 import { store, previousCard, nextCard } from './store.js';
 
+import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
+
 export default Vue.extend({
+    components: {
+        MouseAndKeyboardControls
+    },
     data() {
         return {
             showShortcuts: true
@@ -54,6 +59,7 @@ export default Vue.extend({
 
 <template>
   <div class="h-hotkeys-container">
+    <mouse-and-keyboard-controls :active-learning-setup="false" />
     <div class="h-hotkeys-header">
       <h5>Hotkeys</h5>
       <button
@@ -98,7 +104,8 @@ export default Vue.extend({
     top: 5px;
     left: 5px;
     padding: 5px;
-    min-width: 200px;
+    min-width: 250px;
+    max-width: 250px;
     display: flex;
     flex-direction: column;
     background-color: white;
@@ -119,5 +126,9 @@ export default Vue.extend({
 .h-hotkey {
     font-size: 12px;
     display: flex;
+}
+
+.h-bindings {
+    font-size: 12px;
 }
 </style>

@@ -6,6 +6,8 @@ import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
+import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
+
 // Define some helpful constants for adding categories
 const boundaryColor = 'rgba(0, 0, 0, 1)';
 const defaultNewCategoryColor = 'rgba(255, 0, 0, 0.5)';
@@ -18,7 +20,8 @@ const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\
 
 export default Vue.extend({
     components: {
-        ColorPickerInput
+        ColorPickerInput,
+        MouseAndKeyboardControls
     },
     props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     data() {
@@ -400,105 +403,110 @@ export default Vue.extend({
 <template>
   <div class="h-al-setup-categories">
     <div
-      v-if="pixelmapRendered"
-      class="h-add-new-category"
+      class="h-setup-categories-body"
     >
-      <div class="h-category-form">
-        <div class="h-form-controls">
-          <div class="form-group">
-            <label for="category-label">Label</label>
-            <input
-              id="category-label"
-              v-model="currentCategoryLabel"
-              class="form-control input-sm h-active-learning-input"
-            >
+      <div
+        v-if="pixelmapRendered"
+        class="h-add-new-category"
+      >
+        <div class="h-category-form">
+          <div class="h-form-controls">
+            <div class="form-group">
+              <label for="category-label">Label</label>
+              <input
+                id="category-label"
+                v-model="currentCategoryLabel"
+                class="form-control input-sm h-active-learning-input"
+              >
+            </div>
+            <div class="form-group">
+              <label for="fill-color">Fill Color</label>
+              <color-picker-input
+                :key="categoryIndex"
+                v-model="currentCategoryFillColor"
+                class="h-active-learning-input"
+                :color="currentCategoryFillColor"
+              />
+            </div>
           </div>
-          <div class="form-group">
-            <label for="fill-color">Fill Color</label>
-            <color-picker-input
-              :key="categoryIndex"
-              v-model="currentCategoryFillColor"
-              class="h-active-learning-input"
-              :color="currentCategoryFillColor"
-            />
-          </div>
-        </div>
-        <div class="h-error-messages">
-          <p
-            v-if="!currentCategoryFormValid || !currentLabelsValid"
-            class="form-validation-error"
-          >
-            Please fix all errors to continue
-          </p>
-          <ul v-if="currentFormErrors.length > 0">
-            <li
-              v-for="error in currentFormErrors"
-              :key="error"
+          <div class="h-error-messages">
+            <p
+              v-if="!currentCategoryFormValid || !currentLabelsValid"
               class="form-validation-error"
             >
-              {{ error }}
-            </li>
-          </ul>
-          <ul v-if="currentLabelingErrors.length > 0">
-            <li
-              v-for="error in currentLabelingErrors"
-              :key="error"
-              class="form-validation-error"
-            >
-              {{ error }}
-            </li>
-          </ul>
+              Please fix all errors to continue
+            </p>
+            <ul v-if="currentFormErrors.length > 0">
+              <li
+                v-for="error in currentFormErrors"
+                :key="error"
+                class="form-validation-error"
+              >
+                {{ error }}
+              </li>
+            </ul>
+            <ul v-if="currentLabelingErrors.length > 0">
+              <li
+                v-for="error in currentLabelingErrors"
+                :key="error"
+                class="form-validation-error"
+              >
+                {{ error }}
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-      <button
-        class="btn btn-primary h-previous-category-btn"
-        :disabled="categoryIndex === 0 || !currentCategoryFormValid"
-        @click="previousCategory"
-      >
-        Previous
-      </button>
-      <button
-        class="btn btn-primary h-next-category-btn"
-        :disabled="categoryIndex >= categories.length - 1 || !currentCategoryFormValid"
-        @click="nextCategory"
-      >
-        Next
-      </button>
-      <button
-        class="btn btn-primary h-add-category-btn"
-        :disabled="!currentCategoryFormValid"
-        @click="addCategory"
-      >
-        Add Category
-      </button>
-      <button
-        class="btn btn-primary h-start-training-btn"
-        :disabled="!currentCategoryFormValid || !currentLabelsValid"
-        @click="beginTraining"
-      >
-        Begin training
-      </button>
-      <div class="h-al-image-selector">
-        <span>Image: </span>
-        <select
-          v-model="currentImageId"
-          class="h-al-image-select"
+        <button
+          class="btn btn-primary h-previous-category-btn"
+          :disabled="categoryIndex === 0 || !currentCategoryFormValid"
+          @click="previousCategory"
         >
-          <option
-            v-for="imageId in Object.keys(imageNamesById)"
-            :key="imageId"
-            :value="imageId"
+          Previous
+        </button>
+        <button
+          class="btn btn-primary h-next-category-btn"
+          :disabled="categoryIndex >= categories.length - 1 || !currentCategoryFormValid"
+          @click="nextCategory"
+        >
+          Next
+        </button>
+        <button
+          class="btn btn-primary h-add-category-btn"
+          :disabled="!currentCategoryFormValid"
+          @click="addCategory"
+        >
+          Add Category
+        </button>
+        <button
+          class="btn btn-primary h-start-training-btn"
+          :disabled="!currentCategoryFormValid || !currentLabelsValid"
+          @click="beginTraining"
+        >
+          Begin training
+        </button>
+        <div class="h-al-image-selector">
+          <span>Image: </span>
+          <select
+            v-model="currentImageId"
+            class="h-al-image-select"
           >
-            {{ imageNamesById[imageId] }}
-          </option>
-        </select>
+            <option
+              v-for="imageId in Object.keys(imageNamesById)"
+              :key="imageId"
+              :value="imageId"
+            >
+              {{ imageNamesById[imageId] }}
+            </option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="h-setup-categories-body">
       <div
         ref="map"
         class="h-setup-categories-map"
       />
+    </div>
+    <div class="h-setup-categories-information">
+      <mouse-and-keyboard-controls :active-learning-setup="true" />
       <div class="h-category-setup-progress">
         <div
           v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
@@ -517,16 +525,19 @@ export default Vue.extend({
     height: 100%;
     position: absolute;
     display: flex;
-    flex-direction: column;
 }
-.h-setup-categories-body {
-    width: 100%;
+.h-setup-categories-information {
+    width: 33%;
     height: 100%;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
 }
-.h-setup-categories-map {
+
+.h-setup-categories-body {
     width: 67%;
+}
+
+.h-setup-categories-map {
     height: 600px;
     border: 1px solid #f0f0f0;
 }
