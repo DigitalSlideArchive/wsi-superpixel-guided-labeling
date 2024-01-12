@@ -25,6 +25,9 @@ export default Vue.extend({
             return _.filter(store.categories, (category) => {
                 return category.label !== 'default';
             });
+        },
+        hotkeys() {
+            return store.hotkeys;
         }
     },
     mounted() {
@@ -37,11 +40,11 @@ export default Vue.extend({
     },
     methods: {
         keydownListener(event) {
-            // If support for > 9 categories is necessary, this will
-            // need to be revisited. Perhaps a map from event.key to
-            // category index could replace the simple parseInt call.
-            if (!isNaN(parseInt(event.key))) {
-                store.lastCategorySelected = parseInt(event.key);
+            // In order to accommodate more than 9 categories we index into the
+            // pre-defined list of hotkeys to map a key to each category
+            const idx = this.hotkeys.findIndex((k) => event.key === k);
+            if (idx !== -1) {
+                store.lastCategorySelected = idx;
                 return;
             }
             switch (event.key) {
@@ -91,7 +94,7 @@ export default Vue.extend({
         :key="category.label"
         class="h-hotkey"
       >
-        {{ index + 1 }} - {{ category.label }}
+        {{ hotkeys[index + 1] }} - {{ category.label }}
       </span>
     </div>
   </div>
