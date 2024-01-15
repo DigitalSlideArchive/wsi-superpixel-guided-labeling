@@ -3,7 +3,8 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { store, previousCard, nextCard } from './store.js';
+import { comboHotkeys } from './constants';
+import { store, previousCard, nextCard, assignHotkey } from './store.js';
 
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 
@@ -13,7 +14,9 @@ export default Vue.extend({
     },
     data() {
         return {
-            showShortcuts: true
+            showShortcuts: true,
+            currentlyEditing: '',
+            currentInput: []
         };
     },
     computed: {
@@ -28,6 +31,19 @@ export default Vue.extend({
         },
         hotkeys() {
             return store.hotkeys;
+        },
+        editMode: {
+            get() {
+                return store.editingHotkeys;
+            },
+            set(mode) {
+                store.editingHotkeys = mode;
+            }
+        }
+    },
+    watch: {
+        editMode(editing) {
+            if (!editing) this.resetEditingValues();
         }
     },
     mounted() {
@@ -39,10 +55,18 @@ export default Vue.extend({
         store.lastCategorySelected = null;
     },
     methods: {
-        keydownListener(event) {
-            // In order to accommodate more than 9 categories we index into the
-            // pre-defined list of hotkeys to map a key to each category
-            const idx = this.hotkeys.findIndex((k) => event.key === k);
+        parseUserHotkeys(event) {
+            // Combine the list of selected keys
+            const pressed = _.filter(comboHotkeys, (key) => event[`${key}Key`]);
+            if (!(event.key in pressed)) pressed.push(event.key);
+            return pressed;
+        },
+        categoryKeydownListener(event) {
+            // Using hotkeys to select categories
+            // In order to accommodate more than 9 categories map default and
+            // user-defined hotkeys to each category index
+            const userHotkeys = this.parseUserHotkeys(event);
+            const idx = this.hotkeys.get(userHotkeys.join('+'));
             if (idx !== -1) {
                 store.lastCategorySelected = idx;
                 return;
@@ -55,6 +79,47 @@ export default Vue.extend({
                     previousCard();
                     break;
             }
+        },
+        editKeydownListener(event) {
+            // Using keyboard to set hotkeys
+            if (event.key === 'Enter') {
+                // The user has finalized their hotkey selection
+                const newKey = this.currentInput.join('+');
+                assignHotkey(this.currentlyEditing, newKey);
+                this.resetEditingValues();
+                return;
+            }
+            this.currentInput = this.parseUserHotkeys(event);
+        },
+        keydownListener(event) {
+            event.preventDefault();
+            if (this.editMode) {
+                this.editKeydownListener(event);
+            } else {
+                this.categoryKeydownListener(event);
+            }
+        },
+        resetEditingValues() {
+            this.currentlyEditing = '';
+            this.currentInput = [];
+        },
+        hotkeyFromIndex(index) {
+            return _.find([...this.hotkeys], ([, v]) => v === index)[0];
+        },
+        editHotkey(index) {
+            const hotkey = this.hotkeyFromIndex(index);
+            if (this.currentlyEditing) {
+                // We're editing a new key, reset what we were working on
+                this.resetEditingValues();
+            }
+            this.currentlyEditing = hotkey;
+        },
+        editModeText(index) {
+            const hotkey = this.hotkeyFromIndex(index);
+            if (this.currentlyEditing === hotkey) {
+                return this.currentInput.join('+') || 'Editing';
+            }
+            return hotkey;
         }
     }
 });
@@ -87,15 +152,62 @@ export default Vue.extend({
       <span class="h-hotkey">
         Left Arrow - Previous Superpixel
       </span>
-      <h6>Labeling</h6>
-      <span class="h-hotkey">0 - Reset selection</span>
-      <span
-        v-for="(category, index) in nonDefaultCategories"
-        :key="category.label"
-        class="h-hotkey"
+      <div class="h-hotkeys-header">
+        <h6>Labeling</h6>
+        <button
+          class="h-hotkeys-toggle"
+          @click="editMode = !editMode"
+        >
+          <i
+            v-if="editMode"
+            class="icon-ok"
+          />
+          <i
+            v-else
+            class="icon-pencil"
+          />
+        </button>
+      </div>
+      <p
+        v-if="editMode"
+        class="h-hotkeys-edit-subtitle"
       >
-        {{ hotkeys[index + 1] }} - {{ category.label }}
-      </span>
+        Click on a hotkey to edit. Press enter to accept change.
+      </p>
+      <div v-if="editMode">
+        <span class="h-hotkey">
+          <button
+            class="h-hotkey-edit-button"
+            @click="() => editHotkey(0)"
+          >
+            {{ editModeText(0) }}
+          </button>
+          <span> - Reset Selection</span>
+        </span>
+        <span
+          v-for="(category, index) in nonDefaultCategories"
+          :key="category.label"
+          class="h-hotkey"
+        >
+          <button
+            class="h-hotkey-edit-button"
+            @click="() => editHotkey(index + 1)"
+          >
+            {{ editModeText(index + 1) }}
+          </button>
+          <span> - {{ category.label }}</span>
+        </span>
+      </div>
+      <div v-else>
+        <span class="h-hotkey">{{ hotkeyFromIndex(0) }} - Reset selection</span>
+        <span
+          v-for="(category, index) in nonDefaultCategories"
+          :key="category.label"
+          class="h-hotkey"
+        >
+          {{ hotkeyFromIndex(index + 1) }} - {{ category.label }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -133,5 +245,17 @@ export default Vue.extend({
 
 .h-bindings {
     font-size: 12px;
+}
+
+.h-hotkey-edit-button {
+    width: 40%;
+    font-size: smaller;
+    border: ridge;
+    background-color: transparent;
+}
+
+.h-hotkeys-edit-subtitle {
+    font-size: x-small;
+    font-style: italic;
 }
 </style>

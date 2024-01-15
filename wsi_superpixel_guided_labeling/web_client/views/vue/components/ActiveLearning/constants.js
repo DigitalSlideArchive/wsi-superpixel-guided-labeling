@@ -9,3 +9,8 @@ export const hotkeys = [
     'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
     'z', 'x', 'c', 'v', 'b', 'n', 'm'
 ];
+
+/**
+ * List of options that can be combined with hotkeys to create new bindings
+ */
+export const comboHotkeys = ['ctrl', 'shift', 'alt'];
