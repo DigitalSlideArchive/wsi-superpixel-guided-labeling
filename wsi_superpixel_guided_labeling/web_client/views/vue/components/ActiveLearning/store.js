@@ -1,5 +1,7 @@
 import Vue from 'vue';
 
+import { hotkeys as hotkeysConst } from './constants';
+
 const store = Vue.observable({
     selectedIndex: 0,
     page: 0,
@@ -14,7 +16,8 @@ const store = Vue.observable({
     predictions: false,
     currentAverageCertainty: 0,
     categories: [],
-    lastCategorySelected: null
+    lastCategorySelected: null,
+    hotkeys: hotkeysConst
 });
 
 const previousCard = () => {
