@@ -6,6 +6,7 @@ import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
+import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 
 // Define some helpful constants for adding categories
@@ -21,7 +22,8 @@ const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\
 export default Vue.extend({
     components: {
         ColorPickerInput,
-        MouseAndKeyboardControls
+        MouseAndKeyboardControls,
+        AnnotationOpacityControl
     },
     props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     data() {
@@ -498,6 +500,11 @@ export default Vue.extend({
               {{ imageNamesById[imageId] }}
             </option>
           </select>
+          <annotation-opacity-control
+            :active-learning-setup="true"
+            :categories="allNewCategories"
+            :update="synchronizeCategories"
+          />
         </div>
       </div>
       <div
@@ -542,7 +549,7 @@ export default Vue.extend({
     border: 1px solid #f0f0f0;
 }
 .h-al-image-selector {
-    display: block;
+    display: flex;
     padding-top: 8px;
 }
 .h-form-controls {

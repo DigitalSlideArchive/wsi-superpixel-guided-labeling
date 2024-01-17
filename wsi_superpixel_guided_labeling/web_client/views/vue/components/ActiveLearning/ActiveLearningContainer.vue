@@ -7,13 +7,15 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
+import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 
 import { store } from './store.js';
 
 export default Vue.extend({
     components: {
         ActiveLearningFilmStrip,
-        ActiveLearningKeyboardShortcuts
+        ActiveLearningKeyboardShortcuts,
+        AnnotationOpacityControl
     },
     props: [
         'router',
@@ -37,7 +39,8 @@ export default Vue.extend({
             boundingBoxFeature: null,
             selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
-            initialZoom: 1
+            initialZoom: 1,
+            overlayLayer: null
         };
     },
     computed: {
@@ -57,6 +60,9 @@ export default Vue.extend({
         },
         predictions() {
             return store.predictions;
+        },
+        categories() {
+            return store.categories;
         }
     },
     watch: {
@@ -95,8 +101,11 @@ export default Vue.extend({
         },
         changeLog: {
             handler() {
-                const change = this.changeLog[this.changeLog.length - 1];
-                this.backboneParent.saveLabelAnnotations([change.imageId]);
+                if (!this.changeLog.length) {
+                    return;
+                }
+                const change = this.changeLog.pop();
+                this.saveAnnotations(change.imageId);
                 this.drawLabels();
             },
             deep: true
@@ -123,7 +132,7 @@ export default Vue.extend({
             {
                 label: 'default',
                 fillColor: 'rgba(0, 0, 0, 0)',
-                strokeColor: 'rgb(0, 0, 0)'
+                strokeColor: 'rgb(0, 0, 0, 1)'
             },
             ...nonDefaultPredictionsCategories
         ];
@@ -199,6 +208,37 @@ export default Vue.extend({
                 this.updateMapBoundsForSelection();
                 this.drawLabels();
             });
+            this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
+                if (element.type === 'pixelmap') this.overlayLayer = layer;
+            });
+        },
+        updatePixelmapLayerStyle() {
+            _.forEach(this.overlayLayer.features(), (feature) => {
+                feature.style('color', (d, i) => {
+                    if (d < 0 || d >= this.categories.length) {
+                        console.warn(`No category found at index ${d} in the category map.`);
+                        return 'rgba(0, 0, 0, 0)';
+                    }
+                    const category = this.categories[d];
+                    return (i % 2 === 0) ? category.fillColor : category.strokeColor;
+                });
+            });
+            this.overlayLayer.draw();
+        },
+        saveAnnotations(imageId) {
+            // If we dont specify an image, save all images
+            const idsToSave = imageId ? [imageId] : Object.keys(this.annotationsByImageId);
+            this.backboneParent.saveLabelAnnotations(idsToSave);
+        },
+        synchronizeCategories() {
+            _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
+                const superpixelElement = annotations.labels.get('annotation').elements[0];
+                if (superpixelElement) {
+                    superpixelElement.categories = JSON.parse(JSON.stringify(this.categories));
+                }
+            });
+            this.saveAnnotations(this.selectedImageId);
+            this.updatePixelmapLayerStyle();
         }
     }
 });
@@ -207,6 +247,11 @@ export default Vue.extend({
 <template>
   <div class="h-active-learning-container">
     <active-learning-keyboard-shortcuts />
+    <annotation-opacity-control
+      :active-learning-setup="false"
+      :categories="categories"
+      :update="synchronizeCategories"
+    />
     <div
       ref="map"
       class="h-active-learning-map"
