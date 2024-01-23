@@ -2,7 +2,7 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { hotkeys as hotkeysConsts } from './constants';
+import { hotkeys as hotkeysConsts } from './ActiveLearning/constants';
 
 const store = Vue.observable({
     selectedIndex: 0,
@@ -20,7 +20,8 @@ const store = Vue.observable({
     categories: [],
     lastCategorySelected: null,
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
-    editingHotkeys: false
+    editingHotkeys: false,
+    opacity: 1.0
 });
 
 const previousCard = () => {

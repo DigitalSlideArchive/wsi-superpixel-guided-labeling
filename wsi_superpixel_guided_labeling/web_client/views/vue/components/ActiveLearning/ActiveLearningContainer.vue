@@ -9,7 +9,7 @@ import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 
-import { store } from './store.js';
+import { store } from '../store.js';
 
 export default Vue.extend({
     components: {

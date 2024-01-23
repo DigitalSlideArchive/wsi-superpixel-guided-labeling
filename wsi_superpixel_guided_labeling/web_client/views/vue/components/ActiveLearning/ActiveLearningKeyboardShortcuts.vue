@@ -4,7 +4,7 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import { comboHotkeys } from './constants';
-import { store, previousCard, nextCard, assignHotkey } from './store.js';
+import { store, previousCard, nextCard, assignHotkey } from '../store.js';
 
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 

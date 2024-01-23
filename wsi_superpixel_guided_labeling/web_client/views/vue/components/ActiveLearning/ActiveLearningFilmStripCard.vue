@@ -2,7 +2,7 @@
 import Vue from 'vue';
 import _ from 'underscore';
 
-import { store, nextCard } from './store';
+import { store, nextCard } from '../store';
 
 export default Vue.extend({
     props: ['index'],
