@@ -67,7 +67,7 @@ export default Vue.extend({
             // user-defined hotkeys to each category index
             const userHotkeys = this.parseUserHotkeys(event);
             const idx = this.hotkeys.get(userHotkeys.join('+'));
-            if (idx !== -1) {
+            if (!_.isUndefined(idx)) {
                 store.lastCategorySelected = idx;
                 return;
             }
@@ -82,9 +82,16 @@ export default Vue.extend({
         },
         editKeydownListener(event) {
             // Using keyboard to set hotkeys
+            const newKey = this.currentInput.join('+');
+            const assignedHotkeys = _.filter(this.hotkeys, (_key, idx) => {
+                return idx < this.categories.length;
+            });
+            if (newKey in assignedHotkeys ||
+                  (event.key === 'Enter' && this.currentlyEditing !== -1)) {
+                event.preventDefault();
+            }
             if (event.key === 'Enter') {
                 // The user has finalized their hotkey selection
-                const newKey = this.currentInput.join('+');
                 const hotKey = this.hotkeyFromIndex(this.currentlyEditing);
                 assignHotkey(hotKey, newKey);
                 this.resetEditingValues();
@@ -93,7 +100,6 @@ export default Vue.extend({
             this.currentInput = this.parseUserHotkeys(event);
         },
         keydownListener(event) {
-            event.preventDefault();
             if (this.editMode) {
                 this.editKeydownListener(event);
             } else {
