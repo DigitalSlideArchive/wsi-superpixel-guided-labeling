@@ -15,7 +15,7 @@ export default Vue.extend({
     data() {
         return {
             showShortcuts: true,
-            currentlyEditing: '',
+            currentlyEditing: -1,
             currentInput: []
         };
     },
@@ -85,7 +85,8 @@ export default Vue.extend({
             if (event.key === 'Enter') {
                 // The user has finalized their hotkey selection
                 const newKey = this.currentInput.join('+');
-                assignHotkey(this.currentlyEditing, newKey);
+                const hotKey = this.hotkeyFromIndex(this.currentlyEditing);
+                assignHotkey(hotKey, newKey);
                 this.resetEditingValues();
                 return;
             }
@@ -100,26 +101,24 @@ export default Vue.extend({
             }
         },
         resetEditingValues() {
-            this.currentlyEditing = '';
+            this.currentlyEditing = -1;
             this.currentInput = [];
         },
         hotkeyFromIndex(index) {
             return _.find([...this.hotkeys], ([, v]) => v === index)[0];
         },
         editHotkey(index) {
-            const hotkey = this.hotkeyFromIndex(index);
-            if (this.currentlyEditing) {
+            if (this.currentlyEditing >= 0) {
                 // We're editing a new key, reset what we were working on
                 this.resetEditingValues();
             }
-            this.currentlyEditing = hotkey;
+            this.currentlyEditing = index;
         },
         editModeText(index) {
-            const hotkey = this.hotkeyFromIndex(index);
-            if (this.currentlyEditing === hotkey) {
+            if (this.currentlyEditing === index) {
                 return this.currentInput.join('+') || 'Editing';
             }
-            return hotkey;
+            return this.hotkeyFromIndex(index);
         }
     }
 });
@@ -178,6 +177,7 @@ export default Vue.extend({
         <span class="h-hotkey">
           <button
             class="h-hotkey-edit-button"
+            :style="[currentlyEditing === 0 && {'font-style': 'italic'}]"
             @click="() => editHotkey(0)"
           >
             {{ editModeText(0) }}
@@ -191,6 +191,7 @@ export default Vue.extend({
         >
           <button
             class="h-hotkey-edit-button"
+            :style="[currentlyEditing === (index + 1) && {'font-style': 'italic'}]"
             @click="() => editHotkey(index + 1)"
           >
             {{ editModeText(index + 1) }}
