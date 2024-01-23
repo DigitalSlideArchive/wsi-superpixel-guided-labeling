@@ -1,12 +1,19 @@
 <script>
 import _ from 'underscore';
 
+import { store } from './store.js';
+
 export default {
-    props: ['activeLearningSetup', 'categories', 'update'],
+    props: ['activeLearningSetup', 'update'],
     data() {
         return {
             opacitySlider: 1.0
         };
+    },
+    computed: {
+        categories() {
+            return store.categories;
+        }
     },
     watch: {
         opacitySlider(opacity) {

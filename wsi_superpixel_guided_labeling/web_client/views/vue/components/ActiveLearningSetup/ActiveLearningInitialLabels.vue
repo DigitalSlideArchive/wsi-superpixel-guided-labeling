@@ -8,6 +8,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
+import { store, synchronizeCategories, saveAnnotations, updatePixelmapLayerStyle } from '../store';
 
 // Define some helpful constants for adding categories
 const boundaryColor = 'rgba(0, 0, 0, 1)';
@@ -125,6 +126,8 @@ export default Vue.extend({
     mounted() {
         this.currentImageId = Object.keys(this.imageNamesById)[0];
         this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+        store.annotationsByImageId = this.annotationsByImageId;
+        store.backboneParent = this.backboneParent;
         this.setupViewer();
     },
     methods: {
@@ -246,24 +249,6 @@ export default Vue.extend({
          * Ensure that the label annotation is drawn correctly by keeping the geojs layer
          * up to date with the most recent category list
          */
-        updatePixelmapLayerStyle() {
-            const categoryMap = this.allNewCategories;
-            const boundaries = this.usingBoundaries;
-            _.forEach(this.overlayLayer.features(), (feature) => {
-                feature.style('color', (d, i) => {
-                    if (d < 0 || d >= categoryMap.length) {
-                        console.warn(`No category found at index ${d} in the category map.`);
-                        return 'rgba(0, 0, 0, 0)';
-                    }
-                    const category = categoryMap[d];
-                    if (boundaries) {
-                        return (i % 2 === 0) ? category.fillColor : category.strokeColor;
-                    }
-                    return category.fillColor;
-                });
-            });
-            this.overlayLayer.draw();
-        },
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
@@ -333,7 +318,7 @@ export default Vue.extend({
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
             superpixelElement.values = data;
-            this.saveAnnotations();
+            saveAnnotations(this.currentImageId);
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
@@ -378,14 +363,10 @@ export default Vue.extend({
          ***********/
         synchronizeCategories() {
             if (this.currentCategoryFormValid) {
-                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
-                    const superpixelElement = annotations.labels.get('annotation').elements[0];
-                    if (superpixelElement) {
-                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
-                    }
-                });
-                this.saveAnnotations(true);
-                this.updatePixelmapLayerStyle();
+                store.categories = this.allNewCategories;
+                synchronizeCategories();
+                saveAnnotations();
+                updatePixelmapLayerStyle(this.overlayLayer);
             }
         },
         /**********************************
@@ -393,10 +374,6 @@ export default Vue.extend({
          **********************************/
         beginTraining() {
             this.backboneParent.retrain(true);
-        },
-        saveAnnotations(saveAll) {
-            const idsToSave = saveAll ? Object.keys(this.annotationsByImageId) : [this.currentImageId];
-            this.backboneParent.saveLabelAnnotations(idsToSave);
         }
     }
 });
@@ -502,7 +479,6 @@ export default Vue.extend({
           </select>
           <annotation-opacity-control
             :active-learning-setup="true"
-            :categories="allNewCategories"
             :update="synchronizeCategories"
           />
         </div>

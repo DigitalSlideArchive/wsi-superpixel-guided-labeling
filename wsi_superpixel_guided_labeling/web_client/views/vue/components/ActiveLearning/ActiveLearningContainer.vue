@@ -9,7 +9,7 @@ import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 
-import { store } from '../store.js';
+import { store, synchronizeCategories, saveAnnotations, updatePixelmapLayerStyle } from '../store.js';
 
 export default Vue.extend({
     components: {
@@ -105,7 +105,7 @@ export default Vue.extend({
                     return;
                 }
                 const change = this.changeLog.pop();
-                this.saveAnnotations(change.imageId);
+                this.backboneParent.saveLabelAnnotations([change.imageId]);
                 this.drawLabels();
             },
             deep: true
@@ -212,33 +212,10 @@ export default Vue.extend({
                 if (element.type === 'pixelmap') this.overlayLayer = layer;
             });
         },
-        updatePixelmapLayerStyle() {
-            _.forEach(this.overlayLayer.features(), (feature) => {
-                feature.style('color', (d, i) => {
-                    if (d < 0 || d >= this.categories.length) {
-                        console.warn(`No category found at index ${d} in the category map.`);
-                        return 'rgba(0, 0, 0, 0)';
-                    }
-                    const category = this.categories[d];
-                    return (i % 2 === 0) ? category.fillColor : category.strokeColor;
-                });
-            });
-            this.overlayLayer.draw();
-        },
-        saveAnnotations(imageId) {
-            // If we dont specify an image, save all images
-            const idsToSave = imageId ? [imageId] : Object.keys(this.annotationsByImageId);
-            this.backboneParent.saveLabelAnnotations(idsToSave);
-        },
         synchronizeCategories() {
-            _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
-                const superpixelElement = annotations.labels.get('annotation').elements[0];
-                if (superpixelElement) {
-                    superpixelElement.categories = JSON.parse(JSON.stringify(this.categories));
-                }
-            });
-            this.saveAnnotations(this.selectedImageId);
-            this.updatePixelmapLayerStyle();
+            synchronizeCategories();
+            saveAnnotations(this.selectedImageId);
+            updatePixelmapLayerStyle(this.overlayLayer);
         }
     }
 });
@@ -249,7 +226,6 @@ export default Vue.extend({
     <active-learning-keyboard-shortcuts />
     <annotation-opacity-control
       :active-learning-setup="false"
-      :categories="categories"
       :update="synchronizeCategories"
     />
     <div
