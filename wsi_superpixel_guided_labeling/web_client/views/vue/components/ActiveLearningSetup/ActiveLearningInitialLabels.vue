@@ -480,6 +480,8 @@ export default Vue.extend({
           <annotation-opacity-control
             :active-learning-setup="true"
             :update="synchronizeCategories"
+            :category-index="categoryIndex"
+            :fill-color="currentCategoryFillColor"
           />
         </div>
       </div>

@@ -4,7 +4,7 @@ import _ from 'underscore';
 import { store } from './store.js';
 
 export default {
-    props: ['activeLearningSetup', 'update'],
+    props: ['activeLearningSetup', 'update', 'categoryIndex', 'fillColor'],
     data() {
         return {
             opacitySlider: 1.0
@@ -18,16 +18,21 @@ export default {
     watch: {
         opacitySlider(opacity) {
             _.map(this.categories, (cat) => {
-                const newColor = this.rgbStringToArray(cat.strokeColor);
-                cat.strokeColor = `rgba(${newColor}, ${opacity})`;
+                if (parseFloat(opacity) === 0) {
+                    // If opacity is zero, fill color and stroke color should be the same
+                    cat.strokeColor = cat.fillColor;
+                } else {
+                    // Use the default stroke color value
+                    cat.strokeColor = `rgba(${[0, 0, 0]}, ${opacity})`;
+                }
                 return cat;
             });
             this.update();
-        }
-    },
-    methods: {
-        rgbStringToArray(rgbStr) {
-            return rgbStr.match(/\d+(?:\.\d+)?/g).map(Number).slice(0, 3);
+        },
+        fillColor(color) {
+            if (parseFloat(this.opacitySlider) === 0) {
+                this.categories[this.categoryIndex].strokeColor = color;
+            }
         }
     }
 };
