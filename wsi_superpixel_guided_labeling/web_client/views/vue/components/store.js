@@ -21,7 +21,7 @@ const store = Vue.observable({
     lastCategorySelected: null,
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
     editingHotkeys: false,
-    opacity: 1.0
+    strokeOpacity: 1.0
 });
 
 const previousCard = () => {
@@ -54,13 +54,17 @@ const assignHotkey = (oldkey, newKey) => {
         const idx = _.findIndex(hotkeysConsts, (k) => !store.hotkeys.has(k));
         store.hotkeys.set(hotkeysConsts[idx], oldVal);
     }
-}
+};
 
 /**
  * Ensure that the label and prediction annotations are drawn correctly by
  * keeping the geojs layer up to date with the most recent category list
  */
 const updatePixelmapLayerStyle = (overlayLayer) => {
+    if (!overlayLayer) {
+        return;
+    }
+
     _.forEach(overlayLayer.features(), (feature) => {
         feature.style('color', (d, i) => {
             if (d < 0 || d >= store.categories.length) {
@@ -68,29 +72,13 @@ const updatePixelmapLayerStyle = (overlayLayer) => {
                 return 'rgba(0, 0, 0, 0)';
             }
             const category = store.categories[d];
-            return (i % 2 === 0) ? category.fillColor : category.strokeColor;
+            // If opacity is zero, fill color and stroke color should be the same
+            let strokeColor = `rgba(${[0, 0, 0]}, ${store.strokeOpacity})`;
+            strokeColor = store.strokeOpacity ? strokeColor : category.fillColor;
+            return (i % 2 === 0) ? category.fillColor : strokeColor;
         });
     });
     overlayLayer.draw();
-};
-
-const saveAnnotations = (imageId) => {
-    // If we dont specify an image, save all images
-    const idsToSave = imageId ? [imageId] : Object.keys(store.annotationsByImageId);
-    store.backboneParent.saveLabelAnnotations(idsToSave);
-};
-
-const synchronizeCategories = () => {
-    _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
-        _.forEach(['predictions', 'labels'], (key) => {
-            if (annotations[key]) {
-                const superpixelElement = annotations[key].get('annotation').elements[0];
-                if (superpixelElement) {
-                    superpixelElement.categories = JSON.parse(JSON.stringify(store.categories));
-                }
-            }
-        });
-    });
 };
 
 export {
@@ -98,7 +86,5 @@ export {
     nextCard,
     previousCard,
     assignHotkey,
-    synchronizeCategories,
-    saveAnnotations,
     updatePixelmapLayerStyle
 };

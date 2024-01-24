@@ -1,39 +1,75 @@
 <script>
 import _ from 'underscore';
+import { restRequest } from '@girder/core/rest';
 
-import { store } from './store.js';
+import { store, updatePixelmapLayerStyle } from './store.js';
 
 export default {
-    props: ['activeLearningSetup', 'update', 'categoryIndex', 'fillColor'],
+    props: ['activeLearningSetup', 'fillColor', 'overlayLayer'],
     data() {
         return {
-            opacitySlider: 1.0
+            config: null
         };
     },
     computed: {
-        categories() {
-            return store.categories;
+        folderId() {
+            if (store.backboneParent) {
+                return store.backboneParent.trainingDataFolderId;
+            }
+            return '';
+        },
+        opacitySlider: {
+            get() {
+                return store.strokeOpacity;
+            },
+            set(value) {
+                store.strokeOpacity = parseFloat(value);
+            }
         }
     },
     watch: {
-        opacitySlider(opacity) {
-            _.map(this.categories, (cat) => {
-                if (parseFloat(opacity) === 0) {
-                    // If opacity is zero, fill color and stroke color should be the same
-                    cat.strokeColor = cat.fillColor;
-                } else {
-                    // Use the default stroke color value
-                    cat.strokeColor = `rgba(${[0, 0, 0]}, ${opacity})`;
-                }
-                return cat;
-            });
-            this.update();
+        opacitySlider() {
+            this.updateConfigData();
+            updatePixelmapLayerStyle(this.overlayLayer);
         },
-        fillColor(color) {
-            if (parseFloat(this.opacitySlider) === 0) {
-                this.categories[this.categoryIndex].strokeColor = color;
+        fillColor() {
+            if (this.opacitySlider === 0) {
+                updatePixelmapLayerStyle(this.overlayLayer);
             }
+        },
+        folderId: {
+            handler(newId, oldId) {
+                if (newId && newId !== oldId) {
+                    this.getConfigData();
+                }
+            },
+            immediate: true
         }
+    },
+    methods: {
+        getConfigData() {
+            this.config = {};
+            restRequest({
+                url: `folder/${this.folderId}/yaml_config/.histomicsui_config.yaml`
+            }).done((resp) => {
+                this.config = resp || {};
+                if (resp && resp.guidedLabelingUI) {
+                    this.opacitySlider = resp.guidedLabelingUI.borderOpacity;
+                }
+            });
+        },
+        updateConfigData: _.debounce(function () {
+            if (!('guidedLabelingUI' in this.config)) {
+                this.config.guidedLabelingUI = {};
+            }
+            this.config.guidedLabelingUI.borderOpacity = parseFloat(this.opacitySlider);
+            restRequest({
+                type: 'PUT',
+                url: `folder/${this.folderId}/yaml_config/.histomicsui_config.yaml`,
+                data: jsyaml.dump(this.config),
+                contentType: 'application/json'
+            });
+        }, 500)
     }
 };
 </script>

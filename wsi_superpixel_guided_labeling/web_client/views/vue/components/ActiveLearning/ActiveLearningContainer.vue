@@ -9,7 +9,7 @@ import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 
-import { store, synchronizeCategories, saveAnnotations, updatePixelmapLayerStyle } from '../store.js';
+import { store, updatePixelmapLayerStyle } from '../store.js';
 
 export default Vue.extend({
     components: {
@@ -209,13 +209,11 @@ export default Vue.extend({
                 this.drawLabels();
             });
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
-                if (element.type === 'pixelmap') this.overlayLayer = layer;
+                if (element.type === 'pixelmap') {
+                    this.overlayLayer = layer;
+                    updatePixelmapLayerStyle(layer);
+                }
             });
-        },
-        synchronizeCategories() {
-            synchronizeCategories();
-            saveAnnotations(this.selectedImageId);
-            updatePixelmapLayerStyle(this.overlayLayer);
         }
     }
 });
@@ -226,7 +224,7 @@ export default Vue.extend({
     <active-learning-keyboard-shortcuts />
     <annotation-opacity-control
       :active-learning-setup="false"
-      :update="synchronizeCategories"
+      :overlay-layer="overlayLayer"
     />
     <div
       ref="map"

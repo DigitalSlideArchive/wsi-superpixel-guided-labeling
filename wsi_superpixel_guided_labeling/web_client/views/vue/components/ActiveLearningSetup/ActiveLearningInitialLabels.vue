@@ -8,7 +8,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
-import { store, synchronizeCategories, saveAnnotations, updatePixelmapLayerStyle } from '../store';
+import { store, updatePixelmapLayerStyle } from '../store';
 
 // Define some helpful constants for adding categories
 const boundaryColor = 'rgba(0, 0, 0, 1)';
@@ -318,7 +318,7 @@ export default Vue.extend({
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
             superpixelElement.values = data;
-            saveAnnotations(this.currentImageId);
+            this.saveAnnotations();
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
@@ -364,8 +364,13 @@ export default Vue.extend({
         synchronizeCategories() {
             if (this.currentCategoryFormValid) {
                 store.categories = this.allNewCategories;
-                synchronizeCategories();
-                saveAnnotations();
+                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
+                    const superpixelElement = annotations.labels.get('annotation').elements[0];
+                    if (superpixelElement) {
+                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                    }
+                });
+                this.saveAnnotations(true);
                 updatePixelmapLayerStyle(this.overlayLayer);
             }
         },
@@ -374,6 +379,10 @@ export default Vue.extend({
          **********************************/
         beginTraining() {
             this.backboneParent.retrain(true);
+        },
+        saveAnnotations(saveAll) {
+            const idsToSave = saveAll ? Object.keys(this.annotationsByImageId) : [this.currentImageId];
+            this.backboneParent.saveLabelAnnotations(idsToSave);
         }
     }
 });
@@ -479,9 +488,8 @@ export default Vue.extend({
           </select>
           <annotation-opacity-control
             :active-learning-setup="true"
-            :update="synchronizeCategories"
-            :category-index="categoryIndex"
             :fill-color="currentCategoryFillColor"
+            :overlay-layer="overlayLayer"
           />
         </div>
       </div>
