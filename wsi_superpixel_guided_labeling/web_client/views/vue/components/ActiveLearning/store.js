@@ -1,6 +1,8 @@
 import Vue from 'vue';
 
-import { hotkeys as hotkeysConst } from './constants';
+import _ from 'underscore';
+
+import { hotkeys as hotkeysConsts } from './constants';
 
 const store = Vue.observable({
     selectedIndex: 0,
@@ -17,7 +19,8 @@ const store = Vue.observable({
     currentAverageCertainty: 0,
     categories: [],
     lastCategorySelected: null,
-    hotkeys: hotkeysConst
+    hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
+    editingHotkeys: false
 });
 
 const previousCard = () => {
@@ -40,8 +43,21 @@ const nextCard = () => {
     }
 };
 
+const assignHotkey = (oldkey, newKey) => {
+    // Check for duplicate key bindings
+    const oldVal = store.hotkeys.get(newKey);
+    store.hotkeys.set(newKey, store.hotkeys.get(oldkey)).delete(oldkey);
+    if (!_.isNull(oldVal)) {
+        // Key was already assigned an index.
+        // Update that index to an unused value.
+        const idx = _.findIndex(hotkeysConsts, (k) => !store.hotkeys.has(k));
+        store.hotkeys.set(hotkeysConsts[idx], oldVal);
+    }
+};
+
 export {
     store,
     nextCard,
-    previousCard
+    previousCard,
+    assignHotkey
 };
