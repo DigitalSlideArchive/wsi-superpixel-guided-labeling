@@ -7,13 +7,15 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
+import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 
-import { store } from './store.js';
+import { store, updatePixelmapLayerStyle } from '../store.js';
 
 export default Vue.extend({
     components: {
         ActiveLearningFilmStrip,
-        ActiveLearningKeyboardShortcuts
+        ActiveLearningKeyboardShortcuts,
+        AnnotationOpacityControl
     },
     props: [
         'router',
@@ -37,7 +39,8 @@ export default Vue.extend({
             boundingBoxFeature: null,
             selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
-            initialZoom: 1
+            initialZoom: 1,
+            overlayLayers: []
         };
     },
     computed: {
@@ -57,6 +60,9 @@ export default Vue.extend({
         },
         predictions() {
             return store.predictions;
+        },
+        categories() {
+            return store.categories;
         }
     },
     watch: {
@@ -95,7 +101,10 @@ export default Vue.extend({
         },
         changeLog: {
             handler() {
-                const change = this.changeLog[this.changeLog.length - 1];
+                if (!this.changeLog.length) {
+                    return;
+                }
+                const change = this.changeLog.pop();
                 this.backboneParent.saveLabelAnnotations([change.imageId]);
                 this.drawLabels();
             },
@@ -123,7 +132,7 @@ export default Vue.extend({
             {
                 label: 'default',
                 fillColor: 'rgba(0, 0, 0, 0)',
-                strokeColor: 'rgb(0, 0, 0)'
+                strokeColor: 'rgb(0, 0, 0, 1)'
             },
             ...nonDefaultPredictionsCategories
         ];
@@ -199,6 +208,23 @@ export default Vue.extend({
                 this.updateMapBoundsForSelection();
                 this.drawLabels();
             });
+            this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
+                if (element.type === 'pixelmap') {
+                    // There can be multiple overlays present, track all of them
+                    this.overlayLayers.push(layer);
+                    updatePixelmapLayerStyle(this.overlayLayers);
+                }
+            });
+            this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
+                if (element.type === 'pixelmap') {
+                    // Drop the reference to any overlays that have been removed
+                    const index = _.findIndex(this.overlayLayers, (overlay) => {
+                        return overlay.id() === layer.id()
+                    });
+                    this.overlayLayers.splice(index, 1)
+                    updatePixelmapLayerStyle(this.overlayLayers);
+                }
+            });
         }
     }
 });
@@ -207,6 +233,10 @@ export default Vue.extend({
 <template>
   <div class="h-active-learning-container">
     <active-learning-keyboard-shortcuts />
+    <annotation-opacity-control
+      :active-learning-setup="false"
+      :overlay-layers="overlayLayers"
+    />
     <div
       ref="map"
       class="h-active-learning-map"

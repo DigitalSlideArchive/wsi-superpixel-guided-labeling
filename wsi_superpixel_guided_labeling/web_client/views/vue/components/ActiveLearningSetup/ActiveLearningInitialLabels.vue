@@ -6,7 +6,9 @@ import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
+import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
+import { store, updatePixelmapLayerStyle } from '../store';
 
 // Define some helpful constants for adding categories
 const boundaryColor = 'rgba(0, 0, 0, 1)';
@@ -21,7 +23,8 @@ const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\
 export default Vue.extend({
     components: {
         ColorPickerInput,
-        MouseAndKeyboardControls
+        MouseAndKeyboardControls,
+        AnnotationOpacityControl
     },
     props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     data() {
@@ -123,6 +126,8 @@ export default Vue.extend({
     mounted() {
         this.currentImageId = Object.keys(this.imageNamesById)[0];
         this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+        store.annotationsByImageId = this.annotationsByImageId;
+        store.backboneParent = this.backboneParent;
         this.setupViewer();
     },
     methods: {
@@ -244,24 +249,6 @@ export default Vue.extend({
          * Ensure that the label annotation is drawn correctly by keeping the geojs layer
          * up to date with the most recent category list
          */
-        updatePixelmapLayerStyle() {
-            const categoryMap = this.allNewCategories;
-            const boundaries = this.usingBoundaries;
-            _.forEach(this.overlayLayer.features(), (feature) => {
-                feature.style('color', (d, i) => {
-                    if (d < 0 || d >= categoryMap.length) {
-                        console.warn(`No category found at index ${d} in the category map.`);
-                        return 'rgba(0, 0, 0, 0)';
-                    }
-                    const category = categoryMap[d];
-                    if (boundaries) {
-                        return (i % 2 === 0) ? category.fillColor : category.strokeColor;
-                    }
-                    return category.fillColor;
-                });
-            });
-            this.overlayLayer.draw();
-        },
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
@@ -376,6 +363,7 @@ export default Vue.extend({
          ***********/
         synchronizeCategories() {
             if (this.currentCategoryFormValid) {
+                store.categories = this.allNewCategories;
                 _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
                     const superpixelElement = annotations.labels.get('annotation').elements[0];
                     if (superpixelElement) {
@@ -383,7 +371,7 @@ export default Vue.extend({
                     }
                 });
                 this.saveAnnotations(true);
-                this.updatePixelmapLayerStyle();
+                updatePixelmapLayerStyle(this.overlayLayer);
             }
         },
         /**********************************
@@ -498,6 +486,11 @@ export default Vue.extend({
               {{ imageNamesById[imageId] }}
             </option>
           </select>
+          <annotation-opacity-control
+            :active-learning-setup="true"
+            :fill-color="currentCategoryFillColor"
+            :overlay-layers="[overlayLayer]"
+          />
         </div>
       </div>
       <div
@@ -542,7 +535,7 @@ export default Vue.extend({
     border: 1px solid #f0f0f0;
 }
 .h-al-image-selector {
-    display: block;
+    display: flex;
     padding-top: 8px;
 }
 .h-form-controls {
