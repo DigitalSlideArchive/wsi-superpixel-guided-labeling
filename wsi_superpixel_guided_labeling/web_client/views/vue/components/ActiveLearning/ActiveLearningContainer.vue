@@ -40,7 +40,7 @@ export default Vue.extend({
             selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
             initialZoom: 1,
-            overlayLayer: null
+            overlayLayers: []
         };
     },
     computed: {
@@ -210,8 +210,19 @@ export default Vue.extend({
             });
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
-                    this.overlayLayer = layer;
-                    updatePixelmapLayerStyle(layer);
+                    // There can be multiple overlays present, track all of them
+                    this.overlayLayers.push(layer);
+                    updatePixelmapLayerStyle(this.overlayLayers);
+                }
+            });
+            this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
+                if (element.type === 'pixelmap') {
+                    // Drop the reference to any overlays that have been removed
+                    const index = _.findIndex(this.overlayLayers, (overlay) => {
+                        return overlay.id() === layer.id()
+                    });
+                    this.overlayLayers.splice(index, 1)
+                    updatePixelmapLayerStyle(this.overlayLayers);
                 }
             });
         }
@@ -224,7 +235,7 @@ export default Vue.extend({
     <active-learning-keyboard-shortcuts />
     <annotation-opacity-control
       :active-learning-setup="false"
-      :overlay-layer="overlayLayer"
+      :overlay-layers="overlayLayers"
     />
     <div
       ref="map"

@@ -60,25 +60,27 @@ const assignHotkey = (oldkey, newKey) => {
  * Ensure that the label and prediction annotations are drawn correctly by
  * keeping the geojs layer up to date with the most recent category list
  */
-const updatePixelmapLayerStyle = (overlayLayer) => {
-    if (!overlayLayer) {
+const updatePixelmapLayerStyle = (overlayLayers) => {
+    if (!overlayLayers.length) {
         return;
     }
 
-    _.forEach(overlayLayer.features(), (feature) => {
-        feature.style('color', (d, i) => {
-            if (d < 0 || d >= store.categories.length) {
-                console.warn(`No category found at index ${d} in the category map.`);
-                return 'rgba(0, 0, 0, 0)';
-            }
-            const category = store.categories[d];
-            // If opacity is zero, fill color and stroke color should be the same
-            let strokeColor = `rgba(${[0, 0, 0]}, ${store.strokeOpacity})`;
-            strokeColor = store.strokeOpacity ? strokeColor : category.fillColor;
-            return (i % 2 === 0) ? category.fillColor : strokeColor;
+    _.forEach(overlayLayers, (overlayLayer) => {
+        _.forEach(overlayLayer.features(), (feature) => {
+            feature.style('color', (d, i) => {
+                if (d < 0 || d >= store.categories.length) {
+                    console.warn(`No category found at index ${d} in the category map.`);
+                    return 'rgba(0, 0, 0, 0)';
+                }
+                const category = store.categories[d];
+                // If opacity is zero, fill color and stroke color should be the same
+                let strokeColor = `rgba(${[0, 0, 0]}, ${store.strokeOpacity})`;
+                strokeColor = store.strokeOpacity ? strokeColor : category.fillColor;
+                return (i % 2 === 0) ? category.fillColor : strokeColor;
+            });
         });
+        overlayLayer.draw();
     });
-    overlayLayer.draw();
 };
 
 export {

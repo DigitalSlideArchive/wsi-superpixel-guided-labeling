@@ -5,7 +5,7 @@ import { restRequest } from '@girder/core/rest';
 import { store, updatePixelmapLayerStyle } from './store.js';
 
 export default {
-    props: ['activeLearningSetup', 'fillColor', 'overlayLayer'],
+    props: ['activeLearningSetup', 'fillColor', 'overlayLayers'],
     data() {
         return {
             config: null
@@ -30,11 +30,11 @@ export default {
     watch: {
         opacitySlider() {
             this.updateConfigData();
-            updatePixelmapLayerStyle(this.overlayLayer);
+            updatePixelmapLayerStyle(this.overlayLayers);
         },
         fillColor() {
             if (this.opacitySlider === 0) {
-                updatePixelmapLayerStyle(this.overlayLayer);
+                updatePixelmapLayerStyle(this.overlayLayers);
             }
         },
         folderId: {

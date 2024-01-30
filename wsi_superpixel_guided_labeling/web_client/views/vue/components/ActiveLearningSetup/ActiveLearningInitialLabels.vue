@@ -489,7 +489,7 @@ export default Vue.extend({
           <annotation-opacity-control
             :active-learning-setup="true"
             :fill-color="currentCategoryFillColor"
-            :overlay-layer="overlayLayer"
+            :overlay-layers="[overlayLayer]"
           />
         </div>
       </div>
