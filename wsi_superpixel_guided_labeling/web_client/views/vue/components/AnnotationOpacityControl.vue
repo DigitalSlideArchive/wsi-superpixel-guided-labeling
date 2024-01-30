@@ -4,6 +4,8 @@ import { restRequest } from '@girder/core/rest';
 
 import { store, updatePixelmapLayerStyle } from './store.js';
 
+const yaml = require('js-yaml');
+
 export default {
     props: ['activeLearningSetup', 'fillColor', 'overlayLayers'],
     data() {
@@ -66,7 +68,7 @@ export default {
             restRequest({
                 type: 'PUT',
                 url: `folder/${this.folderId}/yaml_config/.histomicsui_config.yaml`,
-                data: jsyaml.dump(this.config),
+                data: yaml.dump(this.config),
                 contentType: 'application/json'
             });
         }, 500)

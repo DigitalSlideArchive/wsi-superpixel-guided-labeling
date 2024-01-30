@@ -219,9 +219,9 @@ export default Vue.extend({
                 if (element.type === 'pixelmap') {
                     // Drop the reference to any overlays that have been removed
                     const index = _.findIndex(this.overlayLayers, (overlay) => {
-                        return overlay.id() === layer.id()
+                        return overlay.id() === layer.id();
                     });
-                    this.overlayLayers.splice(index, 1)
+                    this.overlayLayers.splice(index, 1);
                     updatePixelmapLayerStyle(this.overlayLayers);
                 }
             });
