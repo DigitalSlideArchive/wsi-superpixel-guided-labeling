@@ -61,41 +61,43 @@ const ActiveLearningView = View.extend({
         this._saveAnnotationsForIds = new Set();
         // Use a map to preserve insertion order
         this.categoryMap = new Map();
+        this.histomicsUIConfig = {};
 
         this.getHistomicsYamlConfig();
-        // this.fetchFoldersAndItems();
     },
 
     getHistomicsYamlConfig() {
         restRequest({
             url: `folder/${this.trainingDataFolderId}/yaml_config/.histomicsui_config.yaml`
         }).done((config) => {
+            // save the config, since we might want to edit it
+            this.histomicsUIConfig = config || {};
             this.configAnnotationGroups = (!!config && !!config.annotationGroups)
                 ? config.annotationGroups
                 : undefined;
             if (!this.configAnnotationGroups) {
                 this.configAnnotationGroups = JSON.parse(JSON.stringify(defaultAnnotationGroups));
             }
+            this.histomicsUIConfig.annotationGroups = this.configAnnotationGroups;
 
             const defaultIndex = _.findIndex(this.configAnnotationGroups.groups,
                 (group) => group.id === this.configAnnotationGroups.defaultGroup
             );
             const defaultGroup = this.configAnnotationGroups.groups[defaultIndex];
             // Make sure the default category is inserted first
-            this.categoryMap[defaultGroup.id] = {
+            this.categoryMap.set(defaultGroup.id, {
                 label: defaultGroup.id,
                 fillColor: defaultGroup.fillColor,
                 strokeColor: defaultGroup.lineColor
-            };
+            });
             _.forEach(this.configAnnotationGroups.groups, (group) => {
-                this.categoryMap[group.id] = {
+                this.categoryMap.set(group.id, {
                     label: group.id,
                     fillColor: group.fillColor,
                     strokeColor: group.lineColor
-                };
+                });
             });
-            // save the config, since we might want to edit it
-            this.histomicsUIConfig = config;
+
             return this.fetchFoldersAndItems();
         });
     },
@@ -197,9 +199,6 @@ const ActiveLearningView = View.extend({
                 _.forEach(Object.keys(this.imageItemsById), (imageId) => {
                     imageNamesById[imageId] = this.imageItemsById[imageId].name;
                 });
-                // TODO pass this to the child vue components
-                const categories = [...this.categoryMap.values()];
-                console.log(categories);
                 vm = new ActiveLearningSetupContainer({
                     el,
                     propsData: {
@@ -391,7 +390,7 @@ const ActiveLearningView = View.extend({
         });
         // Map category id to new data values
         const categoryIdToNewDataValue = new Map();
-        _.forEach(this.categoryMap, (category, index) => {
+        _.forEach([...this.categoryMap.values()], (category, index) => {
             categoryIdToNewDataValue.set(category.label, index);
         });
         // Replace data
@@ -409,6 +408,12 @@ const ActiveLearningView = View.extend({
      * @returns list of groups to use for labelling superpixels
      */
     synchronizeCategories() {
+        const annotations = Object.values(this.annotationsByImageId);
+        if (annotations.every((annotation) => _.isEmpty(annotation))) {
+            // Nothing to synchronize
+            return;
+        }
+
         // Compile all the categories for the dataset
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
