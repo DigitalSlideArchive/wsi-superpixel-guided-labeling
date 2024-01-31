@@ -136,7 +136,7 @@ export default Vue.extend({
             },
             ...nonDefaultPredictionsCategories
         ];
-
+        this.updateConfig();
         const startIndex = 0;
         const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
         store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
@@ -225,7 +225,10 @@ export default Vue.extend({
                     updatePixelmapLayerStyle(this.overlayLayers);
                 }
             });
-        }
+        },
+        updateConfig: _.debounce(function () {
+            this.backboneParent.updateHistomicsYamlConfig(store.categories);
+        }, 500)
     }
 });
 </script>

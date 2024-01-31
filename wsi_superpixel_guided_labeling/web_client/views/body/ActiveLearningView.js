@@ -16,6 +16,8 @@ import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/
 
 import '../../stylesheets/body/learning.styl';
 
+const yaml = require('js-yaml');
+
 const activeLearningSteps = {
     SuperpixelSegmentation: 0,
     InitialLabeling: 1,
@@ -99,6 +101,26 @@ const ActiveLearningView = View.extend({
             });
 
             return this.fetchFoldersAndItems();
+        });
+    },
+
+    updateHistomicsYamlConfig(categories) {
+        const groups = new Map();
+        _.forEach(categories, (category) => {
+            groups.set(category.label, {
+                id: category.label,
+                fillColor: category.fillColor,
+                lineColor: category.strokeColor || 'rgba(0,0,0,1)'
+            });
+        });
+        this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
+
+        // Update the config file
+        restRequest({
+            type: 'PUT',
+            url: `folder/${this.trainingDataFolderId}/yaml_config/.histomicsui_config.yaml`,
+            data: yaml.dump(this.histomicsUIConfig),
+            contentType: 'application/json'
         });
     },
 
