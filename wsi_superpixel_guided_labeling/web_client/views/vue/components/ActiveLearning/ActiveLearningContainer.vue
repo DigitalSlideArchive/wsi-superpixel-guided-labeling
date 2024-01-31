@@ -227,7 +227,7 @@ export default Vue.extend({
             });
         },
         updateConfig: _.debounce(function () {
-            this.backboneParent.updateHistomicsYamlConfig(store.categories);
+            this.backboneParent.updateHistomicsYamlConfig();
         }, 500)
     }
 });

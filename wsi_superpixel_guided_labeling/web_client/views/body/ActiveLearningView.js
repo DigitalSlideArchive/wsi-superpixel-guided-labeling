@@ -13,6 +13,7 @@ import { parse } from '@girder/slicer_cli_web/parser';
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
 import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
+import { store } from '../vue/components/store.js';
 
 import '../../stylesheets/body/learning.styl';
 
@@ -104,9 +105,9 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateHistomicsYamlConfig(categories) {
+    updateHistomicsYamlConfig() {
         const groups = new Map();
-        _.forEach(categories, (category) => {
+        _.forEach(store.categories, (category) => {
             groups.set(category.label, {
                 id: category.label,
                 fillColor: category.fillColor,
