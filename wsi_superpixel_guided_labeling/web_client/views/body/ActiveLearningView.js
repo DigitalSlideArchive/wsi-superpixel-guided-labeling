@@ -33,8 +33,8 @@ const defaultAnnotationGroups = {
     groups: [
         {
             id: 'default',
-            fillColor: 'rgba(0, 0, 0, 0',
-            lineColor: 'rgb(0, 0, 0)',
+            fillColor: 'rgba(0, 0, 0, 0)',
+            lineColor: 'rgba(0, 0, 0, 1)',
             lineWidth: 2
         }
     ]
@@ -401,7 +401,9 @@ const ActiveLearningView = View.extend({
 
     getAnnotationCategories(pixelmapElement) {
         _.forEach(pixelmapElement.categories, (category) => {
-            this.categoryMap.set(category.label, category);
+            if (!this.categoryMap.has(category.label)) {
+                this.categoryMap.set(category.label, category);
+            }
         });
     },
 

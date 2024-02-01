@@ -132,7 +132,7 @@ export default Vue.extend({
             {
                 label: 'default',
                 fillColor: 'rgba(0, 0, 0, 0)',
-                strokeColor: 'rgb(0, 0, 0, 1)'
+                strokeColor: 'rgba(0, 0, 0, 1)'
             },
             ...nonDefaultPredictionsCategories
         ];
