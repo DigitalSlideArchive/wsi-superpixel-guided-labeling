@@ -93,6 +93,7 @@ const ActiveLearningView = View.extend({
                 fillColor: defaultGroup.fillColor,
                 strokeColor: defaultGroup.lineColor
             });
+            this.defaultCategory = this.categoryMap.get(defaultGroup.id);
             _.forEach(this.configAnnotationGroups.groups, (group) => {
                 this.categoryMap.set(group.id, {
                     label: group.id,
@@ -214,7 +215,8 @@ const ActiveLearningView = View.extend({
                         sortedSuperpixelIndices: this.sortedSuperpixelIndices,
                         apiRoot: getApiRoot(),
                         backboneParent: this,
-                        currentAverageCertainty: this.currentAverageCertainty
+                        currentAverageCertainty: this.currentAverageCertainty,
+                        categoryMap: this.categoryMap
                     }
                 });
             } else {
@@ -355,7 +357,6 @@ const ActiveLearningView = View.extend({
             });
         });
         $.when(...promises).then(() => {
-            // TODO: synchronize styles in histomics config yaml with annotation categories here
             this.synchronizeCategories();
             if (this.activeLearningStep === activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
@@ -388,10 +389,8 @@ const ActiveLearningView = View.extend({
     getAgreeChoice(index, predictionPixelmapElement, labelPixelmapElement) {
         const label = labelPixelmapElement.values[index];
         const labelCategories = labelPixelmapElement.categories;
-        if (labelCategories[label].label === 'default') {
+        if (labelCategories[label].label === this.defaultCategory.label) {
             // Label is default, so no choice has been made
-            // Once we use the config file, we can use the default
-            // category specified there insted of the raw string
             return undefined;
         }
         const predictionCategories = predictionPixelmapElement.categories;

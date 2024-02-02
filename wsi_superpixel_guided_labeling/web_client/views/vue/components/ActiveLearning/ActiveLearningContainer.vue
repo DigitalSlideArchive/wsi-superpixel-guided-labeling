@@ -25,7 +25,8 @@ export default Vue.extend({
         'sortedSuperpixelIndices',
         'apiRoot',
         'backboneParent',
-        'currentAverageCertainty'
+        'currentAverageCertainty',
+        'categoryMap'
     ],
     data() {
         return {
@@ -122,20 +123,8 @@ export default Vue.extend({
         store.selectedIndex = 0;
         store.predictions = false;
         store.currentAverageCertainty = this.currentAverageCertainty;
+        store.categories = [...this.categoryMap.values()];
 
-        const predictionAnnotation = this.annotationsByImageId[this.selectedImageId].predictions;
-        const predictionCategories = predictionAnnotation.get('annotation').elements[0].categories;
-        // ensure the default category is at index 0.
-        // Once the config yaml is used, the store categories should be taken from that.
-        const nonDefaultPredictionsCategories = _.filter(predictionCategories, (category) => category.label !== 'default');
-        store.categories = [
-            {
-                label: 'default',
-                fillColor: 'rgba(0, 0, 0, 0)',
-                strokeColor: 'rgba(0, 0, 0, 1)'
-            },
-            ...nonDefaultPredictionsCategories
-        ];
         this.updateConfig();
         const startIndex = 0;
         const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
