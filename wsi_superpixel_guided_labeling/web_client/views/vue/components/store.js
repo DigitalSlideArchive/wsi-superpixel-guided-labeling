@@ -60,6 +60,11 @@ const assignHotkey = (oldkey, newKey) => {
  * Ensure that the label and prediction annotations are drawn correctly by
  * keeping the geojs layer up to date with the most recent category list
  */
+
+const rgbStringToArray = (rgbStr) => {
+    return rgbStr.match(/\d+(?:\.\d+)?/g).map(Number);
+};
+
 const updatePixelmapLayerStyle = (overlayLayers) => {
     if (!overlayLayers.length) {
         return;
@@ -73,10 +78,14 @@ const updatePixelmapLayerStyle = (overlayLayers) => {
                     return 'rgba(0, 0, 0, 0)';
                 }
                 const category = store.categories[d];
-                // If opacity is zero, fill color and stroke color should be the same
-                let strokeColor = `rgba(${[0, 0, 0]}, ${store.strokeOpacity})`;
-                strokeColor = store.strokeOpacity ? strokeColor : category.fillColor;
-                return (i % 2 === 0) ? category.fillColor : strokeColor;
+                // Fade between black border and fill color when opacity is changed
+                const strokeColor = rgbStringToArray(category.strokeColor);
+                const rgba = _.map(rgbStringToArray(category.fillColor), (val, idx) => {
+                    // rgb values are missing alpha, default to opaque (1)
+                    const strokeValue = strokeColor[idx] || 1;
+                    return (strokeValue - val) * store.strokeOpacity + val;
+                });
+                return (i % 2 === 0) ? category.fillColor : `rgba(${rgba})`;
             });
         });
         overlayLayer.draw();
