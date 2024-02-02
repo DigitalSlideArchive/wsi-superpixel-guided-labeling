@@ -419,7 +419,7 @@ const ActiveLearningView = View.extend({
         });
         // Replace data
         _.forEach(pixelmapElement.values, (value, index) => {
-            const category = dataValuesToCategoryId.get(value)
+            const category = dataValuesToCategoryId.get(value);
             pixelmapElement.values[index] = categoryIdToNewDataValue.get(category);
         });
         // Replace categories
