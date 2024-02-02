@@ -13,8 +13,11 @@ import { parse } from '@girder/slicer_cli_web/parser';
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
 import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
+import { store } from '../vue/components/store.js';
 
 import '../../stylesheets/body/learning.styl';
+
+const yaml = require('js-yaml');
 
 const activeLearningSteps = {
     SuperpixelSegmentation: 0,
@@ -23,6 +26,19 @@ const activeLearningSteps = {
 };
 
 const epochRegex = /epoch (\d+)/i;
+
+const defaultAnnotationGroups = {
+    replaceGroups: true,
+    defaultGroup: 'default',
+    groups: [
+        {
+            id: 'default',
+            fillColor: 'rgba(0, 0, 0, 0)',
+            lineColor: 'rgba(0, 0, 0, 1)',
+            lineWidth: 2
+        }
+    ]
+};
 
 /**
  * This view acts as a container for Vue components used to control the active learning workflow.
@@ -46,8 +62,68 @@ const ActiveLearningView = View.extend({
         this.sortedSuperpixelIndices = [];
         this._isSaving = false;
         this._saveAnnotationsForIds = new Set();
+        // Use a map to preserve insertion order
+        this.categoryMap = new Map();
+        this.histomicsUIConfig = {};
 
-        this.fetchFoldersAndItems();
+        this.getHistomicsYamlConfig();
+    },
+
+    getHistomicsYamlConfig() {
+        restRequest({
+            url: `folder/${this.trainingDataFolderId}/yaml_config/.histomicsui_config.yaml`
+        }).done((config) => {
+            // save the config, since we might want to edit it
+            this.histomicsUIConfig = config || {};
+            this.configAnnotationGroups = (!!config && !!config.annotationGroups)
+                ? config.annotationGroups
+                : undefined;
+            if (!this.configAnnotationGroups) {
+                this.configAnnotationGroups = JSON.parse(JSON.stringify(defaultAnnotationGroups));
+            }
+            this.histomicsUIConfig.annotationGroups = this.configAnnotationGroups;
+
+            const defaultIndex = _.findIndex(this.configAnnotationGroups.groups,
+                (group) => group.id === this.configAnnotationGroups.defaultGroup
+            );
+            const defaultGroup = this.configAnnotationGroups.groups[defaultIndex];
+            // Make sure the default category is inserted first
+            this.categoryMap.set(defaultGroup.id, {
+                label: defaultGroup.id,
+                fillColor: defaultGroup.fillColor,
+                strokeColor: defaultGroup.lineColor
+            });
+            this.defaultCategory = this.categoryMap.get(defaultGroup.id);
+            _.forEach(this.configAnnotationGroups.groups, (group) => {
+                this.categoryMap.set(group.id, {
+                    label: group.id,
+                    fillColor: group.fillColor,
+                    strokeColor: group.lineColor
+                });
+            });
+
+            return this.fetchFoldersAndItems();
+        });
+    },
+
+    updateHistomicsYamlConfig() {
+        const groups = new Map();
+        _.forEach(store.categories, (category) => {
+            groups.set(category.label, {
+                id: category.label,
+                fillColor: category.fillColor,
+                lineColor: category.strokeColor || 'rgba(0,0,0,1)'
+            });
+        });
+        this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
+
+        // Update the config file
+        restRequest({
+            type: 'PUT',
+            url: `folder/${this.trainingDataFolderId}/yaml_config/.histomicsui_config.yaml`,
+            data: yaml.dump(this.histomicsUIConfig),
+            contentType: 'application/json'
+        });
     },
 
     /**
@@ -139,7 +215,8 @@ const ActiveLearningView = View.extend({
                         sortedSuperpixelIndices: this.sortedSuperpixelIndices,
                         apiRoot: getApiRoot(),
                         backboneParent: this,
-                        currentAverageCertainty: this.currentAverageCertainty
+                        currentAverageCertainty: this.currentAverageCertainty,
+                        categoryMap: this.categoryMap
                     }
                 });
             } else {
@@ -167,19 +244,6 @@ const ActiveLearningView = View.extend({
         return this;
     },
 
-    /**
-     * For each item in the active learning foler, populate the annotationsToFetchByImage
-     * object with required annotations for active learning. Note that the annotations
-     * returned by this endpoint do not contain all of the annotation data, so they need
-     * to be fetched after this object is populated.
-     *
-     * @param {object} item a girder large image item
-     * @param {object} annotationsToFetchByImage an object that contains
-     * label and prediction annotations for each large image item in the
-     * active learning folder
-     * @returns a promise representing the result of obtaining all
-     * annotations for the given girder item
-     */
     getAnnotationsForItemPromise(item, annotationsToFetchByImage) {
         return restRequest({
             url: 'annotation',
@@ -293,6 +357,7 @@ const ActiveLearningView = View.extend({
             });
         });
         $.when(...promises).then(() => {
+            this.synchronizeCategories();
             if (this.activeLearningStep === activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
             }
@@ -324,15 +389,76 @@ const ActiveLearningView = View.extend({
     getAgreeChoice(index, predictionPixelmapElement, labelPixelmapElement) {
         const label = labelPixelmapElement.values[index];
         const labelCategories = labelPixelmapElement.categories;
-        if (labelCategories[label].label === 'default') {
+        if (labelCategories[label].label === this.defaultCategory.label) {
             // Label is default, so no choice has been made
-            // Once we use the config file, we can use the default
-            // category specified there insted of the raw string
             return undefined;
         }
         const predictionCategories = predictionPixelmapElement.categories;
         const prediction = predictionPixelmapElement.values[index];
         return predictionCategories[prediction].label === labelCategories[label].label ? 'Yes' : 'No';
+    },
+
+    getAnnotationCategories(pixelmapElement) {
+        _.forEach(pixelmapElement.categories, (category) => {
+            if (!this.categoryMap.has(category.label)) {
+                this.categoryMap.set(category.label, category);
+            }
+        });
+    },
+
+    updateCategoriesAndData(pixelmapElement) {
+        // Map old data values to category id
+        const dataValuesToCategoryId = new Map();
+        _.forEach(pixelmapElement.categories, (category, index) => {
+            dataValuesToCategoryId.set(index, category.label);
+        });
+        // Map category id to new data values
+        const categoryIdToNewDataValue = new Map();
+        _.forEach([...this.categoryMap.values()], (category, index) => {
+            categoryIdToNewDataValue.set(category.label, index);
+        });
+        // Replace data
+        _.forEach(pixelmapElement.values, (value, index) => {
+            const category = dataValuesToCategoryId.get(value);
+            pixelmapElement.values[index] = categoryIdToNewDataValue.get(category);
+        });
+        // Replace categories
+        pixelmapElement.categories = [...this.categoryMap.values()];
+    },
+
+    /**
+     * Reconciles the differences between the groups defined in the .histomicsui_config.yaml
+     * file and in the annotataions for the current epoch.
+     *
+     * @returns list of groups to use for labelling superpixels
+     */
+    synchronizeCategories() {
+        const annotations = Object.values(this.annotationsByImageId);
+        if (annotations.every((annotation) => _.isEmpty(annotation))) {
+            // Nothing to synchronize
+            return;
+        }
+
+        // Compile all the categories for the dataset
+        _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+            const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
+            this.getAnnotationCategories(labelPixelmapElement);
+            if (this.annotationsByImageId[imageId].predictions) {
+                const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
+                this.getAnnotationCategories(predictionPixelmapElement);
+            }
+        });
+        // Update pixelmap data for the dataset
+        _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+            const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
+            this.updateCategoriesAndData(labelPixelmapElement);
+            if (this.annotationsByImageId[imageId].predictions) {
+                const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
+                this.updateCategoriesAndData(predictionPixelmapElement);
+            }
+        });
+        this.saveLabelAnnotations(Object.keys(this.annotationsByImageId));
+        // TODO Also save prediction annotations - they might have changed
     },
 
     /**

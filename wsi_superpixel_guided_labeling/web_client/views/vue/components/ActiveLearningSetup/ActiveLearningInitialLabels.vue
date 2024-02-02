@@ -173,6 +173,7 @@ export default Vue.extend({
             this.pixelmapRendered = true;
             if (!this.hasLoaded) {
                 this.createCategories();
+                this.updateConfig();
                 this.hasLoaded = true;
             }
             this.viewerWidget.on('g:mouseClickAnnotationOverlay', this.handlePixelmapClicked);
@@ -371,7 +372,8 @@ export default Vue.extend({
                     }
                 });
                 this.saveAnnotations(true);
-                updatePixelmapLayerStyle(this.overlayLayer);
+                updatePixelmapLayerStyle([this.overlayLayer]);
+                this.updateConfig();
             }
         },
         /**********************************
@@ -383,7 +385,10 @@ export default Vue.extend({
         saveAnnotations(saveAll) {
             const idsToSave = saveAll ? Object.keys(this.annotationsByImageId) : [this.currentImageId];
             this.backboneParent.saveLabelAnnotations(idsToSave);
-        }
+        },
+        updateConfig: _.debounce(function () {
+            this.backboneParent.updateHistomicsYamlConfig(store.categories);
+        }, 500)
     }
 });
 </script>

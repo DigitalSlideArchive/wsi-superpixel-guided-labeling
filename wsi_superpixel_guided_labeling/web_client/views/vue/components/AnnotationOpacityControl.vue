@@ -1,19 +1,17 @@
 <script>
 import _ from 'underscore';
-import { restRequest } from '@girder/core/rest';
 
 import { store, updatePixelmapLayerStyle } from './store.js';
 
-const yaml = require('js-yaml');
-
 export default {
     props: ['activeLearningSetup', 'fillColor', 'overlayLayers'],
-    data() {
-        return {
-            config: null
-        };
-    },
     computed: {
+        config() {
+            if (store.backboneParent) {
+                return store.backboneParent.histomicsUIConfig || {};
+            }
+            return {};
+        },
         folderId() {
             if (store.backboneParent) {
                 return store.backboneParent.trainingDataFolderId;
@@ -50,27 +48,19 @@ export default {
     },
     methods: {
         getConfigData() {
-            this.config = {};
-            restRequest({
-                url: `folder/${this.folderId}/yaml_config/.histomicsui_config.yaml`
-            }).done((resp) => {
-                this.config = resp || {};
-                if (resp && resp.guidedLabelingUI) {
-                    this.opacitySlider = resp.guidedLabelingUI.borderOpacity;
-                }
-            });
+            if (!this.folderId) {
+                return;
+            }
+            const uiSettings = this.config.guidedLabelingUI || {};
+            if (uiSettings.borderOpacity) {
+                this.opacitySlider = uiSettings.borderOpacity;
+            }
         },
         updateConfigData: _.debounce(function () {
-            if (!('guidedLabelingUI' in this.config)) {
-                this.config.guidedLabelingUI = {};
-            }
-            this.config.guidedLabelingUI.borderOpacity = parseFloat(this.opacitySlider);
-            restRequest({
-                type: 'PUT',
-                url: `folder/${this.folderId}/yaml_config/.histomicsui_config.yaml`,
-                data: yaml.dump(this.config),
-                contentType: 'application/json'
-            });
+            const uiSettings = this.config.guidedLabelingUI || {};
+            uiSettings.borderOpacity = parseFloat(this.opacitySlider);
+            store.backboneParent.histomicsUIConfig.guidedLabelingUI = uiSettings;
+            store.backboneParent.updateHistomicsYamlConfig();
         }, 500)
     }
 };
