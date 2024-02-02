@@ -82,7 +82,7 @@ export default {
 
 <style scoped>
 .h-opacity-slider-learning-container {
-    z-index: 1000;
+    z-index: 100;
     position: absolute;
     top: 5px;
     right: 5px;
