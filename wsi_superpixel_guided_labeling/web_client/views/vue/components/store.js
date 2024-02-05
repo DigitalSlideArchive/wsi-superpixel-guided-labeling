@@ -82,7 +82,7 @@ const updatePixelmapLayerStyle = (overlayLayers) => {
                 const strokeColor = rgbStringToArray(category.strokeColor);
                 const rgba = _.map(rgbStringToArray(category.fillColor), (val, idx) => {
                     // rgb values are missing alpha, default to opaque (1)
-                    const strokeValue = strokeColor[idx] || 1;
+                    const strokeValue = strokeColor[idx] === undefined ? 1 : strokeColor[idx];
                     return (strokeValue - val) * store.strokeOpacity + val;
                 });
                 return (i % 2 === 0) ? category.fillColor : `rgba(${rgba})`;
