@@ -8,12 +8,11 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
-import { comboHotkeys } from '../ActiveLearning/constants.js';
+import { comboHotkeys, schemeTableau10 } from '../ActiveLearning/constants.js';
 import { store, updatePixelmapLayerStyle } from '../store.js';
 
 // Define some helpful constants for adding categories
 const boundaryColor = 'rgba(0, 0, 0, 1)';
-const defaultNewCategoryColor = 'rgba(255, 0, 0, 0.5)';
 const defaultCategory = {
     label: 'default',
     fillColor: 'rgba(0, 0, 0, 0)',
@@ -39,7 +38,7 @@ export default Vue.extend({
             categories: [],
             categoryIndex: 0,
             currentCategoryLabel: 'New Category',
-            currentCategoryFillColor: defaultNewCategoryColor,
+            currentCategoryFillColor: this.getFillColor(0),
 
             // keep track of the current image and annotation to edit
             currentImageId: '',
@@ -236,10 +235,11 @@ export default Vue.extend({
                 this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
             });
             if (this.categories.length === 0) {
+                const fillColor = this.getFillColor(this.categories.length);
                 this.categories.push({
                     category: {
                         label: 'New Category',
-                        fillColor: defaultNewCategoryColor,
+                        fillColor,
                         strokeColor: boundaryColor
                     },
                     indices: {}
@@ -385,10 +385,11 @@ export default Vue.extend({
          * RESPOND TO USER INPUT *
          *************************/
         addCategory() {
+            const nextColor = this.getFillColor(this.categories.length);
             this.categories.push({
                 category: {
                     label: 'New Category',
-                    fillColor: defaultNewCategoryColor,
+                    fillColor: nextColor,
                     strokeColor: boundaryColor
                 },
                 indices: {}
@@ -418,6 +419,11 @@ export default Vue.extend({
                 updatePixelmapLayerStyle([this.overlayLayer]);
                 this.updateConfig();
             }
+        },
+        getFillColor(index) {
+            const hexColor = schemeTableau10[index % 10];
+            const [r, g, b] = hexColor.slice(1).match(/.{1,2}/g);
+            return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, 0.5)`;
         },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
