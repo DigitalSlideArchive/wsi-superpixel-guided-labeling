@@ -5,6 +5,7 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
+import { confirm } from '@girder/core/dialog';
 
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
@@ -39,6 +40,7 @@ export default Vue.extend({
             categoryIndex: 0,
             currentCategoryLabel: 'New Category',
             currentCategoryFillColor: this.getFillColor(0),
+            checkedCategories: [],
 
             // keep track of the current image and annotation to edit
             currentImageId: '',
@@ -88,10 +90,12 @@ export default Vue.extend({
             const counts = {};
             _.forEach(this.categories, (categoryAndIndices, index) => {
                 const label = categoryAndIndices.category.label;
+                const fillColor = categoryAndIndices.category.fillColor;
                 const key = `${index}_${label}`;
                 counts[key] = {
                     count: 0,
-                    label
+                    label,
+                    fillColor
                 };
                 if (label !== 'default') {
                     const indicesByImage = categoryAndIndices.indices;
@@ -278,7 +282,7 @@ export default Vue.extend({
                             category,
                             indices
                         });
-                    } else if (labeledSuperpixels.length) {
+                    } else if (labeledSuperpixels.size) {
                         const categoryToUpdateIndex = _.findIndex(this.categories, (categoryAndIndices) => categoryAndIndices.category.label === category.label);
                         this.categories[categoryToUpdateIndex].indices[imageId] = labeledSuperpixels;
                     }
@@ -399,12 +403,46 @@ export default Vue.extend({
             });
             this.categoryIndex = this.categories.length - 1;
         },
-        deleteCategory() {
-            // Remove object and idx matching category from this.categories
-            this.categories.splice(this.categoryIndex, 1);
-            // Call synchronizeCategories - this will: Update annotationsByImageId
-            // labels, update backboneParent, update the visualization
-            this.synchronizeCategories();
+        combineCategories(indices, isMerge) {
+            // Remove the selected categories
+            indices = _.sortBy(indices, (i) => i).reverse();
+            const oldCategories = _.map(indices, (index) => {
+                return this.categories.splice(index, 1)[0];
+            });
+
+            _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+                const labels = this.annotationsByImageId[imageId].labels;
+                const pixelmapElement = labels.get('annotation').elements[0];
+                pixelmapElement.categories = [...this.allNewCategories];
+
+                // Reset removed category labels to the default category
+                _.forEach(oldCategories, (category, val) => {
+                    const indices = category.indices[imageId] || new Set();
+                    _.forEach([...indices], (index) => {
+                        pixelmapElement.values[index] = 0;
+                    });
+                });
+
+                // Indices have shifted after removing the selected categories
+                _.forEach(this.categories, (category, val) => {
+                    const indices = category.indices[imageId] || new Set();
+                    _.forEach([...indices], (index) => {
+                        pixelmapElement.values[index] = val + 1;
+                    });
+                });
+            });
+            this.checkedCategories = [];
+            this.drawPixelmapAnnotation();
+            this.saveAnnotations(true);
+            this.updateConfig();
+        },
+        deleteCategory(indices) {
+            confirm({
+                title: 'Warning',
+                text: 'Deleting categories cannot be undone. Are you sure you want to continue?',
+                yesText: 'Delete Selected',
+                confirmCallback: () => this.combineCategories(indices, false)
+            });
         },
         /***********
          * UTILITY *
@@ -579,7 +617,12 @@ export default Vue.extend({
                     >
                       <i class="icon-pencil" />
                     </button>
-                    <button class="btn h-table-button">
+                    <button
+                      class="btn h-table-button"
+                      data-toggle="tooltip"
+                      title="Delete category"
+                      @click="() => deleteCategory([index])"
+                    >
                       <i class="icon-trash" />
                     </button>
                   </div>
@@ -587,16 +630,37 @@ export default Vue.extend({
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
                 <td>
                   <color-picker-input
-                    :key="categoryIndex"
+                    :key="key"
                     v-model="currentCategoryFillColor"
                     class="condensed-color-picker"
-                    :color="categories[index].category.fillColor"
+                    :color="labeledSuperpixelCounts[key].fillColor"
                     data-toggle="tooltip"
                     title="Change label color"
                   />
                 </td>
+                <td>
+                  <input
+                    v-model="checkedCategories"
+                    type="checkbox"
+                    :value="index"
+                  >
+                </td>
               </tr>
             </table>
+            <div class="h-remove-categories">
+              <button
+                class="btn btn-warning btn-xs"
+                :disabled="checkedCategories.length < 2"
+                data-toggle="modal"
+                data-target="#mergeConfirmation"
+              >
+                <i
+                  class="icon-resize-small"
+                  data-toggle="tooltip"
+                  title="Merge selected categories"
+                />
+              </button>
+            </div>
           </div>
           <button
             class="btn btn-info btn-block"
@@ -779,6 +843,10 @@ tr:hover .editing-icons {
     opacity: 1;
 }
 
+.table {
+    margin-bottom: 5px;
+}
+
 .table-labels {
     display: flex;
     justify-content: space-between;
@@ -818,4 +886,11 @@ tr:hover .editing-icons {
     height: 20px;
     padding: 0px 5px;
 }
+
+.h-remove-categories {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 5px;
+}
+
 </style>
