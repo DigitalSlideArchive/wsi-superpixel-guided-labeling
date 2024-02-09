@@ -8,6 +8,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
+import { comboHotkeys } from '../ActiveLearning/constants.js';
 import { store, updatePixelmapLayerStyle } from '../store.js';
 
 // Define some helpful constants for adding categories
@@ -101,6 +102,9 @@ export default Vue.extend({
                 }
             });
             return counts;
+        },
+        hotkeys() {
+            return store.hotkeys;
         }
     },
     watch: {
@@ -140,11 +144,15 @@ export default Vue.extend({
         }
     },
     mounted() {
+        window.addEventListener('keydown', this.keydownListener);
         this.currentImageId = Object.keys(this.imageNamesById)[0];
         this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         this.setupViewer();
+    },
+    destroyed() {
+        window.removeEventListener('keydown', this.keydownListener);
     },
     methods: {
         /***********************************
@@ -198,6 +206,24 @@ export default Vue.extend({
             this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
             this.synchronizeCategories();
+        },
+        parseUserHotkeys(event) {
+            // Combine the list of selected keys
+            const pressed = _.filter(comboHotkeys, (key) => event[`${key}Key`]);
+            if (!(event.key in pressed)) pressed.push(event.key);
+            return pressed;
+        },
+        keydownListener(event) {
+            if (event.target.type === 'text') {
+                // User is typing, not using a hot key selector
+                return;
+            }
+
+            const userHotkeys = this.parseUserHotkeys(event);
+            const idx = this.hotkeys.get(userHotkeys.join('+'));
+            if (!_.isUndefined(idx)) {
+                this.categoryIndex = idx;
+            }
         },
         /**
          * Parse existing label annotations to populate the categories used for labeling.
@@ -405,7 +431,10 @@ export default Vue.extend({
         },
         updateConfig: _.debounce(function () {
             this.backboneParent.updateHistomicsYamlConfig(store.categories);
-        }, 500)
+        }, 500),
+        hotkeyFromIndex(index) {
+            return _.find([...this.hotkeys], ([, v]) => v === index)[0];
+        }
     }
 });
 </script>
@@ -498,7 +527,7 @@ export default Vue.extend({
                 :class="{'h-selected-row': categoryIndex === index}"
                 @click="categoryIndex = index"
               >
-                <td>{{ index }}</td>
+                <td>{{ hotkeyFromIndex(index) }}</td>
                 <td
                   v-if="editing === index"
                   class="table-labels"
