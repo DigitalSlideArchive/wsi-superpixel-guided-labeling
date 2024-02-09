@@ -585,30 +585,6 @@ export default Vue.extend({
                 </td>
               </tr>
             </table>
-            <div
-              class="h-error-messages"
-              v-if="!currentCategoryFormValid || !currentLabelsValid"
-            >
-              <p class="form-validation-error">
-                Please fix all errors to continue
-              </p>
-              <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
-                <li
-                  v-for="error in currentFormErrors"
-                  :key="error"
-                  class="form-validation-error"
-                >
-                  {{ error }}
-                </li>
-                <li
-                  v-for="error in currentLabelingErrors"
-                  :key="error"
-                  class="form-validation-error"
-                >
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
           </div>
           <button
             class="btn btn-info btn-block"
@@ -618,6 +594,30 @@ export default Vue.extend({
             <i class="icon-plus" /> Add Category
           </button>
         </div>
+      </div>
+      <div
+        v-if="!currentCategoryFormValid || !currentLabelsValid"
+        class="h-error-messages"
+      >
+        <p class="form-validation-error">
+          Please fix all errors to continue
+        </p>
+        <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
+          <li
+            v-for="error in currentFormErrors"
+            :key="error"
+            class="form-validation-error"
+          >
+            {{ error }}
+          </li>
+          <li
+            v-for="error in currentLabelingErrors"
+            :key="error"
+            class="form-validation-error"
+          >
+            {{ error }}
+          </li>
+        </ul>
       </div>
       <hr v-if="showLabelingContainer" />
       <button
@@ -778,7 +778,8 @@ tr:hover .editing-icons {
 }
 
 .h-error-messages {
-  padding-top: 25px;
+    padding-top: 25px;
+    height: 100%;
 }
 
 .form-validation-error {
