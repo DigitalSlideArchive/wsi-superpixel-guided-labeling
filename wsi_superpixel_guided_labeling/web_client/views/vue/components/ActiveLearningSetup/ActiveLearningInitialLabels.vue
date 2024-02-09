@@ -384,11 +384,14 @@ export default Vue.extend({
         /*************************
          * RESPOND TO USER INPUT *
          *************************/
-        addCategory() {
+        addCategory(newName) {
+            if (_.isUndefined(newName)) {
+                newName = 'New Category';
+            }
             const nextColor = this.getFillColor(this.categories.length);
             this.categories.push({
                 category: {
-                    label: 'New Category',
+                    label: this.enforceUniqueName(newName),
                     fillColor: nextColor,
                     strokeColor: boundaryColor
                 },
@@ -424,6 +427,15 @@ export default Vue.extend({
             const hexColor = schemeTableau10[index % 10];
             const [r, g, b] = hexColor.slice(1).match(/.{1,2}/g);
             return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, 0.5)`;
+        },
+        enforceUniqueName(name) {
+            const existingNames = _.map(this.categories, (category) => category.category.label);
+            let count = 1;
+            let uniqueName = name;
+            while (_.some(existingNames, (en) => en.includes(uniqueName)) && count < 50) {
+                uniqueName = `${name} (${count++})`;
+            }
+            return uniqueName;
         },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
@@ -589,7 +601,7 @@ export default Vue.extend({
           <button
             class="btn btn-info btn-block"
             :disabled="!currentCategoryFormValid"
-            @click="addCategory"
+            @click="() => addCategory()"
           >
             <i class="icon-plus" /> Add Category
           </button>
