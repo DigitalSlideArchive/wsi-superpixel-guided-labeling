@@ -226,7 +226,6 @@ export default Vue.extend({
   <div class="h-active-learning-container">
     <active-learning-keyboard-shortcuts />
     <annotation-opacity-control
-      :active-learning-setup="false"
       :overlay-layers="overlayLayers"
     />
     <div

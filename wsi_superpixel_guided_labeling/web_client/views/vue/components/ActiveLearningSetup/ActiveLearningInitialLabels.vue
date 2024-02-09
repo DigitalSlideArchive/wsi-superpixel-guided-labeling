@@ -8,7 +8,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
-import { store, updatePixelmapLayerStyle } from '../store';
+import { store, updatePixelmapLayerStyle } from '../store.js';
 
 // Define some helpful constants for adding categories
 const boundaryColor = 'rgba(0, 0, 0, 1)';
@@ -30,6 +30,9 @@ export default Vue.extend({
     data() {
         return {
             hasLoaded: false,
+            showLabelingContainer: true,
+            showInfoContainer: true,
+            editing: -1,
 
             // data tracking current categories/currently active category
             categories: [],
@@ -46,16 +49,17 @@ export default Vue.extend({
             viewerWidget: null,
             overlayLayer: null,
             pixelmapRendered: false,
-            pixelmapPaintValue: null
+            pixelmapPaintValue: null,
+            pixelmapPaintBrush: false
         };
     },
     computed: {
         currentFormErrors() {
             const errors = [];
-            const inactiveCategories = _.filter(this.categories, (category, idx) => idx !== this.categoryIndex);
-            const otherCategoryNames = _.map(inactiveCategories, (category) => category.category.label);
-            if (otherCategoryNames.includes(this.currentCategoryLabel)) {
-                errors.push('A category with this label already exists');
+            const categoryNames = _.map(this.categories, (category) => category.category.label);
+            const differentCategoryNames = new Set(categoryNames);
+            if (categoryNames.length !== differentCategoryNames.size) {
+                errors.push('All categories must have unique names.');
             }
             return errors;
         },
@@ -66,7 +70,7 @@ export default Vue.extend({
             const errors = [];
             const counts = _.map(Object.keys(this.labeledSuperpixelCounts), (entry) => this.labeledSuperpixelCounts[entry].count);
             if (_.filter(counts, (count) => count > 0).length < 2) {
-                errors.push('You must label superpixels for at least two different categories');
+                errors.push('You must label superpixels for at least two different categories.');
             }
             return errors;
         },
@@ -121,6 +125,18 @@ export default Vue.extend({
         currentImageId() {
             this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
             this.setupViewer();
+        },
+        pixelmapPaintBrush(activated) {
+            // Panning is typically by with left-click and continuous painting
+            // by shift+left-click. When the paint brush is enabled swap these
+            // interactions.
+            const interactor = this.viewerWidget.viewer.interactor();
+            const actions = interactor.options().actions;
+            _.map(actions, (action) => {
+                if (action.action === 'geo_action_pan') {
+                    action.modifiers.shift = activated;
+                }
+            });
         }
     },
     mounted() {
@@ -264,7 +280,7 @@ export default Vue.extend({
             if (
                 overlayElement.get('type') !== 'pixelmap' ||
                 !event.mouse.buttons.left ||
-                !event.mouse.modifiers.shift ||
+                (!this.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
                 !this.currentCategoryFormValid
             ) {
                 return;
@@ -275,7 +291,7 @@ export default Vue.extend({
             if (
                 overlayElement.get('type') !== 'pixelmap' ||
                 !event.mouse.buttons.left ||
-                !event.mouse.modifiers.shift ||
+                (!this.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
                 !this.currentCategoryFormValid
             ) {
                 return;
@@ -342,12 +358,6 @@ export default Vue.extend({
         /*************************
          * RESPOND TO USER INPUT *
          *************************/
-        nextCategory() {
-            this.categoryIndex += 1;
-        },
-        previousCategory() {
-            this.categoryIndex -= 1;
-        },
         addCategory() {
             this.categories.push({
                 category: {
@@ -358,6 +368,13 @@ export default Vue.extend({
                 indices: {}
             });
             this.categoryIndex = this.categories.length - 1;
+        },
+        deleteCategory() {
+            // Remove object and idx matching category from this.categories
+            this.categories.splice(this.categoryIndex, 1);
+            // Call synchronizeCategories - this will: Update annotationsByImageId
+            // labels, update backboneParent, update the visualization
+            this.synchronizeCategories();
         },
         /***********
          * UTILITY *
@@ -394,168 +411,363 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div class="h-al-setup-categories">
-    <div
-      class="h-setup-categories-body"
-    >
-      <div
-        v-if="pixelmapRendered"
-        class="h-add-new-category"
-      >
-        <div class="h-category-form">
-          <div class="h-form-controls">
-            <div class="form-group">
-              <label for="category-label">Label</label>
-              <input
-                id="category-label"
-                v-model="currentCategoryLabel"
-                class="form-control input-sm h-active-learning-input"
-              >
-            </div>
-            <div class="form-group">
-              <label for="fill-color">Fill Color</label>
-              <color-picker-input
-                :key="categoryIndex"
-                v-model="currentCategoryFillColor"
-                class="h-active-learning-input"
-                :color="currentCategoryFillColor"
-              />
-            </div>
-          </div>
-          <div class="h-error-messages">
-            <p
-              v-if="!currentCategoryFormValid || !currentLabelsValid"
-              class="form-validation-error"
-            >
-              Please fix all errors to continue
-            </p>
-            <ul v-if="currentFormErrors.length > 0">
-              <li
-                v-for="error in currentFormErrors"
-                :key="error"
-                class="form-validation-error"
-              >
-                {{ error }}
-              </li>
-            </ul>
-            <ul v-if="currentLabelingErrors.length > 0">
-              <li
-                v-for="error in currentLabelingErrors"
-                :key="error"
-                class="form-validation-error"
-              >
-                {{ error }}
-              </li>
-            </ul>
-          </div>
-        </div>
+  <div>
+    <div :class="{'h-labeling-container': true, 'h-collapsed': !showLabelingContainer}">
+      <div class="h-container-title">
         <button
-          class="btn btn-primary h-previous-category-btn"
-          :disabled="categoryIndex === 0 || !currentCategoryFormValid"
-          @click="previousCategory"
+          class="h-collapse-button"
+          @click="showLabelingContainer = !showLabelingContainer"
         >
-          Previous
-        </button>
-        <button
-          class="btn btn-primary h-next-category-btn"
-          :disabled="categoryIndex >= categories.length - 1 || !currentCategoryFormValid"
-          @click="nextCategory"
-        >
-          Next
-        </button>
-        <button
-          class="btn btn-primary h-add-category-btn"
-          :disabled="!currentCategoryFormValid"
-          @click="addCategory"
-        >
-          Add Category
-        </button>
-        <button
-          class="btn btn-primary h-start-training-btn"
-          :disabled="!currentCategoryFormValid || !currentLabelsValid"
-          @click="beginTraining"
-        >
-          Begin training
-        </button>
-        <div class="h-al-image-selector">
-          <span>Image: </span>
-          <select
-            v-model="currentImageId"
-            class="h-al-image-select"
-          >
-            <option
-              v-for="imageId in Object.keys(imageNamesById)"
-              :key="imageId"
-              :value="imageId"
-            >
-              {{ imageNamesById[imageId] }}
-            </option>
-          </select>
-          <annotation-opacity-control
-            :active-learning-setup="true"
-            :fill-color="currentCategoryFillColor"
-            :overlay-layers="[overlayLayer]"
+          <i
+            v-if="showLabelingContainer"
+            class="icon-angle-double-left"
+            data-toggle="tooltip"
+            title="Hide labeling editor"
           />
+          <i
+            v-else
+            class="icon-angle-double-right"
+            data-toggle="tooltip"
+            title="Show labeling editor"
+          />
+        </button>
+        <h4 v-if="showLabelingContainer">
+          <i class="icon-tags" />
+          Labeling
+        </h4>
+        <i
+          v-else
+          class="icon-tags"
+        />
+        <div class="btn-group">
+          <button
+            v-if="showLabelingContainer"
+            :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
+            data-toggle="tooltip"
+            title="Left-click + drag to pan"
+            @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+          >
+            <i class="icon-move" />
+          </button>
+          <button
+            v-if="showLabelingContainer"
+            :class="['btn btn-default', pixelmapPaintBrush && 'active btn-primary']"
+            data-toggle="tooltip"
+            title="Left-click + drag to paint"
+            @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+          >
+            <i class="icon-brush" />
+          </button>
         </div>
       </div>
       <div
-        ref="map"
-        class="h-setup-categories-map"
-      />
-    </div>
-    <div class="h-setup-categories-information">
-      <mouse-and-keyboard-controls :active-learning-setup="true" />
-      <div class="h-category-setup-progress">
-        <div
-          v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
-          :key="index"
-        >
-          {{ labeledSuperpixelCounts[key].label }}: {{ labeledSuperpixelCounts[key].count }} superpixels labeled
+        v-if="showLabelingContainer"
+        class="h-al-setup-categories"
+      >
+        <div v-if="pixelmapRendered">
+          <div class="h-category-form">
+            <div class="h-form-controls">
+              <div>
+                <label for="currentImage">Image</label>
+                <select
+                  id="currentImage"
+                  v-model="currentImageId"
+                  class="h-al-image-select"
+                >
+                  <option
+                    v-for="imageId in Object.keys(imageNamesById)"
+                    :key="imageId"
+                    :value="imageId"
+                  >
+                    {{ imageNamesById[imageId] }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div>
+            <table class="table">
+              <tr>
+                <th><i class="icon-keyboard" /></th>
+                <th>Label</th>
+                <th>Superpixels</th>
+              </tr>
+              <tr
+                v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
+                :key="index"
+                :class="{'h-selected-row': categoryIndex === index}"
+                @click="categoryIndex = index"
+              >
+                <td>{{ index }}</td>
+                <td
+                  v-if="editing === index"
+                  class="table-labels"
+                >
+                  <input
+                    id="category-label"
+                    v-model="currentCategoryLabel"
+                    class="form-control input-sm category-input"
+                    @keyup.enter="editing = -1"
+                  >
+                  <button
+                    class="btn h-table-button"
+                    data-toggle="tooltip"
+                    title="Accept changes"
+                    @click="editing = -1"
+                  >
+                    <i class="icon-ok" />
+                  </button>
+                </td>
+                <td
+                  v-else
+                  class="table-labels"
+                >
+                  {{ labeledSuperpixelCounts[key].label }}
+                  <div class="editing-icons">
+                    <button
+                      class="btn h-table-button"
+                      data-toggle="tooltip"
+                      title="Edit label name"
+                      @click="editing = index"
+                    >
+                      <i class="icon-pencil" />
+                    </button>
+                    <button class="btn h-table-button">
+                      <i class="icon-trash" />
+                    </button>
+                  </div>
+                </td>
+                <td>{{ labeledSuperpixelCounts[key].count }}</td>
+                <td>
+                  <color-picker-input
+                    :key="categoryIndex"
+                    v-model="currentCategoryFillColor"
+                    class="condensed-color-picker"
+                    :color="categories[index].category.fillColor"
+                    data-toggle="tooltip"
+                    title="Change label color"
+                  />
+                </td>
+              </tr>
+            </table>
+            <div
+              class="h-error-messages"
+              v-if="!currentCategoryFormValid || !currentLabelsValid"
+            >
+              <p class="form-validation-error">
+                Please fix all errors to continue
+              </p>
+              <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
+                <li
+                  v-for="error in currentFormErrors"
+                  :key="error"
+                  class="form-validation-error"
+                >
+                  {{ error }}
+                </li>
+                <li
+                  v-for="error in currentLabelingErrors"
+                  :key="error"
+                  class="form-validation-error"
+                >
+                  {{ error }}
+                </li>
+              </ul>
+            </div>
+          </div>
+          <button
+            class="btn btn-info btn-block"
+            :disabled="!currentCategoryFormValid"
+            @click="addCategory"
+          >
+            <i class="icon-plus" /> Add Category
+          </button>
         </div>
       </div>
+      <hr v-if="showLabelingContainer" />
+      <button
+        v-if="showLabelingContainer"
+        class="btn btn-primary btn-block"
+        :disabled="!currentCategoryFormValid || !currentLabelsValid"
+        @click="beginTraining"
+      >
+        <i class="icon-star" /> Begin training
+      </button>
+    </div>
+    <div
+      ref="map"
+      class="h-setup-categories-map"
+    />
+    <annotation-opacity-control
+      :style="{'width': '350px', 'right': '20px'}"
+      :fill-color="currentCategoryFillColor"
+      :overlay-layers="[overlayLayer]"
+    />
+    <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
+      <mouse-and-keyboard-controls
+        v-if="showInfoContainer"
+        :active-learning-setup="true"
+      />
+      <i class="icon-info-circled" />
+      <button
+        class="h-collapse-button"
+        @click="showInfoContainer = !showInfoContainer"
+      >
+        <i
+          v-if="showInfoContainer"
+          class="icon-angle-double-right"
+          data-toggle="tooltip"
+          title="Hide info panel"
+        />
+        <i
+          v-else
+          class="icon-angle-double-left"
+          data-toggle="tooltip"
+          title="Show info panel"
+        />
+      </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.h-al-setup-categories {
-    width: 100%;
-    height: 100%;
+.h-labeling-container {
+    z-index: 1000;
     position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 400px;
     display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    height: 90vh;
+    justify-content: space-between;
 }
-.h-setup-categories-information {
-    width: 33%;
+
+.h-collapsed {
+    max-width: fit-content;
+    height: auto;
+}
+
+.h-collapse-button {
+    border: none;
+    background-color: transparent;
+    width: fit-content;
+    height: fit-content;
+}
+
+.h-container-title {
+    display: flex;
+    background-color: #f6f6f6;
+    border-radius: 5px;
+    align-items: center;
+    min-height: 40px;
+    padding-right: 5px;
+}
+
+h4 {
+    margin: 10px auto;
+}
+
+.h-al-setup-categories {
+    border-radius: 5px;
     height: 100%;
+}
+
+.h-al-image-select {
+    width: 100%;
+    padding: 5px 10px;
+}
+
+.h-setup-categories-information {
+    z-index: 1000;
+    position: absolute;
+    top: 45px;
+    right: 20px;
+    width: 350px;
+    display: flex;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+    padding: 5px;
+}
+
+.h-setup-categories-map {
+    min-height: 100vh;
+    border: 1px solid #f0f0f0;
+}
+
+.h-form-controls {
+    max-width: 550px;
     display: flex;
     flex-direction: column;
 }
 
-.h-setup-categories-body {
-    width: 67%;
+.h-category-form {
+   display: flex;
+   flex-direction: column;
 }
 
-.h-setup-categories-map {
-    height: 600px;
-    border: 1px solid #f0f0f0;
+td, th {
+    padding: 0px 2px;
+    text-align: center;
 }
-.h-al-image-selector {
+
+th:nth-child(2), td:nth-child(2) {
+    text-align: left;
+}
+
+tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+tr .editing-icons {
+    opacity: 0;
+}
+
+tr:hover .editing-icons {
+    opacity: 1;
+}
+
+.table-labels {
     display: flex;
-    padding-top: 8px;
+    justify-content: space-between;
+    min-width: 100%;
 }
-.h-form-controls {
-  width: 550px;
+
+.h-selected-row {
+    font-weight: bold;
 }
-.h-active-learning-input {
-    width: 90%;
-}
-.h-category-form {
-  display: flex;
-}
+
 .h-error-messages {
   padding-top: 25px;
 }
+
 .form-validation-error {
     color: red;
+}
+
+.h-table-button {
+    padding: 0px;
+    background-color: transparent;
+    color: #888;
+}
+
+.condensed-color-picker >>> .input-group-addon {
+    padding: 0px;
+    border: none;
+    background-color: transparent;
+}
+
+.condensed-color-picker >>> .form-control {
+    display: none;
+}
+
+.category-input {
+    height: 20px;
+    padding: 0px 5px;
 }
 </style>

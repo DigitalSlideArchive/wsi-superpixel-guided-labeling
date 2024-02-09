@@ -17,7 +17,10 @@ export default Vue.extend({
 
 <template>
   <div :class="{'h-controls-container': activeLearningSetup}">
-    <div class="h-controls-header">
+    <div
+      v-if="!activeLearningSetup"
+      class="h-controls-header"
+    >
       <h5>Mouse and Keyboard Controls</h5>
       <button
         class="h-controls-toggle"
