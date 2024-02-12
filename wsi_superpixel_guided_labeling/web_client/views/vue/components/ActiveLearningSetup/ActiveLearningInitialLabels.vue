@@ -7,6 +7,7 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 import { confirm } from '@girder/core/dialog';
 
+import ActiveLearningMergeConfirmation from './ActiveLearningMergeConfirmation.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 import { comboHotkeys, schemeTableau10 } from '../ActiveLearning/constants.js';
@@ -25,7 +26,8 @@ export default Vue.extend({
     components: {
         ColorPickerInput,
         MouseAndKeyboardControls,
-        AnnotationOpacityControl
+        AnnotationOpacityControl,
+        ActiveLearningMergeConfirmation
     },
     props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
     data() {
@@ -388,15 +390,18 @@ export default Vue.extend({
         /*************************
          * RESPOND TO USER INPUT *
          *************************/
-        addCategory(newName) {
+        addCategory(newName, newFillColor) {
             if (_.isUndefined(newName)) {
                 newName = 'New Category';
             }
-            const nextColor = this.getFillColor(this.categories.length);
+            if (_.isUndefined(newFillColor)) {
+                newFillColor = this.getFillColor(this.categories.length);
+            }
+
             this.categories.push({
                 category: {
                     label: this.enforceUniqueName(newName),
-                    fillColor: nextColor,
+                    fillColor: newFillColor,
                     strokeColor: boundaryColor
                 },
                 indices: {}
@@ -421,6 +426,11 @@ export default Vue.extend({
                     _.forEach([...indices], (index) => {
                         pixelmapElement.values[index] = 0;
                     });
+                    if (isMerge) {
+                        // All merged indices should be assigned to the new combined category
+                        const newIndices = _.last(this.categories).indices[imageId] || new Set();
+                        _.last(this.categories).indices[imageId] = new Set([...newIndices, ...indices]);
+                    }
                 });
 
                 // Indices have shifted after removing the selected categories
@@ -435,6 +445,11 @@ export default Vue.extend({
             this.drawPixelmapAnnotation();
             this.saveAnnotations(true);
             this.updateConfig();
+        },
+        mergeCategory(newLabel, newFillColor) {
+            newLabel = this.enforceUniqueName(newLabel);
+            this.addCategory(newLabel, newFillColor);
+            this.combineCategories(this.checkedCategories, true);
         },
         deleteCategory(indices) {
             confirm({
@@ -660,6 +675,18 @@ export default Vue.extend({
                   title="Merge selected categories"
                 />
               </button>
+              <button
+                class="btn btn-warning btn-xs"
+                :disabled="checkedCategories.length < 2"
+                data-toggle="modal"
+                data-target="#mergeConfirmation"
+              >
+                <i
+                  class="icon-resize-small"
+                  data-toggle="tooltip"
+                  title="Merge selected categories"
+                />
+              </button>
             </div>
           </div>
           <button
@@ -695,7 +722,7 @@ export default Vue.extend({
           </li>
         </ul>
       </div>
-      <hr v-if="showLabelingContainer" />
+      <hr v-if="showLabelingContainer">
       <button
         v-if="showLabelingContainer"
         class="btn btn-primary btn-block"
@@ -705,6 +732,12 @@ export default Vue.extend({
         <i class="icon-star" /> Begin training
       </button>
     </div>
+    <active-learning-merge-confirmation
+      id="mergeConfirmation"
+      :callback="mergeCategory"
+      :category-name="currentCategoryLabel"
+      :fill-color="currentCategoryFillColor"
+    />
     <div
       ref="map"
       class="h-setup-categories-map"
