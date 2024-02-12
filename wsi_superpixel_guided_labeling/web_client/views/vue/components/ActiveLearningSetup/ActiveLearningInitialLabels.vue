@@ -302,7 +302,8 @@ export default Vue.extend({
             if (
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
                 !event.mouse.buttonsDown.left || // Not a left click
-                !this.currentCategoryFormValid // no valid category selected
+                !this.currentCategoryFormValid || // no valid category selected
+                (this.pixelmapPaintBrush && event.mouse.modifiers.shift)
             ) {
                 return;
             }
@@ -345,7 +346,7 @@ export default Vue.extend({
             let newLabel = 0;
             const previousLabel = data[index];
             // the +1 accounts for the default, reset to default if already labeled with the selected category
-            if (event.event === geo.event.feature.mouseover || event.event === geo.event.feature.mousedown) {
+            if ((event.event === geo.event.feature.mouseover || event.event === geo.event.feature.mousedown)) {
                 newLabel = this.pixelmapPaintValue;
             } else if (event.event === geo.event.feature.mouseclick) {
                 newLabel = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
@@ -376,6 +377,7 @@ export default Vue.extend({
                 this.categories[this.categoryIndex].indices[this.currentImageId] = currentCategoryIndices;
             }
             if (newLabel === 0) {
+                this.categories[oldLabel - 1].indices[this.currentImageId].delete(elementValueIndex);
                 currentCategoryIndices.delete(elementValueIndex);
             } else if (oldLabel === 0) {
                 currentCategoryIndices.add(elementValueIndex);
@@ -384,8 +386,7 @@ export default Vue.extend({
                 currentCategoryIndices.add(elementValueIndex);
             }
             // Force computed properties to update
-            const newCategoryData = Object.assign({}, this.categories[this.categoryIndex]);
-            this.categories.splice(this.categoryIndex, 1, newCategoryData);
+            this.categories = [...this.categories];
         },
         /*************************
          * RESPOND TO USER INPUT *
