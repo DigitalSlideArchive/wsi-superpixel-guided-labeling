@@ -2,7 +2,7 @@
 import Vue from 'vue';
 
 export default Vue.extend({
-    props: ['activeLearningSetup'],
+    props: ['activeLearningSetup', 'pixelmapPaintBrush'],
     data() {
         return {
             showControls: true
@@ -44,16 +44,30 @@ export default Vue.extend({
         v-if="activeLearningSetup"
         class="h-controls"
       >
-        <li>Left-click: Label single superpixel</li>
-        <li>Shift-left-drag: Continuously label superpixels</li>
+        <li>Left-click: Label/unlabel single superpixel</li>
+        <li v-if="pixelmapPaintBrush">
+          Left-drag: Continuously label/unlabel superpixels
+        </li>
+        <li v-else>
+          Shift-left-drag: Continuously label/unlabel superpixels
+        </li>
       </ul>
       <h6>Pan</h6>
       <ul class="h-controls">
-        <li>Left-drag</li>
-        <li>Middle-drag: This works even when editing annotations.</li>
-        <li>Single touch drag</li>
+        <li v-if="pixelmapPaintBrush">
+          Shift-left-drag
+        </li>
+        <li v-else>
+          Left-drag
+        </li>
+        <li v-if="!pixelmapPaintBrush">
+          Middle-drag: This works even when editing annotations.
+        </li>
+        <li v-if="!pixelmapPaintBrush">
+          Single touch drag
+        </li>
         <li v-if="activeLearningSetup">
-          Arrow keys / Shift-arrow keys / Shift-ctrl-arrow keys
+          Arrow keys / Shift-arrow keys
         </li>
       </ul>
       <h6>Zoom</h6>
@@ -62,12 +76,8 @@ export default Vue.extend({
         <li>Mouse wheel</li>
         <li>Multi-touch spread or contract</li>
         <li v-if="activeLearningSetup">
-          Plus, minus / Shift-plus, shift-minus / Shift-ctrl-plus, shift-ctrl-minus
+          Plus, minus / Shift-plus, shift-minus
         </li>
-        <li v-if="activeLearningSetup">
-          1 - 7: The number keys 1 - 7 will zoom to discrete zoom levels.
-        </li>
-        <li>Shift-left-drag, shift-right-drag: Zoom into or out of the selected rectangle</li>
       </ul>
       <h6>Rotate</h6>
       <ul class="h-controls">
@@ -76,9 +86,6 @@ export default Vue.extend({
         <li>Multi-touch rotate</li>
         <li v-if="activeLearningSetup">
           &lt;, &gt; (also . or ,) rotate the image a small amount. If shift is held down, &lt; and &gt; rotate the image 90 degrees.
-        </li>
-        <li v-if="activeLearningSetup">
-          0: 0 returns the image to the default orientation.
         </li>
       </ul>
     </div>

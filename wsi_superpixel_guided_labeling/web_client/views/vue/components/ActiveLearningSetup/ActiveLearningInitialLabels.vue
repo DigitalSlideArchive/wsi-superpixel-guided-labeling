@@ -752,6 +752,7 @@ export default Vue.extend({
       <mouse-and-keyboard-controls
         v-if="showInfoContainer"
         :active-learning-setup="true"
+        :pixelmap-paint-brush="pixelmapPaintBrush"
       />
       <i class="icon-info-circled" />
       <button
