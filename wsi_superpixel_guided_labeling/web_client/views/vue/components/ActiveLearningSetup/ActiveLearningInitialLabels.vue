@@ -127,7 +127,11 @@ export default Vue.extend({
             this.categories[this.categoryIndex].category.fillColor = this.currentCategoryFillColor;
             this.synchronizeCategories();
         },
-        categoryIndex() {
+        categoryIndex(index) {
+            if (index < 0 || index >= this.categories.length) {
+                this.categoryIndex = 0;
+                return;
+            }
             this.currentCategoryLabel = this.categories[this.categoryIndex].category.label;
             this.currentCategoryFillColor = this.categories[this.categoryIndex].category.fillColor;
         },
