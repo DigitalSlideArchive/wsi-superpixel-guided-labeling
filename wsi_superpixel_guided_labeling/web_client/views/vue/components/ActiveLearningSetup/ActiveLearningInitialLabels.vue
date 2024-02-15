@@ -458,9 +458,9 @@ export default Vue.extend({
             this.updateConfig();
         },
         mergeCategory(newLabel, newFillColor) {
-            newLabel = this.enforceUniqueName(newLabel);
-            this.addCategory(newLabel, newFillColor);
+            this.addCategory('Merged Categories', newFillColor);
             this.combineCategories(this.checkedCategories, true);
+            _.last(this.categories).category.label = this.enforceUniqueName(newLabel);
         },
         deleteCategory(indices) {
             const labelCounts = _.reduce([...this.selectedLabels.values()], (acc, selected) => {
