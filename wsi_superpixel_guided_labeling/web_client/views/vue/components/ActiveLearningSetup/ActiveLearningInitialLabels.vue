@@ -110,6 +110,12 @@ export default Vue.extend({
         },
         hotkeys() {
             return store.hotkeys;
+        },
+        selectedLabels() {
+            return new Map(_.map(this.checkedCategories, (i) => {
+                const label = this.categories[i].category.label;
+                return [i, this.labeledSuperpixelCounts[`${i}_${label}`]];
+            }));
         }
     },
     watch: {
@@ -457,18 +463,20 @@ export default Vue.extend({
             this.combineCategories(this.checkedCategories, true);
         },
         deleteCategory(indices) {
-            const noLabels = _.every(indices, (i) => {
-                const label = this.categories[i].category.label;
-                return this.labeledSuperpixelCounts[`${i}_${label}`].counts === 0;
-            });
-            if (noLabels) {
+            const labelCounts = _.reduce([...this.selectedLabels.values()], (acc, selected) => {
+                return acc + selected.count;
+            }, 0);
+            if (labelCounts === 0) {
                 // If nothing was labeled we don't need a warning dialog
                 this.combineCategories(indices, false);
                 return;
             }
+            const message = `Deleting categories cannot be undone. Are you
+                            sure you want to delete all ${labelCounts} labeled
+                            superpixels?`;
             confirm({
                 title: 'Warning',
-                text: 'Deleting categories cannot be undone. Are you sure you want to continue?',
+                text: message,
                 yesText: 'Delete Selected',
                 confirmCallback: () => this.combineCategories(indices, false)
             });
@@ -740,6 +748,7 @@ export default Vue.extend({
       :callback="mergeCategory"
       :category-name="currentCategoryLabel"
       :fill-color="currentCategoryFillColor"
+      :selected-labels="selectedLabels"
     />
     <div
       ref="map"

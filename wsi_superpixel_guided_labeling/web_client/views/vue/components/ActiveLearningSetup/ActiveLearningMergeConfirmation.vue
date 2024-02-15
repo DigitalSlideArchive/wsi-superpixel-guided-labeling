@@ -1,5 +1,6 @@
 <script>
 import Vue from 'vue';
+import _ from 'underscore';
 
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
@@ -7,13 +8,25 @@ export default Vue.extend({
     components: {
         ColorPickerInput
     },
-    props: ['callback', 'categoryName', 'fillColor'],
+    props: ['callback', 'categoryName', 'fillColor', 'selectedLabels'],
     data() {
         return {
             currentCategoryLabel: 'Merged Categories',
             currentCategoryFillColor: 'rgba(0, 0, 0, 0.5)',
             newFillColor: 'rgba(0, 0, 0, 0.5)'
         };
+    },
+    computed: {
+        warningMessage() {
+            const numCategories = this.selectedLabels.size;
+            const labelCounts = _.reduce([...this.selectedLabels.values()], (acc, selected) => {
+                return acc + selected.count;
+            }, 0);
+            const message = `This will combine ${numCategories} categories into
+                          one category containing all ${labelCounts} labeled
+                          superpixels.`;
+            return message;
+        }
     },
     watch: {
         categoryName(name) {
@@ -52,7 +65,7 @@ export default Vue.extend({
           </h4>
         </div>
         <div class="modal-body">
-          <p> WARNING: Merging categories cannot be undone. </p>
+          <p> WARNING: Merging categories cannot be undone. {{ warningMessage }} </p>
           <div class="form-group h-form-inputs">
             <label for="usr">New Name:</label>
             <input
