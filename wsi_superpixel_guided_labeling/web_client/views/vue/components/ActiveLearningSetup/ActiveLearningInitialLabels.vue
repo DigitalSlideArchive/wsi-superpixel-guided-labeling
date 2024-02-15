@@ -481,6 +481,14 @@ export default Vue.extend({
                 confirmCallback: () => this.combineCategories(indices, false)
             });
         },
+        togglePicker(event, index) {
+            const picker = this.$refs.colorpicker[index];
+            const colorPicker = picker.$refs.colorPicker;
+            if (event.target.className === 'current-color' && colorPicker) {
+                // Default to th RGBA input
+                colorPicker.fieldsIndex++;
+            }
+        },
         /***********
          * UTILITY *
          ***********/
@@ -657,9 +665,13 @@ export default Vue.extend({
                   </div>
                 </td>
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
-                <td>
+                <td
+                  id="colorPickerInput"
+                  @click="(e) => togglePicker(e, index)"
+                >
                   <color-picker-input
                     :key="key"
+                    ref="colorpicker"
                     v-model="currentCategoryFillColor"
                     class="condensed-color-picker"
                     :color="labeledSuperpixelCounts[key].fillColor"
