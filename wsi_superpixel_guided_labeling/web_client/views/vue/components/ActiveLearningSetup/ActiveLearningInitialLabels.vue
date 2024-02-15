@@ -570,7 +570,7 @@ export default Vue.extend({
             title="Left-click + drag to paint"
             @click="pixelmapPaintBrush = !pixelmapPaintBrush"
           >
-            <i class="icon-brush" />
+            <i class="icon-paint-roller" />
           </button>
         </div>
       </div>
@@ -685,7 +685,7 @@ export default Vue.extend({
                 data-target="#mergeConfirmation"
               >
                 <i
-                  class="icon-resize-small"
+                  class="icon-merge-rows"
                   data-toggle="tooltip"
                   title="Merge selected categories"
                 />
