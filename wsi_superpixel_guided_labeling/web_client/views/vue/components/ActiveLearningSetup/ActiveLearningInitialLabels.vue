@@ -457,6 +457,15 @@ export default Vue.extend({
             this.combineCategories(this.checkedCategories, true);
         },
         deleteCategory(indices) {
+            const noLabels = _.every(indices, (i) => {
+                const label = this.categories[i].category.label;
+                return this.labeledSuperpixelCounts[`${i}_${label}`].counts === 0;
+            });
+            if (noLabels) {
+                // If nothing was labeled we don't need a warning dialog
+                this.combineCategories(indices, false);
+                return;
+            }
             confirm({
                 title: 'Warning',
                 text: 'Deleting categories cannot be undone. Are you sure you want to continue?',
@@ -637,14 +646,6 @@ export default Vue.extend({
                     >
                       <i class="icon-pencil" />
                     </button>
-                    <button
-                      class="btn h-table-button"
-                      data-toggle="tooltip"
-                      title="Delete category"
-                      @click="() => deleteCategory([index])"
-                    >
-                      <i class="icon-trash" />
-                    </button>
                   </div>
                 </td>
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
@@ -669,16 +670,13 @@ export default Vue.extend({
             </table>
             <div class="h-remove-categories">
               <button
-                class="btn btn-warning btn-xs"
-                :disabled="checkedCategories.length < 2"
-                data-toggle="modal"
-                data-target="#mergeConfirmation"
+                class="btn btn-danger btn-xs"
+                :disabled="checkedCategories.length < 1"
+                data-toggle="tooltip"
+                title="Delete category"
+                @click="() => deleteCategory(checkedCategories)"
               >
-                <i
-                  class="icon-resize-small"
-                  data-toggle="tooltip"
-                  title="Merge selected categories"
-                />
+                <i class="icon-trash" />
               </button>
               <button
                 class="btn btn-warning btn-xs"
