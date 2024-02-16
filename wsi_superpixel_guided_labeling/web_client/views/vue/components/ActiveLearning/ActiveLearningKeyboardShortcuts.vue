@@ -95,6 +95,7 @@ export default Vue.extend({
                 const hotKey = this.hotkeyFromIndex(this.currentlyEditing);
                 assignHotkey(hotKey, newKey);
                 this.resetEditingValues();
+                store.backboneParent.updateHistomicsYamlConfig();
                 return;
             }
             this.currentInput = this.parseUserHotkeys(event);

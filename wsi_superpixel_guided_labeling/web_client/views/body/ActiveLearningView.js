@@ -13,7 +13,7 @@ import { parse } from '@girder/slicer_cli_web/parser';
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
 import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
-import { store } from '../vue/components/store.js';
+import { store, assignHotkey } from '../vue/components/store.js';
 
 import '../../stylesheets/body/learning.styl';
 
@@ -94,12 +94,15 @@ const ActiveLearningView = View.extend({
                 strokeColor: defaultGroup.lineColor
             });
             this.defaultCategory = this.categoryMap.get(defaultGroup.id);
-            _.forEach(this.configAnnotationGroups.groups, (group) => {
+            _.forEach(this.configAnnotationGroups.groups, (group, index) => {
                 this.categoryMap.set(group.id, {
                     label: group.id,
                     fillColor: group.fillColor,
                     strokeColor: group.lineColor
                 });
+                const oldKey = _.find([...store.hotkeys], ([, v]) => v === index)[0];
+                const newKey = JSON.parse(JSON.stringify(group.hotKey || oldKey));
+                assignHotkey(oldKey, newKey);
             });
 
             return this.fetchFoldersAndItems();
@@ -108,11 +111,13 @@ const ActiveLearningView = View.extend({
 
     updateHistomicsYamlConfig() {
         const groups = new Map();
-        _.forEach(store.categories, (category) => {
+        _.forEach(store.categories, (category, index) => {
+            const key = _.find([...store.hotkeys], ([, v]) => v === index)[0];
             groups.set(category.label, {
                 id: category.label,
                 fillColor: category.fillColor,
-                lineColor: category.strokeColor || 'rgba(0,0,0,1)'
+                lineColor: category.strokeColor || 'rgba(0,0,0,1)',
+                hotKey: `${key}`
             });
         });
         this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
