@@ -68,19 +68,7 @@ export default Vue.extend({
     },
     watch: {
         selectedIndex() {
-            const newImageId = this.superpixelsToDisplay[this.selectedIndex].imageId;
-            if (newImageId !== this.selectedImageId) {
-                this.selectedImageId = newImageId;
-                // TODO: consider caching image metadata for each image the first time this request gets made
-                restRequest({
-                    url: `item/${this.selectedImageId}/tiles`
-                }).done((resp) => {
-                    this.currentImageMetadata = resp;
-                    this.createImageViewer();
-                });
-            } else {
-                this.updateMapBoundsForSelection();
-            }
+            this.updateSelectedCard();
         },
         page(newPage, oldPage) {
             const startIndex = newPage * store.pageSize;
@@ -89,7 +77,8 @@ export default Vue.extend({
             const oldIndex = this.selectedIndex;
             store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
             if (oldIndex === this.selectedIndex) {
-                this.updateMapBoundsForSelection();
+                // Force the update
+                this.updateSelectedCard();
             }
         },
         predictions() {
@@ -217,7 +206,22 @@ export default Vue.extend({
         },
         updateConfig: _.debounce(function () {
             this.backboneParent.updateHistomicsYamlConfig();
-        }, 500)
+        }, 500),
+        updateSelectedCard() {
+            const newImageId = this.superpixelsToDisplay[this.selectedIndex].imageId;
+            if (newImageId !== this.selectedImageId) {
+                this.selectedImageId = newImageId;
+                // TODO: consider caching image metadata for each image the first time this request gets made
+                restRequest({
+                    url: `item/${this.selectedImageId}/tiles`
+                }).done((resp) => {
+                    this.currentImageMetadata = resp;
+                    this.createImageViewer();
+                });
+            } else {
+                this.updateMapBoundsForSelection();
+            }
+        }
     }
 });
 </script>
