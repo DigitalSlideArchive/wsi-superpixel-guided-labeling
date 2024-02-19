@@ -446,8 +446,10 @@ const ActiveLearningView = View.extend({
 
         // Compile all the categories for the dataset
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
-            const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
-            this.getAnnotationCategories(labelPixelmapElement);
+            if (this.annotationsByImageId[imageId].labels) {
+                const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
+                this.getAnnotationCategories(labelPixelmapElement);
+            }
             if (this.annotationsByImageId[imageId].predictions) {
                 const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
                 this.getAnnotationCategories(predictionPixelmapElement);
@@ -455,8 +457,10 @@ const ActiveLearningView = View.extend({
         });
         // Update pixelmap data for the dataset
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
-            const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
-            this.updateCategoriesAndData(labelPixelmapElement);
+            if (this.annotationsByImageId[imageId].labels) {
+                const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
+                this.updateCategoriesAndData(labelPixelmapElement);
+            }
             if (this.annotationsByImageId[imageId].predictions) {
                 const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
                 this.updateCategoriesAndData(predictionPixelmapElement);
@@ -472,6 +476,10 @@ const ActiveLearningView = View.extend({
     getSortedSuperpixelIndices() {
         const superpixelPredictionsData = [];
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+            if (!this.annotationsByImageId[imageId].predictions) {
+                // New images may not have any predictions
+                return;
+            }
             const annotation = this.annotationsByImageId[imageId].predictions.get('annotation');
             const labels = this.annotationsByImageId[imageId].labels.get('annotation');
             const labelValues = labels.elements[0].values;
@@ -596,8 +604,11 @@ const ActiveLearningView = View.extend({
         const promises = [];
         _.forEach(Array.from(this._saveAnnotationsForIds), (imageId) => {
             const labelAnnotation = this.annotationsByImageId[imageId].labels;
-            const promise = labelAnnotation.save();
-            promises.push(promise);
+            if (labelAnnotation) {
+                // Images added without re-train have no labels yet
+                const promise = labelAnnotation.save();
+                promises.push(promise);
+            }
         });
         this._saveAnnotationsForIds = new Set();
         $.when(...promises).then(() => {
