@@ -133,7 +133,10 @@ export default Vue.extend({
 
 <template>
   <div class="h-hotkeys-container">
-    <mouse-and-keyboard-controls :active-learning-setup="false" />
+    <mouse-and-keyboard-controls
+      :active-learning-setup="false"
+      :pixelmap-paint-brush="false"
+    />
     <div class="h-hotkeys-header">
       <h5>Hotkeys</h5>
       <button

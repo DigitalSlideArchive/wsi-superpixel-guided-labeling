@@ -4,7 +4,7 @@ import _ from 'underscore';
 import { store, updatePixelmapLayerStyle } from './store.js';
 
 export default {
-    props: ['activeLearningSetup', 'fillColor', 'overlayLayers'],
+    props: ['fillColor', 'overlayLayers'],
     computed: {
         config() {
             if (store.backboneParent) {
@@ -67,7 +67,7 @@ export default {
 </script>
 
 <template>
-  <div :class="{'h-opacity-slider-setup-container': activeLearningSetup, 'h-opacity-slider-learning-container': !activeLearningSetup}">
+  <div class="h-opacity-slider-learning-container">
     <span class="h-opacity-slider-label">Superpixel Boundary Opacity:</span>
     <input
       v-model="opacitySlider"
@@ -92,13 +92,6 @@ export default {
     background-color: white;
     border-radius: 1px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
-}
-
-.h-opacity-slider-setup-container {
-    width: 100%;
-    margin: 0px 5px;
-    display: flex;
-    justify-content: center;
 }
 
 .h-opacity-slider-label {

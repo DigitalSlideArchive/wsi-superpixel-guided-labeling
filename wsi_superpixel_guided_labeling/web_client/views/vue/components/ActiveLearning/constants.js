@@ -14,3 +14,20 @@ export const hotkeys = [
  * List of options that can be combined with hotkeys to create new bindings
  */
 export const comboHotkeys = ['ctrl', 'shift', 'alt'];
+
+/**
+ * Default colors for new categories from the d3 tableau10 scheme.
+ * https://d3js.org/d3-scale-chromatic/categorical#schemeTableau10
+ */
+export const schemeTableau10 = [
+    '#4e79a7',
+    '#f28e2c',
+    '#e15759',
+    '#76b7b2',
+    '#59a14f',
+    '#edc949',
+    '#af7aa1',
+    '#ff9da7',
+    '#9c755f',
+    '#bab0ab'
+];
