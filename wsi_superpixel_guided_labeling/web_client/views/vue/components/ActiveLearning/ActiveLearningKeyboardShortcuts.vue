@@ -43,7 +43,10 @@ export default Vue.extend({
     },
     watch: {
         editMode(editing) {
-            if (!editing) this.resetEditingValues();
+            if (!editing) {
+                this.commitHotkeyChange();
+                this.resetEditingValues();
+            }
         }
     },
     mounted() {
@@ -86,17 +89,8 @@ export default Vue.extend({
             const assignedHotkeys = _.filter(this.hotkeys, (_key, idx) => {
                 return idx < this.categories.length;
             });
-            if (newKey in assignedHotkeys ||
-                  (event.key === 'Enter' && this.currentlyEditing !== -1)) {
+            if (newKey in assignedHotkeys) {
                 event.preventDefault();
-            }
-            if (event.key === 'Enter') {
-                // The user has finalized their hotkey selection
-                const hotKey = this.hotkeyFromIndex(this.currentlyEditing);
-                assignHotkey(hotKey, newKey);
-                this.resetEditingValues();
-                store.backboneParent.updateHistomicsYamlConfig();
-                return;
             }
             this.currentInput = this.parseUserHotkeys(event);
         },
@@ -114,8 +108,25 @@ export default Vue.extend({
         hotkeyFromIndex(index) {
             return _.find([...this.hotkeys], ([, v]) => v === index)[0];
         },
+        commitHotkeyChange() {
+            // Hotkeys should either be a single alpha-numeric value or be
+            // preceded by one or more modifiers (ctrl, shift, alt)
+            const okayModifiers = _.every(_.initial(this.currentInput), (mod) => {
+                return comboHotkeys.includes(mod);
+            });
+            const okayKey = /^[a-zA-Z0-9]$/.test(_.last(this.currentInput));
+            const validHotkey = okayModifiers && okayKey;
+            if (!_.isEmpty(this.currentInput) && validHotkey) {
+                // Accept user input as finalized hotkey selection
+                const newKey = this.currentInput.join('+');
+                const hotKey = this.hotkeyFromIndex(this.currentlyEditing);
+                assignHotkey(hotKey, newKey);
+                store.backboneParent.updateHistomicsYamlConfig();
+            }
+        },
         editHotkey(index) {
-            if (this.currentlyEditing >= 0) {
+            if (this.currentlyEditing >= 0 && this.currentlyEditing !== index) {
+                this.commitHotkeyChange();
                 // We're editing a new key, reset what we were working on
                 this.resetEditingValues();
             }
@@ -181,7 +192,7 @@ export default Vue.extend({
         v-if="editMode"
         class="h-hotkeys-edit-subtitle"
       >
-        Click on a hotkey to edit. Press enter to accept change.
+        Click on a hotkey to edit.
       </p>
       <div v-if="editMode">
         <span class="h-hotkey">
