@@ -628,7 +628,7 @@ export default Vue.extend({
                 :class="{'h-selected-row': categoryIndex === index}"
                 @click="categoryIndex = index"
               >
-                <td>{{ hotkeyFromIndex(index) }}</td>
+                <td>{{ hotkeyFromIndex(index + 1) }}</td>
                 <td
                   v-if="editing === index"
                   class="table-labels"
