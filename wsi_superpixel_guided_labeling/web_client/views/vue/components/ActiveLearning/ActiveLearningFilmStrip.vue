@@ -44,12 +44,12 @@ export default {
         },
         agreeAll() {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
-                superpixel.agreeChoice = 'Yes';
+                superpixel.selectedCategory = superpixel.prediction;
             });
         },
         resetAll() {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
-                superpixel.agreeChoice = undefined;
+                superpixel.selectedCategory = 0;
             });
         },
         triggerRetrain() {

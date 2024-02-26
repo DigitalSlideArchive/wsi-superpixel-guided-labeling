@@ -11,7 +11,7 @@ export default Vue.extend({
             return store.superpixelsToDisplay[this.index];
         },
         agreeChoice() {
-            return this.superpixelDecision.agreeChoice;
+            return this.superpixelDecision.selectedCategory === this.superpixelDecision.prediction;
         },
         predictedCategory() {
             return this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction];
@@ -93,22 +93,6 @@ export default Vue.extend({
         }
     },
     watch: {
-        agreeChoice() {
-            // TODO investigate removing "agreeChoice." It can be derived by comparing the label of the prediction and label
-            // categories, and keeping it up to date is extra work, for little value. It is used to bind to the radio buttons on
-            // the card, but provides no value elsewhere as being a separate property of a superpixel prediction.
-            if (this.agreeChoice === 'Yes') {
-                const currentPredictionLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
-                this.superpixelDecision.selectedCategory = this.categoryIndex(currentPredictionLabel);
-            } else if (this.agreeChoice === undefined || this.agreeChoice === null) {
-                this.superpixelDecision.selectedCategory = 0;
-            } else {
-                // agreeChoice === 'No'
-                if (!this.superpixelDecision.selectedCategory) {
-                    this.superpixelDecision.selectedCategory = this.categoryIndex(this.validNewCategories[0].label);
-                }
-            }
-        },
         selectedCategory() {
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
@@ -120,18 +104,11 @@ export default Vue.extend({
             if (!this.isSelected || typeof categoryNumber !== 'number') {
                 return;
             }
-            if (categoryNumber === 0) {
-                this.superpixelDecision.agreeChoice = undefined;
-            } else if (categoryNumber <= this.superpixelDecision.predictionCategories.length) {
+            if (categoryNumber <= this.superpixelDecision.predictionCategories.length) {
                 // Be extra careful to select the correct category
                 const newCategory = store.categories[categoryNumber];
                 const newCategoryIndex = this.categoryIndex(newCategory.label);
-                if (newCategory.label === this.predictedCategory.label) {
-                    this.superpixelDecision.agreeChoice = 'Yes';
-                } else {
-                    this.superpixelDecision.selectedCategory = newCategoryIndex;
-                    this.superpixelDecision.agreeChoice = 'No';
-                }
+                this.superpixelDecision.selectedCategory = newCategoryIndex;
                 this.$nextTick(() => {
                     store.lastCategorySelected = null;
                     nextCard();
