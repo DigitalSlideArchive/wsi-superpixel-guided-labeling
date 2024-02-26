@@ -49,12 +49,9 @@ export default Vue.extend({
         headerCertainty() {
             return `Certainty ${this.superpixelDecision.certainty.toFixed(5)}`;
         },
-        validNewCategories() {
+        validCategories() {
             const categories = this.superpixelDecision.labelCategories;
-            const predictedLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
-            return _.filter(categories, (c) => {
-                return !['default', predictedLabel].includes(c.label);
-            });
+            return _.filter(categories, (c) => !['default'].includes(c.label));
         },
         wsiRegionUrl() {
             const imageId = this.superpixelDecision.imageId;
@@ -186,35 +183,24 @@ export default Vue.extend({
       </div>
     </div>
     <div class="h-superpixel-card-footer">
-      <div class="h-superpixel-card-agree h-superpixel-card-footer-content">
-        <label>Agree? </label>
-        <label for="radio-yes">Yes</label>
-        <input
-          id="radio-yes"
-          v-model="superpixelDecision.agreeChoice"
-          type="radio"
-          value="Yes"
-        >
-        <label for="radio-no">No</label>
-        <input
-          id="radio-no"
-          v-model="superpixelDecision.agreeChoice"
-          type="radio"
-          value="No"
-        >
-      </div>
-      <div
-        v-if="superpixelDecision.agreeChoice === 'No'"
-        class="h-superpixel-card-footer-content"
-      >
+      <div class="h-superpixel-card-footer-content">
         <select
           v-model="superpixelDecision.selectedCategory"
           class="h-superpixel-card-select"
+          :style="[selectedCategory === 0 ? {'font-style': 'italic'} : !agreeChoice && {'font-weight': 'bold'}]"
         >
           <option
-            v-for="category in validNewCategories"
+            key="noSelection"
+            :value="0"
+            class="h-superpixel-select-option"
+          >
+            (No Selection)
+          </option>
+          <option
+            v-for="category in validCategories"
             :key="category.label"
             :value="categoryIndex(category.label)"
+            class="h-superpixel-select-option"
           >
             Class: {{ category.label }}
           </option>
@@ -232,11 +218,12 @@ export default Vue.extend({
     background-color: white;
     border-radius: 5px;
     width: 140px;
-    min-height: 185px;
+    min-height: 165px;
 }
 
 .h-superpixel-card--selected {
     border: 4px solid yellow;
+    min-height: 175px;
 }
 
 .h-superpixel-container {
@@ -289,5 +276,10 @@ export default Vue.extend({
 
 .h-superpixel-card-select {
     width: 90%;
+}
+
+.h-superpixel-select-option {
+    font-weight: normal;
+    font-style: normal;
 }
 </style>
