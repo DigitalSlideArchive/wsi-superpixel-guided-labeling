@@ -11,7 +11,7 @@ export default Vue.extend({
             return store.superpixelsToDisplay[this.index];
         },
         agreeChoice() {
-            return this.superpixelDecision.agreeChoice;
+            return this.superpixelDecision.selectedCategory === this.superpixelDecision.prediction;
         },
         predictedCategory() {
             return this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction];
@@ -49,12 +49,9 @@ export default Vue.extend({
         headerCertainty() {
             return `Certainty ${this.superpixelDecision.certainty.toFixed(5)}`;
         },
-        validNewCategories() {
+        validCategories() {
             const categories = this.superpixelDecision.labelCategories;
-            const predictedLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
-            return _.filter(categories, (c) => {
-                return !['default', predictedLabel].includes(c.label);
-            });
+            return _.filter(categories, (c) => !['default'].includes(c.label));
         },
         wsiRegionUrl() {
             const imageId = this.superpixelDecision.imageId;
@@ -96,22 +93,6 @@ export default Vue.extend({
         }
     },
     watch: {
-        agreeChoice() {
-            // TODO investigate removing "agreeChoice." It can be derived by comparing the label of the prediction and label
-            // categories, and keeping it up to date is extra work, for little value. It is used to bind to the radio buttons on
-            // the card, but provides no value elsewhere as being a separate property of a superpixel prediction.
-            if (this.agreeChoice === 'Yes') {
-                const currentPredictionLabel = this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction].label;
-                this.superpixelDecision.selectedCategory = this.categoryIndex(currentPredictionLabel);
-            } else if (this.agreeChoice === undefined || this.agreeChoice === null) {
-                this.superpixelDecision.selectedCategory = 0;
-            } else {
-                // agreeChoice === 'No'
-                if (!this.superpixelDecision.selectedCategory) {
-                    this.superpixelDecision.selectedCategory = this.categoryIndex(this.validNewCategories[0].label);
-                }
-            }
-        },
         selectedCategory() {
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
@@ -123,18 +104,11 @@ export default Vue.extend({
             if (!this.isSelected || typeof categoryNumber !== 'number') {
                 return;
             }
-            if (categoryNumber === 0) {
-                this.superpixelDecision.agreeChoice = undefined;
-            } else if (categoryNumber <= this.superpixelDecision.predictionCategories.length) {
+            if (categoryNumber <= this.superpixelDecision.predictionCategories.length) {
                 // Be extra careful to select the correct category
                 const newCategory = store.categories[categoryNumber];
                 const newCategoryIndex = this.categoryIndex(newCategory.label);
-                if (newCategory.label === this.predictedCategory.label) {
-                    this.superpixelDecision.agreeChoice = 'Yes';
-                } else {
-                    this.superpixelDecision.selectedCategory = newCategoryIndex;
-                    this.superpixelDecision.agreeChoice = 'No';
-                }
+                this.superpixelDecision.selectedCategory = newCategoryIndex;
                 this.$nextTick(() => {
                     store.lastCategorySelected = null;
                     nextCard();
@@ -186,35 +160,24 @@ export default Vue.extend({
       </div>
     </div>
     <div class="h-superpixel-card-footer">
-      <div class="h-superpixel-card-agree h-superpixel-card-footer-content">
-        <label>Agree? </label>
-        <label for="radio-yes">Yes</label>
-        <input
-          id="radio-yes"
-          v-model="superpixelDecision.agreeChoice"
-          type="radio"
-          value="Yes"
-        >
-        <label for="radio-no">No</label>
-        <input
-          id="radio-no"
-          v-model="superpixelDecision.agreeChoice"
-          type="radio"
-          value="No"
-        >
-      </div>
-      <div
-        v-if="superpixelDecision.agreeChoice === 'No'"
-        class="h-superpixel-card-footer-content"
-      >
+      <div class="h-superpixel-card-footer-content">
         <select
           v-model="superpixelDecision.selectedCategory"
           class="h-superpixel-card-select"
+          :style="[selectedCategory === 0 ? {'font-style': 'italic'} : !agreeChoice && {'font-weight': 'bold'}]"
         >
           <option
-            v-for="category in validNewCategories"
+            key="noSelection"
+            :value="0"
+            class="h-superpixel-select-option"
+          >
+            (No Selection)
+          </option>
+          <option
+            v-for="category in validCategories"
             :key="category.label"
             :value="categoryIndex(category.label)"
+            class="h-superpixel-select-option"
           >
             Class: {{ category.label }}
           </option>
@@ -232,11 +195,12 @@ export default Vue.extend({
     background-color: white;
     border-radius: 5px;
     width: 140px;
-    min-height: 185px;
+    min-height: 165px;
 }
 
 .h-superpixel-card--selected {
     border: 4px solid yellow;
+    min-height: 175px;
 }
 
 .h-superpixel-container {
@@ -289,5 +253,10 @@ export default Vue.extend({
 
 .h-superpixel-card-select {
     width: 90%;
+}
+
+.h-superpixel-select-option {
+    font-weight: normal;
+    font-style: normal;
 }
 </style>

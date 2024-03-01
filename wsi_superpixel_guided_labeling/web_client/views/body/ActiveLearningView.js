@@ -376,33 +376,6 @@ const ActiveLearningView = View.extend({
         this.currentAverageCertainty = sum / certaintyArray.length;
     },
 
-    /**
-     * Returns 'Yes' if the predicted category matches the provided label for a superpixel. If
-     * a label exists and does not match to prediction, return 'No'. If no label exists, then
-     * return undefined
-     *
-     * TODO: use an agreeChoiceEnum instead of hard-coded Yes, No, undefined. This enum should
-     * be available to all views and components that care about this value
-     *
-     * @param {number} index
-     * @param {Object} predictionPixelmapElement
-     * @param {Object} labelPixelmapElement
-     * @returns A string representing whether or not the machine learning prediction matches
-     * the label for the superpixel at the given index. If no label exists for the superpixel,
-     * then undefined is returned
-     */
-    getAgreeChoice(index, predictionPixelmapElement, labelPixelmapElement) {
-        const label = labelPixelmapElement.values[index];
-        const labelCategories = labelPixelmapElement.categories;
-        if (labelCategories[label].label === this.defaultCategory.label) {
-            // Label is default, so no choice has been made
-            return undefined;
-        }
-        const predictionCategories = predictionPixelmapElement.categories;
-        const prediction = predictionPixelmapElement.values[index];
-        return predictionCategories[prediction].label === labelCategories[label].label ? 'Yes' : 'No';
-    },
-
     getAnnotationCategories(pixelmapElement) {
         _.forEach(pixelmapElement.categories, (category) => {
             if (!this.categoryMap.has(category.label)) {
@@ -491,7 +464,6 @@ const ActiveLearningView = View.extend({
             const scale = annotation.elements[0].transform.matrix[0][0];
             _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
-                const agreeChoice = this.getAgreeChoice(index, annotation.elements[0], labels.elements[0]);
                 const prediction = {
                     index,
                     confidence: userData.confidence[index],
@@ -504,7 +476,6 @@ const ActiveLearningView = View.extend({
                     prediction: pixelmapValues[index],
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
-                    agreeChoice,
                     selectedCategory: labelValues[index]
                 };
                 superpixelPredictionsData.push(prediction);
