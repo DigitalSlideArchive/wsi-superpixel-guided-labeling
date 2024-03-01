@@ -30,6 +30,13 @@ export default {
         },
         backboneParent() {
             return store.backboneParent;
+        },
+        slideName() {
+            if (this.superpixelsToDisplay.length) {
+                const id = this.superpixelsToDisplay[this.selectedIndex].imageId;
+                return this.backboneParent.imageItemsById[id].name;
+            }
+            return '';
         }
     },
     methods: {
@@ -61,6 +68,9 @@ export default {
 
 <template>
   <div class="h-filmstrip">
+    <div class="h-slide-name">
+      <span> Current Slide: {{ slideName }}</span>
+    </div>
     <!-- previous button -->
     <button
       class="h-filmstrip-page-btn h-filmstrip-page-btn--prev btn"
@@ -121,10 +131,17 @@ export default {
     align-items: center;
     bottom: 0px;
     width: 100%;
-    padding-top: 10px;
+    padding-top: 35px;
     padding-bottom: 10px;
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 50;
+}
+
+.h-slide-name {
+    position: absolute;
+    top: 8px;
+    color: white;
+    left: 15px;
 }
 
 .h-filmstrip-page-btn {
