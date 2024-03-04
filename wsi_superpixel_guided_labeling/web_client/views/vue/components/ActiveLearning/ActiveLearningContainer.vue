@@ -41,7 +41,8 @@ export default Vue.extend({
             selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
             initialZoom: 1,
-            overlayLayers: []
+            overlayLayers: [],
+            windowResize: false
         };
     },
     computed: {
@@ -71,15 +72,7 @@ export default Vue.extend({
             this.updateSelectedCard();
         },
         page(newPage, oldPage) {
-            const startIndex = newPage * store.pageSize;
-            const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
-            store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
-            const oldIndex = this.selectedIndex;
-            store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
-            if (oldIndex === this.selectedIndex) {
-                // Force the update
-                this.updateSelectedCard();
-            }
+            this.updateSelectedPage(newPage, oldPage);
         },
         predictions() {
             const annotation = this.annotationsByImageId[this.selectedImageId].predictions;
@@ -113,6 +106,7 @@ export default Vue.extend({
         store.predictions = false;
         store.currentAverageCertainty = this.currentAverageCertainty;
         store.categories = [...this.categoryMap.values()];
+        window.addEventListener('resize', this.updatePageSize);
 
         this.updateConfig();
         const startIndex = 0;
@@ -123,6 +117,7 @@ export default Vue.extend({
         }).done((resp) => {
             this.currentImageMetadata = resp;
             this.createImageViewer();
+            this.updatePageSize();
         });
     },
     methods: {
@@ -220,6 +215,41 @@ export default Vue.extend({
                 });
             } else {
                 this.updateMapBoundsForSelection();
+            }
+        },
+        updateSelectedPage(newPage, oldPage) {
+            const startIndex = newPage * store.pageSize;
+            const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
+            store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
+            const oldIndex = this.selectedIndex;
+            if (!this.windowResize) {
+                // Only reset the selected index if the user has changed the page
+                // and the page has not been changed because of window resize.
+                store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
+            }
+            this.windowResize = false;
+            if (oldIndex === this.selectedIndex) {
+                // Force the update
+                this.updateSelectedCard();
+            }
+        },
+        updatePageSize() {
+            this.windowResize = true;
+            // compute how many cards to show
+            const el = document.getElementById('filmstrip-cards');
+            const card = el.firstElementChild.clientWidth;
+            const paddingOffset = 20;
+            // update page
+            const currentIndex = this.page * store.pageSize + this.selectedIndex;
+            const oldPageSize = store.pageSize;
+            store.pageSize = Math.max(Math.floor(el.clientWidth / (card + paddingOffset)), 1);
+            const oldPage = this.page;
+            store.page = Math.floor(currentIndex / store.pageSize);
+            store.selectedIndex = currentIndex - (store.pageSize * store.page);
+            store.maxPage = Math.ceil(this.sortedSuperpixelIndices.length / store.pageSize);
+            if (oldPageSize !== store.pageSize && oldPage === this.page) {
+                // Force an update
+                this.updateSelectedPage(this.page, oldPage);
             }
         }
     }

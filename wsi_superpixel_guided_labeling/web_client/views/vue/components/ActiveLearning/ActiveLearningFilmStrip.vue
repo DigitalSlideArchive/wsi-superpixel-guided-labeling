@@ -79,11 +79,16 @@ export default {
     >
       <i class="icon-left-circled h-filmstrip-page-icon" />
     </button>
-    <active-learning-film-strip-card
-      v-for="superpixel, index in superpixelsToDisplay"
-      :key="`${superpixel.imageId}_${superpixel.index}`"
-      :index="index"
-    />
+    <div
+      id="filmstrip-cards"
+      class="h-filmstrip-cards"
+    >
+      <active-learning-film-strip-card
+        v-for="superpixel, index in superpixelsToDisplay"
+        :key="`${superpixel.imageId}_${superpixel.index}`"
+        :index="index"
+      />
+    </div>
     <button
       class="h-filmstrip-page-btn h-filmstrip-page-btn--next btn"
       :disabled="page === maxPage"
@@ -142,6 +147,12 @@ export default {
     top: 8px;
     color: white;
     left: 15px;
+}
+
+.h-filmstrip-cards {
+    display: flex;
+    width: 85%;
+    justify-content: space-evenly;
 }
 
 .h-filmstrip-page-btn {
