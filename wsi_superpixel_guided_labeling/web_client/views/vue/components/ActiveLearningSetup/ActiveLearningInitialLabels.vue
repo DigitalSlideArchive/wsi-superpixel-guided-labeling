@@ -237,7 +237,7 @@ export default Vue.extend({
             const userHotkeys = this.parseUserHotkeys(event);
             const idx = this.hotkeys.get(userHotkeys.join('+'));
             if (!_.isUndefined(idx)) {
-                this.categoryIndex = idx;
+                this.categoryIndex = idx - 1;
             }
         },
         /**
