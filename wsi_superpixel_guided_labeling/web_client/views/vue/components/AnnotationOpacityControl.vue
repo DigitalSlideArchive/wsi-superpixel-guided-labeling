@@ -76,6 +76,7 @@ export default {
       min="0"
       max="1"
       step="0.01"
+      :disabled="disabled"
     >
   </div>
 </template>

@@ -159,9 +159,14 @@ export default Vue.extend({
     },
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
-        this.currentImageId = _.filter(Object.keys(this.annotationsByImageId),
-            (imageId) => _.has(this.annotationsByImageId[imageId], 'labels'))[0];
-        this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+        this.currentImageId = _.find(Object.keys(this.imageNamesById), (id) => {
+            return _.has(this.annotationsByImageId[id], 'labels');
+        });
+        if (this.currentImageId) {
+            this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+        } else {
+            this.currentImageId = Object.keys(this.imageNamesById)[0];
+        }
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         this.setupViewer();
@@ -177,9 +182,6 @@ export default Vue.extend({
             this.pixelmapPaintValue = null;
         },
         setupViewer() {
-            if (!this.superpixelAnnotation) {
-                return;
-            }
             restRequest({
                 url: `item/${this.currentImageId}/tiles`
             }).done(() => {
@@ -206,6 +208,9 @@ export default Vue.extend({
             });
         },
         drawPixelmapAnnotation() {
+            if (!this.superpixelAnnotation) {
+                return;
+            }
             this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
         },
         onPixelmapRendered() {
@@ -431,6 +436,9 @@ export default Vue.extend({
             });
 
             _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+                if (!_.has(annotations, 'labels')) {
+                    return;
+                }
                 const labels = this.annotationsByImageId[imageId].labels;
                 const pixelmapElement = labels.get('annotation').elements[0];
                 pixelmapElement.categories = [...this.allNewCategories];
@@ -587,7 +595,7 @@ export default Vue.extend({
           v-else
           class="icon-tags"
         />
-        <div class="btn-group">
+        <div v-if="pixelmapRendered" class="btn-group">
           <button
             v-if="showLabelingContainer"
             :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
@@ -612,7 +620,7 @@ export default Vue.extend({
         v-if="showLabelingContainer"
         class="h-al-setup-categories"
       >
-        <div v-if="pixelmapRendered">
+        <div>
           <div class="h-category-form">
             <div class="h-form-controls">
               <div>
@@ -792,6 +800,7 @@ export default Vue.extend({
       :style="{'width': '350px', 'right': '20px'}"
       :fill-color="currentCategoryFillColor"
       :overlay-layers="[overlayLayer]"
+      :disabled="!overlayLayer"
     />
     <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
       <mouse-and-keyboard-controls

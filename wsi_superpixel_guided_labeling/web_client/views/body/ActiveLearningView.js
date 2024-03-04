@@ -20,9 +20,9 @@ import '../../stylesheets/body/learning.styl';
 const yaml = require('js-yaml');
 
 const activeLearningSteps = {
-    SuperpixelSegmentation: 0,
-    InitialLabeling: 1,
-    GuidedLabeling: 2
+    SuperpixelSegmentation: 0, // Nothing has been started yet
+    InitialLabeling: 1, // User can view images and begin labeling as annotations become available
+    GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review
 };
 
 const epochRegex = /epoch (\d+)/i;
@@ -57,6 +57,7 @@ const ActiveLearningView = View.extend({
         // TODO create a plugin-level settings for these
         this.activeLearningJobUrl = 'dsarchive_superpixel_latest/SuperpixelClassification';
         this.activeLearningJobType = 'dsarchive/superpixel:latest#SuperpixelClassification';
+        this.activeLearningStep = -1;
         this.imageItemsById = {};
         this.annotationsByImageId = {};
         this.sortedSuperpixelIndices = [];
@@ -280,7 +281,7 @@ const ActiveLearningView = View.extend({
                     this.epoch = Math.max(this.epoch, parseInt(matches[1]));
                 }
             });
-            this.activeLearningStep = Math.min(this.epoch + 1, 2);
+            this.activeLearningStep = Math.max(this.activeLearningStep, this.epoch + 1);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -622,6 +623,9 @@ const ActiveLearningView = View.extend({
         }).done((response) => {
             const newJobId = response._id;
             this.waitForJobCompletion(newJobId, goToNextStep);
+            if (this.activeLearningStep === activeLearningSteps.InitialLabeling) {
+                this.watchForSuperpixels();
+            }
         });
     },
 
@@ -649,6 +653,8 @@ const ActiveLearningView = View.extend({
             girderToken: '',
             certainty: certaintyMetric
         });
+        this.activeLearningStep = activeLearningSteps.InitialLabeling;
+        this.getAnnotations();
         this.triggerJob(data, true);
     },
 
