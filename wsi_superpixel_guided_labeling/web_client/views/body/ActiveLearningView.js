@@ -59,6 +59,7 @@ const ActiveLearningView = View.extend({
         this.activeLearningJobType = 'dsarchive/superpixel:latest#SuperpixelClassification';
         this.activeLearningStep = -1;
         this.imageItemsById = {};
+        this.availableImages = [];
         this.annotationsByImageId = {};
         this.sortedSuperpixelIndices = [];
         this._isSaving = false;
@@ -246,7 +247,8 @@ const ActiveLearningView = View.extend({
                         imageNamesById,
                         annotationsByImageId: this.annotationsByImageId,
                         activeLearningStep: this.activeLearningStep,
-                        certaintyMetrics: this.certaintyMetrics
+                        certaintyMetrics: this.certaintyMetrics,
+                        availableImages: this.availableImages
                     }
                 });
             }
@@ -373,8 +375,11 @@ const ActiveLearningView = View.extend({
         });
         $.when(...promises).then(() => {
             this.synchronizeCategories();
-            if (this.activeLearningStep === activeLearningSteps.GuidedLabeling) {
+            if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
+            } else if (this.availableImages.length >= 1) {
+                this.vueApp.availableImages = this.availableImages;
+                return;
             }
             return this.startActiveLearning();
         });
@@ -684,7 +689,9 @@ const ActiveLearningView = View.extend({
     },
 
     waitForJobCompletion(jobId, goToNextStep) {
-        this.showSpinner();
+        if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+            this.showSpinner();
+        }
         const poll = setInterval(() => {
             // If this view is no longer rendered in the tab, stop
             // polling the server.
@@ -708,6 +715,29 @@ const ActiveLearningView = View.extend({
                     }
                 }
                 // TODO handle job failure
+            });
+        }, 2000);
+    },
+
+    watchForSuperpixels() {
+        const poll = setInterval(() => {
+            restRequest({
+                url: `annotation/folder/${this.trainingDataFolderId}`
+            }).done((annotations) => {
+                const hasSuperpixels = _.some(annotations, (annotation) => {
+                    return epochRegex.exec(annotation.annotation.name);
+                });
+                if (annotations.length > this.availableImages.length && hasSuperpixels) {
+                    this.availableImages = _.pluck(annotations, 'itemId');
+                    this.getAnnotations();
+                    const allSuperpixelsAvailable = _.every(
+                        Object.keys(this.annotationsByImageId), (id) => {
+                            return this.availableImages.includes(id);
+                        });
+                    if (allSuperpixelsAvailable) {
+                        clearInterval(poll);
+                    }
+                }
             });
         }, 2000);
     }

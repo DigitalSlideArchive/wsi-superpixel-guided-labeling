@@ -29,7 +29,7 @@ export default Vue.extend({
         AnnotationOpacityControl,
         ActiveLearningMergeConfirmation
     },
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
+    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'availableImages'],
     data() {
         return {
             hasLoaded: false,
@@ -48,6 +48,7 @@ export default Vue.extend({
             currentImageId: '',
             superpixelAnnotation: null,
             superpixelElement: null,
+            newImagesAvailable: false,
 
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
@@ -153,20 +154,22 @@ export default Vue.extend({
                 return;
             }
             const key = `label_${this.editing}`;
-            console.log('editing: ', key, this.$refs, this.$refs[key]);
             this.$nextTick(() => this.$refs[key][0].focus());
+        },
+        availableImages(newAvail, oldAvail) {
+            const newImage = _.difference(newAvail, oldAvail)[0];
+            if (newImage === this.currentImageId) {
+                // Update image with annotations
+                this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+                this.setupViewer();
+            }
+            this.newImagesAvailable = true;
         }
     },
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
-        this.currentImageId = _.find(Object.keys(this.imageNamesById), (id) => {
-            return _.has(this.annotationsByImageId[id], 'labels');
-        });
-        if (this.currentImageId) {
-            this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
-        } else {
-            this.currentImageId = Object.keys(this.imageNamesById)[0];
-        }
+        this.currentImageId = Object.keys(this.imageNamesById)[0];
+        this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         this.setupViewer();
@@ -436,7 +439,7 @@ export default Vue.extend({
             });
 
             _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
-                if (!_.has(annotations, 'labels')) {
+                if (!_.has(this.annotationsByImageId[imageId], 'labels')) {
                     return;
                 }
                 const labels = this.annotationsByImageId[imageId].labels;
@@ -516,7 +519,9 @@ export default Vue.extend({
                     }
                 });
                 this.saveAnnotations(true);
-                updatePixelmapLayerStyle([this.overlayLayer]);
+                if (this.overlayLayer) {
+                    updatePixelmapLayerStyle([this.overlayLayer]);
+                }
                 this.updateConfig();
             }
         },
@@ -595,7 +600,10 @@ export default Vue.extend({
           v-else
           class="icon-tags"
         />
-        <div v-if="pixelmapRendered" class="btn-group">
+        <div
+          v-if="pixelmapRendered"
+          class="btn-group"
+        >
           <button
             v-if="showLabelingContainer"
             :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
@@ -628,13 +636,15 @@ export default Vue.extend({
                 <select
                   id="currentImage"
                   v-model="currentImageId"
-                  class="h-al-image-select"
+                  :class="['h-al-image-select', newImagesAvailable && 'h-al-image-select-new']"
+                  :style="[!availableImages.includes(currentImageId) && {'font-style': 'italic'}]"
+                  @click="newImagesAvailable = false"
                 >
                   <option
                     v-for="imageId in Object.keys(imageNamesById)"
                     :key="imageId"
                     :value="imageId"
-                    :disabled="!annotationsByImageId[imageId].labels"
+                    :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
                   >
                     {{ imageNamesById[imageId] }}
                   </option>
@@ -880,6 +890,10 @@ h4 {
 .h-al-image-select {
     width: 100%;
     padding: 5px 10px;
+}
+
+.h-al-image-select-new {
+    box-shadow: 0px 0px 5px 1px rgba(0, 127, 0, 0.5);
 }
 
 .h-setup-categories-information {
