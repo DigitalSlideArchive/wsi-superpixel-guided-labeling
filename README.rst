@@ -61,7 +61,7 @@ If you don't already use a provisioning yaml file as part of your DSA deployment
           name: Features
           creator: resource:admin
           public: True
-    slicer-cli-image:
+    slicer-cli-image-pull:
         - dsarchive/histomicstk:latest
         - dsarchive/superpixel:latest
 
@@ -126,3 +126,11 @@ Features
 --------
 
 * Adds a new view which can be accessed from the Girder 3 UI for folders that are configured for this workflow
+
+Updating CLI Images
+-------------------
+
+The Superpixel CLI Docker image that is used for computing superpixels, extracting features, training models, and predicting labels can be updated without updating the whole system.  This can be done by selecting ``Collections`` -> ``Tasks`` -> ``Slicer CLI Web Tasks`` -> ``dsarchive/superpixel`` -> ``latest`` and then clicking on the ``Pull Latest`` button near the upper right.
+
+In the provisioning yaml file, if ``slicer-cli-image-pull`` is used rather than ``slicer-cli-image``, this will also ensure the latest version of the docker image is available when the system is restarted with docker compose.
+
