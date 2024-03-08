@@ -32,20 +32,16 @@ export default Vue.extend({
         hotkeys() {
             return store.hotkeys;
         },
-        editMode: {
-            get() {
-                return store.editingHotkeys;
-            },
-            set(mode) {
-                store.editingHotkeys = mode;
-            }
+        editingText() {
+            return this.currentInput.join(',');
         }
     },
     watch: {
-        editMode(editing) {
-            if (!editing) {
+        currentlyEditing(newIndex, oldIndex) {
+            if (newIndex !== oldIndex && oldIndex !== -1) {
+                // We were previously editing a different key, save what we were working on
                 this.commitHotkeyChange();
-                this.resetEditingValues();
+                this.currentInput = [];
             }
         }
     },
@@ -98,17 +94,14 @@ export default Vue.extend({
                 event.preventDefault();
             }
             this.currentInput = this.parseUserHotkeys(event);
+            this.commitHotkeyChange();
         },
         keydownListener(event) {
-            if (this.editMode) {
+            if (this.currentlyEditing !== -1) {
                 this.editKeydownListener(event);
             } else {
                 this.categoryKeydownListener(event);
             }
-        },
-        resetEditingValues() {
-            this.currentlyEditing = -1;
-            this.currentInput = [];
         },
         hotkeyFromIndex(index) {
             return _.find([...this.hotkeys], ([, v]) => v === index)[0];
@@ -121,27 +114,22 @@ export default Vue.extend({
             });
             const okayKey = /^[a-zA-Z0-9]$/.test(_.last(this.currentInput));
             const validHotkey = okayModifiers && okayKey;
-            if (!_.isEmpty(this.currentInput) && validHotkey) {
+            if (!_.isEmpty(this.currentInput) && validHotkey && this.currentlyEditing > -1) {
                 // Accept user input as finalized hotkey selection
                 const newKey = this.currentInput.join('+');
                 const hotKey = this.hotkeyFromIndex(this.currentlyEditing);
                 assignHotkey(hotKey, newKey);
                 store.backboneParent.updateHistomicsYamlConfig();
+                this.currentlyEditing = -1;
             }
         },
-        editHotkey(index) {
-            if (this.currentlyEditing >= 0 && this.currentlyEditing !== index) {
-                this.commitHotkeyChange();
-                // We're editing a new key, reset what we were working on
-                this.resetEditingValues();
-            }
+        rowSelected(event, index) {
             this.currentlyEditing = index;
-        },
-        editModeText(index) {
-            if (this.currentlyEditing === index) {
-                return this.currentInput.join('+') || 'Editing';
-            }
-            return this.hotkeyFromIndex(index);
+            this.$nextTick(() => {
+                // Force focus on the input element
+                const el = event.target.getElementsByTagName('input')[0];
+                if (el) el.focus();
+            });
         }
     }
 });
@@ -177,62 +165,46 @@ export default Vue.extend({
       <span class="h-hotkey">
         Left Arrow - Previous Superpixel
       </span>
-      <div class="h-hotkeys-header">
-        <h6>Labeling</h6>
-        <button
-          class="h-hotkeys-toggle"
-          @click="editMode = !editMode"
-        >
-          <i
-            v-if="editMode"
-            class="icon-ok"
-          />
-          <i
-            v-else
-            class="icon-pencil"
-          />
-        </button>
-      </div>
-      <p
-        v-if="editMode"
-        class="h-hotkeys-edit-subtitle"
-      >
-        Click on a hotkey to edit.
+      <h6>Labeling</h6>
+      <p class="h-hotkeys-edit-subtitle">
+        Click a hotkey to edit.
       </p>
-      <div v-if="editMode">
-        <span class="h-hotkey">
-          <button
-            class="h-hotkey-edit-button"
-            :style="[currentlyEditing === 0 && {'font-style': 'italic'}]"
-            @click="() => editHotkey(0)"
-          >
-            {{ editModeText(0) }}
-          </button>
-          <span> - Reset Selection</span>
+      <div>
+        <span
+          class="h-hotkey"
+          @click="(e) => rowSelected(e, 0)"
+        >
+          <span v-if="currentlyEditing === 0">
+            <input
+              class="h-hotkey-edit-input"
+              :value="editingText"
+              readonly
+              @blur="currentlyEditing = -1"
+            >
+            <span> - Reset Selection</span>
+          </span>
+          <span v-else>
+            {{ hotkeyFromIndex(0) }} - Reset selection
+          </span>
         </span>
         <span
           v-for="(category, index) in nonDefaultCategories"
           :key="category.label"
           class="h-hotkey"
+          @click="(e) => rowSelected(e, index + 1)"
         >
-          <button
-            class="h-hotkey-edit-button"
-            :style="[currentlyEditing === (index + 1) && {'font-style': 'italic'}]"
-            @click="() => editHotkey(index + 1)"
-          >
-            {{ editModeText(index + 1) }}
-          </button>
-          <span> - {{ category.label }}</span>
-        </span>
-      </div>
-      <div v-else>
-        <span class="h-hotkey">{{ hotkeyFromIndex(0) }} - Reset selection</span>
-        <span
-          v-for="(category, index) in nonDefaultCategories"
-          :key="category.label"
-          class="h-hotkey"
-        >
-          {{ hotkeyFromIndex(index + 1) }} - {{ category.label }}
+          <span v-if="currentlyEditing === (index + 1)">
+            <input
+              class="h-hotkey-edit-input"
+              :value="editingText"
+              readonly
+              @blur="currentlyEditing = -1"
+            >
+            <span> - {{ category.label }}</span>
+          </span>
+          <span v-else>
+            {{ hotkeyFromIndex(index + 1) }} - {{ category.label }}
+          </span>
         </span>
       </div>
     </div>
@@ -274,11 +246,10 @@ export default Vue.extend({
     font-size: 12px;
 }
 
-.h-hotkey-edit-button {
+.h-hotkey-edit-input {
     width: 40%;
     font-size: smaller;
-    border: ridge;
-    background-color: transparent;
+    text-align: center;
 }
 
 .h-hotkeys-edit-subtitle {

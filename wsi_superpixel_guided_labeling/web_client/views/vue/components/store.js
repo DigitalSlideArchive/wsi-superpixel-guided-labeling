@@ -20,7 +20,6 @@ const store = Vue.observable({
     categories: [],
     lastCategorySelected: null,
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
-    editingHotkeys: false,
     strokeOpacity: 1.0
 });
 
