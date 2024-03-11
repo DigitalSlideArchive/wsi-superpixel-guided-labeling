@@ -649,6 +649,7 @@ export default Vue.extend({
                     v-model="currentCategoryLabel"
                     class="form-control input-sm category-input"
                     @keyup.enter="editing = -1"
+                    @blur="editing = -1"
                   >
                   <button
                     class="btn h-table-button"
