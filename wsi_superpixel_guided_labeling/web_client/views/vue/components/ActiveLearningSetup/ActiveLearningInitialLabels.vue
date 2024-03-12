@@ -146,16 +146,7 @@ export default Vue.extend({
             this.setupViewer();
         },
         pixelmapPaintBrush(activated) {
-            // Panning is typically by with left-click and continuous painting
-            // by shift+left-click. When the paint brush is enabled swap these
-            // interactions.
-            const interactor = this.viewerWidget.viewer.interactor();
-            const actions = interactor.options().actions;
-            _.map(actions, (action) => {
-                if (action.action === 'geo_action_pan') {
-                    action.modifiers.shift = activated;
-                }
-            });
+            this.updateActionModifiers();
         }
     },
     mounted() {
@@ -220,6 +211,7 @@ export default Vue.extend({
             this.viewerWidget.on('g:mouseDownAnnotationOverlay', this.handleMouseDownPixelmap);
             this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
+            this.updateActionModifiers();
             this.synchronizeCategories();
         },
         parseUserHotkeys(event) {
@@ -520,6 +512,18 @@ export default Vue.extend({
                 uniqueName = `${name} (${count++})`;
             }
             return uniqueName;
+        },
+        updateActionModifiers() {
+            // Panning is typically by with left-click and continuous painting
+            // by shift+left-click. When the paint brush is enabled swap these
+            // interactions.
+            const interactor = this.viewerWidget.viewer.interactor();
+            const actions = interactor.options().actions;
+            _.map(actions, (action) => {
+                if (action.action === 'geo_action_pan') {
+                    action.modifiers.shift = this.pixelmapPaintBrush;
+                }
+            });
         },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
