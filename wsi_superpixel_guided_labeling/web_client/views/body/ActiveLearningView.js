@@ -669,9 +669,11 @@ const ActiveLearningView = View.extend({
                     if (goToNextStep) {
                         // We might need to go back to the server for more data
                         this.checkJobs();
+                    } else {
+                        // We're all done, grab the results
+                        this.lastRunJobId = jobId;
+                        this.getAnnotations();
                     }
-                    this.lastRunJobId = jobId;
-                    this.getAnnotations();
                 }
                 // TODO handle job failure
             });

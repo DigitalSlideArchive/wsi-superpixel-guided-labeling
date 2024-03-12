@@ -47,11 +47,6 @@ export default Vue.extend({
     },
     mounted() {
         store.lastCategorySelected = null;
-        // FIXME: Occasionally the container is mounted twice and not destroyed
-        // which results in events triggering the keydown listener more than
-        // once. If we can reproduce more consistently we should fix the real
-        // issue. For now just make sure we're not registering the same listener twice.
-        window.removeEventListener('keydown', this.keydownListener);
         window.addEventListener('keydown', this.keydownListener);
     },
     destroyed() {
