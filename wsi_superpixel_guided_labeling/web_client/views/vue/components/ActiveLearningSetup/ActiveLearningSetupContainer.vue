@@ -15,7 +15,8 @@ export default Vue.extend({
         'annotationsByImageId',
         'activeLearningStep',
         'certaintyMetrics',
-        'availableImages'
+        'availableImages',
+        'categoryMap'
     ]
 });
 </script>
@@ -36,6 +37,7 @@ export default Vue.extend({
       :image-names-by-id="imageNamesById"
       :annotations-by-image-id="annotationsByImageId"
       :available-images="availableImages"
+      :category-map="categoryMap"
     />
   </div>
 </template>

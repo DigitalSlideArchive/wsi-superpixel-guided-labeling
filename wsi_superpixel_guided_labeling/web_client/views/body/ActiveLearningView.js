@@ -239,7 +239,8 @@ const ActiveLearningView = View.extend({
                         annotationsByImageId: this.annotationsByImageId,
                         activeLearningStep: this.activeLearningStep,
                         certaintyMetrics: this.certaintyMetrics,
-                        availableImages: this.availableImages
+                        availableImages: this.availableImages,
+                        categoryMap: this.categoryMap
                     }
                 });
             }
