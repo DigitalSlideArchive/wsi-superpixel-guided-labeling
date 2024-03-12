@@ -29,7 +29,7 @@ export default Vue.extend({
         AnnotationOpacityControl,
         ActiveLearningMergeConfirmation
     },
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'availableImages'],
+    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'availableImages', 'categoryMap'],
     data() {
         return {
             hasLoaded: false,
@@ -173,6 +173,7 @@ export default Vue.extend({
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         this.setupViewer();
+        this.createCategories();
     },
     destroyed() {
         window.removeEventListener('keydown', this.keydownListener);
@@ -254,6 +255,11 @@ export default Vue.extend({
          * Parse existing label annotations to populate the categories used for labeling.
          */
         createCategories() {
+            const cats = _.chain([...this.categoryMap.values()])
+                .filter((cat) => cat.label !== 'default')
+                .map((category) => { return { category, indices: {} }; })
+                .value();
+            this.categories = _.uniq([...cats, ...this.categories], (cat) => cat.category.label);
             // TODO handle missing default, default in wrong position
             _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
                 if (_.has(annotations, 'labels')) {
