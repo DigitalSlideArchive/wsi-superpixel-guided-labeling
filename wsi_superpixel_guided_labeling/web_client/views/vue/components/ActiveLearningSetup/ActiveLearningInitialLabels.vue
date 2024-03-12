@@ -145,8 +145,16 @@ export default Vue.extend({
             this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
             this.setupViewer();
         },
-        pixelmapPaintBrush(activated) {
+        pixelmapPaintBrush() {
             this.updateActionModifiers();
+        },
+        editing() {
+            if (this.editing === -1) {
+                return;
+            }
+            const key = `label_${this.editing}`;
+            console.log('editing: ', key, this.$refs, this.$refs[key]);
+            this.$nextTick(() => this.$refs[key][0].focus());
         }
     },
     mounted() {
@@ -646,9 +654,12 @@ export default Vue.extend({
                 >
                   <input
                     id="category-label"
+                    :ref="`label_${index}`"
                     v-model="currentCategoryLabel"
                     class="form-control input-sm category-input"
                     @keyup.enter="editing = -1"
+                    @blur="editing = -1"
+                    @focus="$event.target.select()"
                   >
                   <button
                     class="btn h-table-button"
