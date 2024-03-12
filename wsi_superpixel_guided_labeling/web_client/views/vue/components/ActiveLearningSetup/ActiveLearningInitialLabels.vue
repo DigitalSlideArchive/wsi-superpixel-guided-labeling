@@ -151,7 +151,8 @@ export default Vue.extend({
     },
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
-        this.currentImageId = Object.keys(this.imageNamesById)[0];
+        this.currentImageId = _.filter(Object.keys(this.annotationsByImageId),
+            (imageId) => _.has(this.annotationsByImageId[imageId], 'labels'))[0];
         this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
@@ -239,9 +240,11 @@ export default Vue.extend({
         createCategories() {
             // TODO handle missing default, default in wrong position
             _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
-                const pixelmapElement = annotations.labels.get('annotation').elements[0];
-                const existingCategories = _.map(this.categories, (category) => category.category.label);
-                this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
+                if (_.has(annotations, 'labels')) {
+                    const pixelmapElement = annotations.labels.get('annotation').elements[0];
+                    const existingCategories = _.map(this.categories, (category) => category.category.label);
+                    this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
+                }
             });
             if (this.categories.length === 0) {
                 const fillColor = this.getFillColor(this.categories.length);
@@ -489,9 +492,11 @@ export default Vue.extend({
             if (this.currentCategoryFormValid) {
                 store.categories = this.allNewCategories;
                 _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
-                    const superpixelElement = annotations.labels.get('annotation').elements[0];
-                    if (superpixelElement) {
-                        superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                    if (_.has(annotations, 'labels')) {
+                        const superpixelElement = annotations.labels.get('annotation').elements[0];
+                        if (superpixelElement) {
+                            superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                        }
                     }
                 });
                 this.saveAnnotations(true);
@@ -613,6 +618,7 @@ export default Vue.extend({
                     v-for="imageId in Object.keys(imageNamesById)"
                     :key="imageId"
                     :value="imageId"
+                    :disabled="!annotationsByImageId[imageId].labels"
                   >
                     {{ imageNamesById[imageId] }}
                   </option>
