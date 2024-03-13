@@ -185,6 +185,10 @@ const ActiveLearningView = View.extend({
                 });
                 this.getAnnotations();
             } else {
+                if (this.activeLearningStep <= activeLearningSteps.InitialLabeling) {
+                    // In initial labeling we want to see annotations as the job progresses
+                    this.getAnnotations();
+                }
                 // There is a job running
                 this.waitForJobCompletion(previousJobs[0]._id);
             }
@@ -397,6 +401,8 @@ const ActiveLearningView = View.extend({
                         this.annotationsByImageId[imageId][key] = backboneModel;
                         if (key === 'predictions') {
                             this.computeAverageCertainty(backboneModel);
+                        } else if (!this.availableImages.includes(imageId)) {
+                            this.availableImages.push(imageId);
                         }
                     }));
                 }
