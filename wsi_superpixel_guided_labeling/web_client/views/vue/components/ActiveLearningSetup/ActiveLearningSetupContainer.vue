@@ -23,6 +23,7 @@ export default Vue.extend({
 
 <template>
   <div
+    id="setupContainer"
     :key="activeLearningStep"
     class="h-active-learning-container"
   >

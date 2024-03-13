@@ -200,10 +200,38 @@ const ActiveLearningView = View.extend({
         } else {
             // Case 2: superpixels/annotations already exist, so we can mount the vue component without
             // retrieving the job XML.
-            this.mountVueComponent();
+            this.vueComponentChanged();
         }
     },
-
+    vueComponentChanged() {
+        if (this.vueApp) {
+            // The app component exists
+            const elId = this.vueApp.$el.id;
+            if (
+                (this.activeLearningStep <= 1 && elId === 'setupContainer') ||
+                (this.activeLearningStep > 1 && elId === 'learningContainer')
+            ) {
+                // We alreay have the correct component mounted, no need to
+                // re-create it. Just update the props.
+                return this.updateVueComponent();
+            }
+        }
+        return this.mountVueComponent();
+    },
+    updateVueComponent() {
+        const exceptions = ['router', 'apiRoot', 'trainingDataFolderId', 'backboneParent'];
+        _.forEach(Object.keys(this.vueApp.$props), (prop) => {
+            if (!exceptions.includes(prop)) {
+                if (prop === 'imageNamesById') {
+                    _.forEach(Object.keys(this.imageItemsById), (imageId) => {
+                        this.vueApp.$props[prop][imageId] = this.imageItemsById[imageId].name;
+                    });
+                } else {
+                    this.vueApp.$props[prop] = this[prop];
+                }
+            }
+        });
+    },
     mountVueComponent() {
         if (this.vueApp) {
             this.vueApp.$destroy();
@@ -378,9 +406,6 @@ const ActiveLearningView = View.extend({
             this.synchronizeCategories();
             if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
-            } else if (this.availableImages.length >= 1) {
-                this.vueApp.availableImages = this.availableImages;
-                return;
             }
             return this.startActiveLearning();
         });
@@ -564,7 +589,7 @@ const ActiveLearningView = View.extend({
                 flattenedSpec.parameters.certainty.values.length
             );
             this.certaintyMetrics = hasCertaintyMetrics ? flattenedSpec.parameters.certainty.values : null;
-            return this.mountVueComponent();
+            return this.vueComponentChanged();
         });
     },
 
