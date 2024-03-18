@@ -646,7 +646,11 @@ const ActiveLearningView = View.extend({
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
-            data: data
+            data: {
+                jobId: this.lastRunJobId,
+                randominput: false,
+                train: true
+            }
         }).done((job) => {
             this.waitForJobCompletion(job._id, goToNextStep);
         });
@@ -688,7 +692,8 @@ const ActiveLearningView = View.extend({
             radius,
             girderApiUrl: '',
             girderToken: '',
-            certainty: certaintyMetric
+            certainty: certaintyMetric,
+            train: false
         });
         this.activeLearningStep = activeLearningSteps.InitialLabeling;
         this.getAnnotations();
