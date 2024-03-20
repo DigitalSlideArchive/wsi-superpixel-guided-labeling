@@ -10,6 +10,7 @@ import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.v
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 
 import { store, updatePixelmapLayerStyle } from '../store.js';
+import { viewMode } from '../constants.js';
 
 export default Vue.extend({
     components: {
@@ -65,6 +66,12 @@ export default Vue.extend({
         },
         categories() {
             return store.categories;
+        },
+        mode() {
+            return store.mode;
+        },
+        viewMode() {
+            return viewMode;
         }
     },
     watch: {
@@ -261,15 +268,18 @@ export default Vue.extend({
     id="learningContainer"
     class="h-active-learning-container"
   >
-    <active-learning-keyboard-shortcuts />
+    <active-learning-keyboard-shortcuts v-if="mode === viewMode.Guided" />
     <annotation-opacity-control
+      v-if="mode !== viewMode.Review"
+      :active-learning-setup="false"
       :overlay-layers="overlayLayers"
     />
     <div
       ref="map"
       class="h-active-learning-map"
     />
-    <active-learning-film-strip />
+    <active-learning-film-strip v-if="mode === viewMode.Guided" />
+    <active-learning-review-container v-if="mode === viewMode.Review" />
   </div>
 </template>
 

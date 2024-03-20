@@ -2,7 +2,7 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { hotkeys as hotkeysConsts } from './ActiveLearning/constants';
+import { hotkeys as hotkeysConsts, schemeTableau10 } from './constants';
 
 const store = Vue.observable({
     selectedIndex: 0,
@@ -18,9 +18,13 @@ const store = Vue.observable({
     predictions: false,
     currentAverageCertainty: 0,
     categories: [],
+    categoriesAndIndices: [],
     lastCategorySelected: null,
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
-    strokeOpacity: 1.0
+    strokeOpacity: 1.0,
+    mode: 0,
+    pixelmapPaintBrush: false,
+    currentImageId: ''
 });
 
 const previousCard = () => {
@@ -53,6 +57,12 @@ const assignHotkey = (oldkey, newKey) => {
         const idx = _.findIndex(hotkeysConsts, (k) => !store.hotkeys.has(k));
         store.hotkeys.set(hotkeysConsts[idx], oldVal);
     }
+};
+
+const getFillColor = (index) => {
+    const hexColor = schemeTableau10[index % 10];
+    const [r, g, b] = hexColor.slice(1).match(/.{1,2}/g);
+    return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, 0.5)`;
 };
 
 /**
@@ -96,5 +106,6 @@ export {
     nextCard,
     previousCard,
     assignHotkey,
-    updatePixelmapLayerStyle
+    updatePixelmapLayerStyle,
+    getFillColor
 };
