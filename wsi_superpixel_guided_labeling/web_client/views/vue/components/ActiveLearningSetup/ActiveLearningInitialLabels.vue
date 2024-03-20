@@ -28,7 +28,6 @@ export default Vue.extend({
     data() {
         return {
             hasLoaded: false,
-            showInfoContainer: true,
 
             // data tracking current categories/currently active category
             categoryIndex: 0,
@@ -449,60 +448,13 @@ export default Vue.extend({
       :disabled="!overlayLayer"
     />
     <!-- Information Panel -->
-    <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
-      <mouse-and-keyboard-controls
-        v-if="showInfoContainer"
-        :active-learning-setup="true"
-        :pixelmap-paint-brush="pixelmapPaintBrush"
-      />
-      <i class="icon-info-circled" />
-      <button
-        class="h-collapse-button"
-        @click="showInfoContainer = !showInfoContainer"
-      >
-        <i
-          v-if="showInfoContainer"
-          class="icon-angle-double-right"
-          data-toggle="tooltip"
-          title="Hide info panel"
-        />
-        <i
-          v-else
-          class="icon-angle-double-left"
-          data-toggle="tooltip"
-          title="Show info panel"
-        />
-      </button>
-    </div>
+    <mouse-and-keyboard-controls
+      :pixelmap-paint-brush="pixelmapPaintBrush"
+    />
   </div>
 </template>
 
 <style scoped>
-.h-collapsed {
-    max-width: fit-content;
-    height: auto;
-}
-
-.h-collapse-button {
-    border: none;
-    background-color: transparent;
-    width: fit-content;
-    height: fit-content;
-}
-
-.h-setup-categories-information {
-    z-index: 1000;
-    position: absolute;
-    top: 45px;
-    right: 20px;
-    width: 350px;
-    display: flex;
-    background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
-    padding: 5px;
-}
-
 .h-setup-categories-map {
     min-height: 100vh;
     border: 1px solid #f0f0f0;
