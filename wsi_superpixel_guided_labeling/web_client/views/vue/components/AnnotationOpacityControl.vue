@@ -4,7 +4,12 @@ import _ from 'underscore';
 import { store, updatePixelmapLayerStyle } from './store.js';
 
 export default {
-    props: ['fillColor', 'overlayLayers'],
+    props: ['categoryIndex', 'overlayLayers'],
+    data() {
+        return {
+            fillColor: 'rgba(0, 0, 0, 1)'
+        };
+    },
     computed: {
         config() {
             if (store.backboneParent) {
@@ -31,6 +36,9 @@ export default {
         opacitySlider() {
             this.updateConfigData();
             updatePixelmapLayerStyle(this.overlayLayers);
+        },
+        categoryIndex() {
+            this.fillColor = store.categoriesAndIndices[this.categoryIndex].category.fillColor;
         },
         fillColor() {
             if (this.opacitySlider === 0) {
