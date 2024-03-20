@@ -5,9 +5,9 @@ import _ from 'underscore';
 import { confirm } from '@girder/core/dialog';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
-import ActiveLearningMergeConfirmation from './ActiveLearningMergeConfirmation.vue';
-import { store, getFillColor } from '../store.js';
-import { boundaryColor, viewMode } from '../constants.js';
+import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
+import { store, getFillColor } from './store.js';
+import { boundaryColor, viewMode } from './constants.js';
 
 const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*\d+,\s*\d+,\s*(\d?\.|)\d+\))$/;
 
@@ -18,9 +18,8 @@ export default Vue.extend({
     },
     props: [
         'imageNamesById',
-        'labeledSuperpixelCounts',
-        'currentFormErrors',
-        'categoryIndex',
+        'formErrors',
+        'currentIndex',
         'pixelmapRendered'
     ],
     data() {
@@ -29,7 +28,9 @@ export default Vue.extend({
             editing: -1,
             checkedCategories: [],
             currentCategoryLabel: 'New Category',
-            currentCategoryFillColor: getFillColor(0)
+            currentCategoryFillColor: getFillColor(0),
+            currentFormErrors: this.formErrors || [],
+            categoryIndex: this.index || 0
         };
     },
     computed: {
@@ -89,6 +90,26 @@ export default Vue.extend({
         },
         currentCategoryFormValid() {
             return this.currentFormErrors.length === 0;
+        },
+        labeledSuperpixelCounts() {
+            const counts = {};
+            _.forEach(store.categoriesAndIndices, (categoryAndIndices, index) => {
+                const label = categoryAndIndices.category.label;
+                const fillColor = categoryAndIndices.category.fillColor;
+                const key = `${index}_${label}`;
+                counts[key] = {
+                    count: 0,
+                    label,
+                    fillColor
+                };
+                if (label !== 'default') {
+                    const indicesByImage = categoryAndIndices.indices;
+                    _.forEach(Object.values(indicesByImage), (indicesSet) => {
+                        counts[key].count += indicesSet.size;
+                    });
+                }
+            });
+            return counts;
         }
     },
     watch: {

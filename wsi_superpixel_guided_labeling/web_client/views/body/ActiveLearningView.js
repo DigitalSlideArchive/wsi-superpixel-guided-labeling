@@ -17,6 +17,7 @@ import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
 
 import '../../stylesheets/body/learning.styl';
+import { viewMode } from '../vue/components/constants.js';
 
 const yaml = require('js-yaml');
 
@@ -219,7 +220,12 @@ const ActiveLearningView = View.extend({
         }).done((resp) => {
             // We will want to refactor the vue components so we only have one container.
             let vm;
+            const imageNamesById = {};
+            _.forEach(Object.keys(this.imageItemsById), (imageId) => {
+                imageNamesById[imageId] = this.imageItemsById[imageId].name;
+            });
             if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+                store.mode = viewMode.Guided;
                 vm = new ActiveLearningContainer({
                     el,
                     propsData: {
@@ -231,14 +237,12 @@ const ActiveLearningView = View.extend({
                         apiRoot: getApiRoot(),
                         backboneParent: this,
                         currentAverageCertainty: this.currentAverageCertainty,
-                        categoryMap: this.categoryMap
+                        categoryMap: this.categoryMap,
+                        imageNamesById
                     }
                 });
             } else {
-                const imageNamesById = {};
-                _.forEach(Object.keys(this.imageItemsById), (imageId) => {
-                    imageNamesById[imageId] = this.imageItemsById[imageId].name;
-                });
+                store.mode = viewMode.Labeling;
                 vm = new ActiveLearningSetupContainer({
                     el,
                     propsData: {

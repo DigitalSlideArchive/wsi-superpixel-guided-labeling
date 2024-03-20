@@ -47,6 +47,9 @@ const nextCard = () => {
     }
 };
 
+/**
+ * UTILITY FUNCTIONS
+*/
 const assignHotkey = (oldkey, newKey) => {
     // Check for duplicate key bindings
     const oldVal = store.hotkeys.get(newKey);
