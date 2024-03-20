@@ -30,7 +30,7 @@ export default Vue.extend({
 
 <template>
   <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
-    <div>
+    <div v-if="showInfoContainer">
       <h6 v-if="labeling">
         Annotations
       </h6>

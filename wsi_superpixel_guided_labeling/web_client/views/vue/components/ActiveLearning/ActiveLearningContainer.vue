@@ -6,8 +6,9 @@ import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
-import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
+import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
+import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 
 import { store, updatePixelmapLayerStyle } from '../store.js';
 import { viewMode } from '../constants.js';
@@ -15,8 +16,9 @@ import { viewMode } from '../constants.js';
 export default Vue.extend({
     components: {
         ActiveLearningFilmStrip,
-        ActiveLearningKeyboardShortcuts,
-        AnnotationOpacityControl
+        AnnotationOpacityControl,
+        ActiveLearningLabeling,
+        MouseAndKeyboardControls
     },
     props: [
         'router',
@@ -27,7 +29,8 @@ export default Vue.extend({
         'apiRoot',
         'backboneParent',
         'currentAverageCertainty',
-        'categoryMap'
+        'categoryMap',
+        'imageNamesById'
     ],
     data() {
         return {
@@ -125,11 +128,12 @@ export default Vue.extend({
             this.currentImageMetadata = resp;
             this.createImageViewer();
             this.updatePageSize();
+            this.createCategories();
         });
     },
     methods: {
         updateMapBoundsForSelection() {
-            if (!this.viewerWidget) {
+            if (!this.viewerWidget || !this.viewerWidget.viewer) {
                 return;
             }
             // Center the selected superpixel
@@ -241,6 +245,9 @@ export default Vue.extend({
             }
         },
         updatePageSize() {
+            if (this.mode !== viewMode.Guided) {
+                return;
+            }
             this.windowResize = true;
             // compute how many cards to show
             const el = document.getElementById('filmstrip-cards');
@@ -258,6 +265,57 @@ export default Vue.extend({
                 // Force an update
                 this.updateSelectedPage(this.page, oldPage);
             }
+        },
+        /**
+         * Parse existing label annotations to populate the categories used for labeling.
+         */
+        createCategories() {
+            // FIXME: Factor this out to use in InitialLabels as well
+            _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
+                if (_.has(annotations, 'labels')) {
+                    const pixelmapElement = annotations.labels.get('annotation').elements[0];
+                    const existingCategories = _.map(this.categoriesAndIndices, (category) => category.category.label);
+                    this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
+                }
+            });
+        },
+        /**
+         * Given a pixelmap annotation element and a list of categories, work to populate the component's
+         * `categories` data property. For each category in the annotation, add the labeled indices to that
+         * object. As a side effect, also populate the `existingCategories` parameter, which is used by the calling function
+         * above.
+         * @param {Object} pixelmapElement
+         * @param {number} imageId
+         * @param {string[]} existingCategories
+         */
+        createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories) {
+            // FIXME: Factor this out to use in InitialLabels as well
+            _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
+                if (categoryIndex !== 0) {
+                    // For each non-default category, get all the labeled indices
+                    // for this superpixel element.
+                    const labeledSuperpixels = new Set();
+                    _.forEach(pixelmapElement.values, (value, index) => {
+                        if (value === categoryIndex) {
+                            labeledSuperpixels.add(index);
+                        }
+                    });
+                    // Either add the category to the initial label UI,
+                    // or increment the count if it already exists.
+                    const categoryToUpdateIndex = _.findIndex(store.categoriesAndIndices,
+                        (categoryAndIndices) => categoryAndIndices.category.label === category.label);
+                    if (categoryToUpdateIndex === -1) {
+                        const indices = {};
+                        indices[this.currentImageId] = labeledSuperpixels;
+                        store.categoriesAndIndices.push({
+                            category,
+                            indices
+                        });
+                    } else if (labeledSuperpixels.size) {
+                        store.categoriesAndIndices[categoryToUpdateIndex].indices[imageId] = labeledSuperpixels;
+                    }
+                }
+            });
         }
     }
 });
@@ -268,18 +326,28 @@ export default Vue.extend({
     id="learningContainer"
     class="h-active-learning-container"
   >
-    <active-learning-keyboard-shortcuts v-if="mode === viewMode.Guided" />
+    <!-- Labels Panel -->
+    <active-learning-labeling
+      :image-names-by-id="imageNamesById"
+      :pixelmap-rendered="overlayLayers.length > 0"
+    />
+    <!-- Information Panel -->
+    <mouse-and-keyboard-controls
+      :pixelmap-paint-brush="false"
+    />
+    <!-- Opacity Slider -->
     <annotation-opacity-control
       v-if="mode !== viewMode.Review"
       :active-learning-setup="false"
       :overlay-layers="overlayLayers"
     />
+    <!-- Slide Image -->
     <div
       ref="map"
       class="h-active-learning-map"
     />
+    <!-- Prediction Chips -->
     <active-learning-film-strip v-if="mode === viewMode.Guided" />
-    <active-learning-review-container v-if="mode === viewMode.Review" />
   </div>
 </template>
 

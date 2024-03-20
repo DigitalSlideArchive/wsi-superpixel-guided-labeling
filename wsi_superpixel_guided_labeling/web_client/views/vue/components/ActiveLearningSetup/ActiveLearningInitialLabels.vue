@@ -5,7 +5,7 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import ActiveLearningLabeling from './ActiveLearningLabeling.vue';
+import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 import { comboHotkeys, boundaryColor } from '../constants.js';
@@ -65,26 +65,6 @@ export default Vue.extend({
         allNewCategories() {
             const activeLearningCategories = _.map(this.categoriesAndIndices, (category) => category.category);
             return [defaultCategory, ...activeLearningCategories];
-        },
-        labeledSuperpixelCounts() {
-            const counts = {};
-            _.forEach(this.categoriesAndIndices, (categoryAndIndices, index) => {
-                const label = categoryAndIndices.category.label;
-                const fillColor = categoryAndIndices.category.fillColor;
-                const key = `${index}_${label}`;
-                counts[key] = {
-                    count: 0,
-                    label,
-                    fillColor
-                };
-                if (label !== 'default') {
-                    const indicesByImage = categoryAndIndices.indices;
-                    _.forEach(Object.values(indicesByImage), (indicesSet) => {
-                        counts[key].count += indicesSet.size;
-                    });
-                }
-            });
-            return counts;
         },
         hotkeys() {
             return store.hotkeys;
@@ -427,9 +407,8 @@ export default Vue.extend({
     <!-- Labeling Dialog -->
     <active-learning-labeling
       :image-names-by-id="imageNamesById"
-      :labeled-superpixel-counts="labeledSuperpixelCounts"
-      :current-form-errors="currentFormErrors"
-      :category-index="categoryIndex"
+      :form-errors="currentFormErrors"
+      :current-index="categoryIndex"
       :pixelmap-rendered="pixelmapRendered"
       :available-images="availableImages"
       @combine-categories="combineCategoriesHandler"

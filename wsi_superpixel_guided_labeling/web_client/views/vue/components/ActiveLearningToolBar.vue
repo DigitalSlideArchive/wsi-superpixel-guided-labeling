@@ -4,16 +4,14 @@ import Vue from 'vue';
 import { store } from './store.js';
 
 export default Vue.extend({
-    components: {},
-    data() {
-        return {
-            selected: 0
-        };
-    },
-    computed: {},
-    watch: {
-        selected() {
-            store.mode = this.selected;
+    computed: {
+        selected: {
+            get() {
+                return store.mode;
+            },
+            set(newMode) {
+                store.mode = newMode;
+            }
         }
     },
     methods: {}
