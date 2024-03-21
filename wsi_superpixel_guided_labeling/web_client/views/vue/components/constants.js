@@ -33,9 +33,10 @@ export const schemeTableau10 = [
 ];
 
 export const viewMode = {
-    Labeling: 0,
-    Guided: 1,
-    Review: 2
+    Setup: 0,
+    Labeling: 1,
+    Guided: 2,
+    Review: 3
 };
 
 export const boundaryColor = 'rgba(0, 0, 0, 1)';

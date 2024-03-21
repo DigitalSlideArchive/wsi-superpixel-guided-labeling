@@ -1,6 +1,7 @@
 <script>
 import Vue from 'vue';
 
+import { viewMode } from './constants.js';
 import { store } from './store.js';
 
 export default Vue.extend({
@@ -12,6 +13,9 @@ export default Vue.extend({
             set(newMode) {
                 store.mode = newMode;
             }
+        },
+        viewMode() {
+            return viewMode;
         }
     },
     methods: {}
@@ -24,23 +28,23 @@ export default Vue.extend({
     <div class="btn-group col-sm-3 active-learning-mode-buttons">
       <button
         class="btn btn-default"
-        :class="[selected === 0 && 'btn-primary']"
-        @click="selected = 0"
+        :class="[selected === viewMode.Labeling && 'btn-primary']"
+        @click="selected = viewMode.Labeling"
       >
         <i class="icon-pencil" />
       </button>
       <button
         class="btn btn-default"
-        :class="[selected === 1 && 'btn-primary']"
-        @click="selected = 1"
+        :class="[selected === viewMode.Guided && 'btn-primary']"
+        @click="selected = viewMode.Guided"
       >
         <i class="icon-video" />
       </button>
       <button
         class="btn btn-default"
-        :class="[selected === 2 && 'btn-primary']"
+        :class="[selected === viewMode.Review && 'btn-primary']"
         :disabled="true"
-        @click="selected = 2"
+        @click="selected = viewMode.Review"
       >
         <i class="icon-th" />
       </button>
