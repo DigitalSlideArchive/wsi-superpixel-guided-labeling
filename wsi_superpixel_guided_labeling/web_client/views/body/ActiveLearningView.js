@@ -12,13 +12,12 @@ import JobStatus from '@girder/jobs/JobStatus.js';
 import { parse } from '@girder/slicer_cli_web/parser';
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
-import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
-import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
+import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGlobalContainer.vue';
+// import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
 import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
 
 import '../../stylesheets/body/learning.styl';
-import { viewMode } from '../vue/components/constants.js';
 
 const yaml = require('js-yaml');
 
@@ -260,45 +259,27 @@ const ActiveLearningView = View.extend({
             dataType: 'script',
             cache: true
         }).done((resp) => {
-            // We will want to refactor the vue components so we only have one container.
-            let vm;
             const imageNamesById = {};
             _.forEach(Object.keys(this.imageItemsById), (imageId) => {
                 imageNamesById[imageId] = this.imageItemsById[imageId].name;
             });
-            if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
-                store.mode = viewMode.Guided;
-                vm = new ActiveLearningContainer({
-                    el,
-                    propsData: {
-                        router,
-                        trainingDataFolderId: this.trainingDataFolderId,
-                        annotationsByImageId: this.annotationsByImageId,
-                        annotationBaseName: this.annotationBaseName,
-                        sortedSuperpixelIndices: this.sortedSuperpixelIndices,
-                        apiRoot: getApiRoot(),
-                        backboneParent: this,
-                        currentAverageCertainty: this.currentAverageCertainty,
-                        categoryMap: this.categoryMap,
-                        imageNamesById
-                    }
-                });
-            } else {
-                store.mode = viewMode.Labeling;
-                vm = new ActiveLearningSetupContainer({
-                    el,
-                    propsData: {
-                        backboneParent: this,
-                        imageNamesById,
-                        annotationsByImageId: this.annotationsByImageId,
-                        activeLearningStep: this.activeLearningStep,
-                        certaintyMetrics: this.certaintyMetrics,
-                        availableImages: this.availableImages,
-                        categoryMap: this.categoryMap
-                    }
-                });
-            }
-            this.vueApp = vm;
+            this.vueApp = new ActiveLearningGlobalContainer({
+                el,
+                propsData: {
+                    backboneParent: this,
+                    imageNamesById,
+                    annotationsByImageId: this.annotationsByImageId,
+                    activeLearningStep: this.activeLearningStep,
+                    certaintyMetrics: this.certaintyMetrics,
+                    router,
+                    trainingDataFolderId: this.trainingDataFolderId,
+                    annotationBaseName: this.annotationBaseName,
+                    sortedSuperpixelIndices: this.sortedSuperpixelIndices,
+                    apiRoot: getApiRoot(),
+                    currentAverageCertainty: this.currentAverageCertainty,
+                    categoryMap: this.categoryMap
+                }
+            });
         });
     },
 

@@ -92,10 +92,7 @@ export default Vue.extend({
     },
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
-        store.currentImageId = Object.keys(this.imageNamesById)[0];
         this.superpixelAnnotation = this.annotationsByImageId[store.currentImageId].labels;
-        store.annotationsByImageId = this.annotationsByImageId;
-        store.backboneParent = this.backboneParent;
         this.setupViewer();
         this.createCategories();
     },

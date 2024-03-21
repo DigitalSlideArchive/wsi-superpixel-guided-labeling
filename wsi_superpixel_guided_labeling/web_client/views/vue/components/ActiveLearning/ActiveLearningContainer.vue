@@ -106,16 +106,8 @@ export default Vue.extend({
     },
     mounted() {
         // set store
-        store.apiRoot = this.apiRoot;
-        store.annotationsByImageId = this.annotationsByImageId;
-        store.backboneParent = this.backboneParent;
-        store.page = 0;
         store.maxPage = this.sortedSuperpixelIndices.length / this.pageSize;
         store.pageSize = this.pageSize;
-        store.selectedIndex = 0;
-        store.predictions = false;
-        store.currentAverageCertainty = this.currentAverageCertainty;
-        store.categories = [...this.categoryMap.values()];
         window.addEventListener('resize', this.updatePageSize);
 
         this.updateConfig();
