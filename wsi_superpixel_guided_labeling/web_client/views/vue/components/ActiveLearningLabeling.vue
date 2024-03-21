@@ -279,254 +279,260 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div
-    :class="{'h-labeling-container': true, 'h-collapsed': !showLabelingContainer}"
-    :style="[mode !== viewMode.Labeling && {'height': 'auto'}]"
-  >
-    <div class="h-container-title">
-      <button
-        class="h-collapse-button"
-        @click="showLabelingContainer = !showLabelingContainer"
-      >
-        <i
-          v-if="showLabelingContainer"
-          class="icon-angle-double-left"
-          data-toggle="tooltip"
-          title="Hide labeling editor"
-        />
-        <i
+  <div>
+    <div class="h-category-form slide-name-container">
+      <div class="h-form-controls">
+        <label
+          for="currentImage"
+          :style="[{'margin-right': '5px'}]"
+        >
+          Image
+        </label>
+        <select
+          v-if="mode === viewMode.Labeling"
+          id="currentImage"
+          v-model="currentImageId"
+          :class="['h-al-image-select', newImagesAvailable && 'h-al-image-select-new']"
+          :style="[!availableImages.includes(currentImageId) && {'font-style': 'italic'}]"
+          @click="newImagesAvailable = false"
+        >
+          <option
+            v-for="imageId in Object.keys(imageNamesById)"
+            :key="imageId"
+            :value="imageId"
+            :disabled="!annotationsByImageId[imageId].labels"
+            :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
+          >
+            {{ imageNamesById[imageId] }}
+          </option>
+        </select>
+        <div
           v-else
-          class="icon-angle-double-right"
+          class="slide-name"
           data-toggle="tooltip"
-          title="Show labeling editor"
-        />
-      </button>
-      <h4 v-if="showLabelingContainer">
-        <i class="icon-tags" />
-        Labeling
-      </h4>
-      <i
-        v-else
-        class="icon-tags"
-      />
-      <div
-        v-if="mode === viewMode.Labeling && pixelmapRendered"
-        class="btn-group"
-      >
-        <button
-          v-if="showLabelingContainer"
-          :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
-          data-toggle="tooltip"
-          title="Left-click + drag to pan"
-          @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+          :title="imageNamesById[currentImageId]"
         >
-          <i class="icon-move" />
-        </button>
-        <button
-          v-if="showLabelingContainer"
-          :class="['btn btn-default', pixelmapPaintBrush && 'active btn-primary']"
-          data-toggle="tooltip"
-          title="Left-click + drag to paint"
-          @click="pixelmapPaintBrush = !pixelmapPaintBrush"
-        >
-          <i class="icon-paint-roller" />
-        </button>
+          {{ imageNamesById[currentImageId] }}
+        </div>
       </div>
     </div>
     <div
-      v-if="showLabelingContainer"
-      class="h-al-setup-categories"
+      :class="{'h-labeling-container': true, 'h-collapsed': !showLabelingContainer}"
+      :style="[mode !== viewMode.Labeling && {'height': 'auto'}]"
     >
-      <div v-if="pixelmapRendered">
-        <div class="h-category-form">
-          <div class="h-form-controls">
-            <div>
-              <label for="currentImage">Image</label>
-              <select
-                v-if="mode === viewMode.Labeling"
-                id="currentImage"
-                v-model="currentImageId"
-                :class="['h-al-image-select', newImagesAvailable && 'h-al-image-select-new']"
-                :style="[!availableImages.includes(currentImageId) && {'font-style': 'italic'}]"
-                @click="newImagesAvailable = false"
-              >
-                <option
-                  v-for="imageId in Object.keys(imageNamesById)"
-                  :key="imageId"
-                  :value="imageId"
-                  :disabled="!annotationsByImageId[imageId].labels"
-                  :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
-                >
-                  {{ imageNamesById[imageId] }}
-                </option>
-              </select>
-              <div
-                v-else
-                class="slide-name"
-              >
-                {{ imageNamesById[currentImageId] }}
-              </div>
-            </div>
-          </div>
+      <div class="h-container-title">
+        <button
+          class="h-collapse-button"
+          @click="showLabelingContainer = !showLabelingContainer"
+        >
+          <i
+            v-if="showLabelingContainer"
+            class="icon-angle-double-left"
+            data-toggle="tooltip"
+            title="Hide labeling editor"
+          />
+          <i
+            v-else
+            class="icon-angle-double-right"
+            data-toggle="tooltip"
+            title="Show labeling editor"
+          />
+        </button>
+        <h4 v-if="showLabelingContainer">
+          <i class="icon-tags" />
+          Labeling
+        </h4>
+        <i
+          v-else
+          class="icon-tags"
+        />
+        <div
+          v-if="mode === viewMode.Labeling"
+          class="btn-group"
+        >
+          <button
+            v-if="showLabelingContainer"
+            :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
+            data-toggle="tooltip"
+            title="Left-click + drag to pan"
+            @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+          >
+            <i class="icon-move" />
+          </button>
+          <button
+            v-if="showLabelingContainer"
+            :class="['btn btn-default', pixelmapPaintBrush && 'active btn-primary']"
+            data-toggle="tooltip"
+            title="Left-click + drag to paint"
+            @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+          >
+            <i class="icon-paint-roller" />
+          </button>
         </div>
-        <div>
-          <table class="table">
-            <tr>
-              <th><i class="icon-keyboard" /></th>
-              <th>Label</th>
-              <th>Superpixels</th>
-            </tr>
-            <tr
-              v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
-              :key="index"
-              :class="{'h-selected-row': categoryIndex === index}"
-              :disabled="mode === viewMode.Labeling"
-              @click="$parent.categoryIndex = index"
-            >
-              <td>{{ hotkeyFromIndex(index + 1) }}</td>
-              <td
-                v-if="editing === index"
-                class="table-labels"
+      </div>
+      <div
+        v-if="showLabelingContainer"
+        class="h-al-setup-categories"
+      >
+        <div v-if="pixelmapRendered">
+          <div>
+            <table class="table">
+              <tr>
+                <th><i class="icon-keyboard" /></th>
+                <th>Label</th>
+                <th>Superpixels</th>
+              </tr>
+              <tr
+                v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
+                :key="index"
+                :class="{'h-selected-row': categoryIndex === index}"
+                :disabled="mode === viewMode.Labeling"
+                @click="$parent.categoryIndex = index"
               >
-                <input
-                  id="category-label"
-                  :ref="`label_${index}`"
-                  v-model="currentCategoryLabel"
-                  class="form-control input-sm category-input"
-                  @keyup.enter="editing = -1"
-                  @blur="editing = -1"
-                  @focus="$event.target.select()"
+                <td>{{ hotkeyFromIndex(index + 1) }}</td>
+                <td
+                  v-if="editing === index"
+                  class="table-labels"
                 >
-                <button
-                  class="btn h-table-button"
-                  data-toggle="tooltip"
-                  title="Accept changes"
-                  @click="editing = -1"
-                >
-                  <i class="icon-ok" />
-                </button>
-              </td>
-              <td
-                v-else
-                class="table-labels"
-              >
-                {{ labeledSuperpixelCounts[key].label }}
-                <div
-                  v-if="mode === viewMode.Labeling"
-                  class="editing-icons"
-                >
+                  <input
+                    id="category-label"
+                    :ref="`label_${index}`"
+                    v-model="currentCategoryLabel"
+                    class="form-control input-sm category-input"
+                    @keyup.enter="editing = -1"
+                    @blur="editing = -1"
+                    @focus="$event.target.select()"
+                  >
                   <button
                     class="btn h-table-button"
                     data-toggle="tooltip"
-                    title="Edit label name"
-                    @click="editing = index"
+                    title="Accept changes"
+                    @click="editing = -1"
                   >
-                    <i class="icon-pencil" />
+                    <i class="icon-ok" />
                   </button>
-                </div>
-              </td>
-              <td>{{ labeledSuperpixelCounts[key].count }}</td>
-              <td
-                id="colorPickerInput"
-                :disabled="mode === viewMode.Labeling"
-                @click="(e) => togglePicker(e, index)"
-              >
-                <color-picker-input
-                  :key="key"
-                  ref="colorpicker"
-                  v-model="currentCategoryFillColor"
-                  class="condensed-color-picker"
-                  :color="labeledSuperpixelCounts[key].fillColor"
-                  data-toggle="tooltip"
-                  title="Change label color"
-                />
-              </td>
-              <td>
-                <input
-                  v-model="checkedCategories"
-                  type="checkbox"
-                  :value="index"
-                  :disabled="mode !== viewMode.Labeling"
+                </td>
+                <td
+                  v-else
+                  class="table-labels"
                 >
-              </td>
-            </tr>
-          </table>
-          <div
-            v-if="mode === viewMode.Labeling"
-            class="h-remove-categories"
-          >
-            <button
-              class="btn btn-danger btn-xs"
-              :disabled="checkedCategories.length < 1"
-              data-toggle="tooltip"
-              title="Delete category"
-              @click="() => deleteCategory(checkedCategories)"
+                  {{ labeledSuperpixelCounts[key].label }}
+                  <div
+                    v-if="mode === viewMode.Labeling"
+                    class="editing-icons"
+                  >
+                    <button
+                      class="btn h-table-button"
+                      data-toggle="tooltip"
+                      title="Edit label name"
+                      @click="editing = index"
+                    >
+                      <i class="icon-pencil" />
+                    </button>
+                  </div>
+                </td>
+                <td>{{ labeledSuperpixelCounts[key].count }}</td>
+                <td
+                  id="colorPickerInput"
+                  :disabled="mode === viewMode.Labeling"
+                  @click="(e) => togglePicker(e, index)"
+                >
+                  <color-picker-input
+                    :key="key"
+                    ref="colorpicker"
+                    v-model="currentCategoryFillColor"
+                    class="condensed-color-picker"
+                    :color="labeledSuperpixelCounts[key].fillColor"
+                    data-toggle="tooltip"
+                    title="Change label color"
+                  />
+                </td>
+                <td v-if="mode !== viewMode.Labeling">
+                  <input
+                    v-model="checkedCategories"
+                    type="checkbox"
+                    :value="index"
+                  >
+                </td>
+              </tr>
+            </table>
+            <div
+              v-if="mode === viewMode.Labeling"
+              class="h-remove-categories"
             >
-              <i class="icon-trash" />
-            </button>
-            <button
-              class="btn btn-warning btn-xs"
-              :disabled="checkedCategories.length < 2"
-              data-toggle="modal"
-              data-target="#mergeConfirmation"
-            >
-              <i
-                class="icon-merge-rows"
+              <button
+                class="btn btn-danger btn-xs"
+                :disabled="checkedCategories.length < 1"
                 data-toggle="tooltip"
-                title="Merge selected categories"
-              />
-            </button>
+                title="Delete category"
+                @click="() => deleteCategory(checkedCategories)"
+              >
+                <i class="icon-trash" />
+              </button>
+              <button
+                class="btn btn-warning btn-xs"
+                :disabled="checkedCategories.length < 2"
+                data-toggle="modal"
+                data-target="#mergeConfirmation"
+              >
+                <i
+                  class="icon-merge-rows"
+                  data-toggle="tooltip"
+                  title="Merge selected categories"
+                />
+              </button>
+            </div>
           </div>
+          <button
+            v-if="mode === viewMode.Labeling"
+            class="btn btn-info btn-block"
+            :disabled="!currentCategoryFormValid"
+            @click="() => addCategory()"
+          >
+            <i class="icon-plus" /> Add Category
+          </button>
         </div>
-        <button
-          v-if="mode === viewMode.Labeling"
-          class="btn btn-info btn-block"
-          :disabled="!currentCategoryFormValid"
-          @click="() => addCategory()"
-        >
-          <i class="icon-plus" /> Add Category
-        </button>
       </div>
+      <div
+        v-if="!currentCategoryFormValid || !currentLabelsValid"
+        class="h-error-messages"
+      >
+        <p class="form-validation-error">
+          Please fix all errors to continue
+        </p>
+        <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
+          <li
+            v-for="error in currentFormErrors"
+            :key="error"
+            class="form-validation-error"
+          >
+            {{ error }}
+          </li>
+          <li
+            v-for="error in currentLabelingErrors"
+            :key="error"
+            class="form-validation-error"
+          >
+            {{ error }}
+          </li>
+        </ul>
+      </div>
+      <button
+        v-if="showLabelingContainer && mode === viewMode.Labeling"
+        class="btn btn-primary btn-block"
+        :disabled="!currentCategoryFormValid || !currentLabelsValid"
+        @click="beginTraining"
+      >
+        <i class="icon-star" /> Begin training
+      </button>
+      <active-learning-merge-confirmation
+        id="mergeConfirmation"
+        :callback="mergeCategory"
+        :category-name="currentCategoryLabel"
+        :fill-color="currentCategoryFillColor"
+        :selected-labels="selectedLabels"
+      />
     </div>
-    <div
-      v-if="!currentCategoryFormValid || !currentLabelsValid"
-      class="h-error-messages"
-    >
-      <p class="form-validation-error">
-        Please fix all errors to continue
-      </p>
-      <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
-        <li
-          v-for="error in currentFormErrors"
-          :key="error"
-          class="form-validation-error"
-        >
-          {{ error }}
-        </li>
-        <li
-          v-for="error in currentLabelingErrors"
-          :key="error"
-          class="form-validation-error"
-        >
-          {{ error }}
-        </li>
-      </ul>
-    </div>
-    <button
-      v-if="showLabelingContainer && mode === viewMode.Labeling"
-      class="btn btn-primary btn-block"
-      :disabled="!currentCategoryFormValid || !currentLabelsValid"
-      @click="beginTraining"
-    >
-      <i class="icon-star" /> Begin training
-    </button>
-    <active-learning-merge-confirmation
-      id="mergeConfirmation"
-      :callback="mergeCategory"
-      :category-name="currentCategoryLabel"
-      :fill-color="currentCategoryFillColor"
-      :selected-labels="selectedLabels"
-    />
   </div>
 </template>
 
@@ -534,7 +540,7 @@ export default Vue.extend({
 .h-labeling-container {
     z-index: 1000;
     position: absolute;
-    top: 5px;
+    top: 60px;
     left: 5px;
     width: 400px;
     display: flex;
@@ -543,7 +549,7 @@ export default Vue.extend({
     border-radius: 5px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
     padding: 5px;
-    height: 90vh;
+    height: 85vh;
     justify-content: space-between;
 }
 
@@ -587,9 +593,8 @@ h4 {
 }
 
 .h-form-controls {
-    max-width: 550px;
     display: flex;
-    flex-direction: column;
+    align-items: baseline;
 }
 
 .h-category-form {
@@ -672,5 +677,17 @@ tr:hover .editing-icons {
     text-overflow: ellipsis;
     text-wrap: nowrap;
     overflow: hidden;
+}
+
+.slide-name-container {
+    z-index: 1000;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 400px;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0,0,0,.5);
+    padding: 5px;
+    background-color: #fff;
 }
 </style>

@@ -39,6 +39,16 @@ export default {
             return '';
         }
     },
+    watch: {
+        selectedIndex: {
+            handler(idx) {
+                if (this.superpixelsToDisplay.length) {
+                    store.currentImageId = this.superpixelsToDisplay[idx].imageId;
+                }
+            },
+            immediate: true
+        }
+    },
     methods: {
         previousPage() {
             store.page = store.page - 1;
@@ -68,9 +78,6 @@ export default {
 
 <template>
   <div class="h-filmstrip">
-    <div class="h-slide-name">
-      <span> Current Slide: {{ slideName }}</span>
-    </div>
     <!-- previous button -->
     <button
       class="h-filmstrip-page-btn h-filmstrip-page-btn--prev btn"
@@ -140,13 +147,6 @@ export default {
     padding-bottom: 10px;
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 50;
-}
-
-.h-slide-name {
-    position: absolute;
-    top: 8px;
-    color: white;
-    left: 15px;
 }
 
 .h-filmstrip-cards {
