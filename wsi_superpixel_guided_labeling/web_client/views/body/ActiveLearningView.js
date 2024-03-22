@@ -1,6 +1,7 @@
 /* global $, __webpack_public_path__ */
 import View from '@girder/core/views/View';
 import { restRequest, getApiRoot } from '@girder/core/rest';
+import { confirm } from '@girder/core/dialog';
 import _ from 'underscore';
 
 import router from '@girder/histomicsui/router';
@@ -688,20 +689,29 @@ const ActiveLearningView = View.extend({
             restRequest({
                 url: `job/${jobId}`
             }).done((update) => {
-                if (update.status === JobStatus.SUCCESS) {
+                if (update.status >= JobStatus.SUCCESS) {
                     clearInterval(poll);
                     this.hideSpinner();
-                    if (goToNextStep) {
-                        // We might need to go back to the server for more data
-                        this.checkJobs();
-                    } else {
-                        // We're all done, grab the results
-                        this.lastRunJobId = jobId;
-                        this.updateFolderMetadata({ lastRunJobId: jobId });
-                        this.getAnnotations();
+                    if (update.status === JobStatus.SUCCESS) {
+                        if (goToNextStep) {
+                            // We might need to go back to the server for more data
+                            this.checkJobs();
+                        } else {
+                            // We're all done, grab the results
+                            this.lastRunJobId = jobId;
+                            this.updateFolderMetadata({ lastRunJobId: jobId });
+                            this.getAnnotations();
+                        }
+                    } else if (update.status === JobStatus.ERROR) {
+                        const logUrl = `${window.location.origin}/#job/${update._id}`;
+                        confirm({
+                            text: 'ERROR - Job failed',
+                            yesText: 'View Logs',
+                            noText: 'Dismiss',
+                            confirmCallback: () => { window.open(logUrl, '_blank'); }
+                        });
                     }
                 }
-                // TODO handle job failure
             });
         }, 2000);
     }
