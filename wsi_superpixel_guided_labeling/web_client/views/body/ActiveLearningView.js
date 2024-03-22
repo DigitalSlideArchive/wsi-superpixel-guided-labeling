@@ -169,9 +169,18 @@ const ActiveLearningView = View.extend({
             });
             if (previousJobs[0]) {
                 this.lastRunJobId = previousJobs[0]._id || '';
+                this.updateFolderMetadata({ lastRunJobId: this.lastRunJobId });
             }
 
             if (!previousJobs[0] || previousJobs[0].status !== JobStatus.RUNNING) {
+                // Check for lastRunJobId in metadata (in case of copied project)
+                restRequest({
+                    url: `folder/${this.trainingDataFolderId}`
+                }).done((folder) => {
+                    if (folder.meta.lastRunJobId) {
+                        this.lastRunJobId = folder.meta.lastRunJobId;
+                    }
+                });
                 this.getAnnotations();
             } else {
                 // There is a job running
@@ -592,13 +601,14 @@ const ActiveLearningView = View.extend({
     },
 
     retrain(goToNextStep) {
+        // Make sure that our folder ids are up-to-date
+        const data = this.generateClassificationJobData();
+        data.jobId = this.lastRunJobId;
+        data.randomInput = false;
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
-            data: {
-                jobId: this.lastRunJobId,
-                randominput: false
-            }
+            data: data
         }).done((job) => {
             this.waitForJobCompletion(job._id, goToNextStep);
         });
@@ -615,25 +625,40 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    generateInitialSuperpixels(radius, magnification, certaintyMetric) {
+    generateClassificationJobData() {
         // get the folders to store annotations, models, features
         const folders = this.childFolders.models;
         const annotationsFolderId = _.filter(folders, (folder) => folder.get('name') === 'Annotations')[0].get('_id');
         const featuresFolderId = _.filter(folders, (folder) => folder.get('name') === 'Features')[0].get('_id');
         const modelsFolderId = _.filter(folders, (folder) => folder.get('name') === 'Models')[0].get('_id');
-        const data = {
+        return {
             images: this.trainingDataFolderId,
             annotationDir: annotationsFolderId,
             features: featuresFolderId,
+            modeldir: modelsFolderId
+        };
+    },
+
+    generateInitialSuperpixels(radius, magnification, certaintyMetric) {
+        const data = this.generateClassificationJobData();
+        Object.assign(data, {
+            labels: JSON.stringify([]),
             magnification,
             radius,
-            labels: JSON.stringify([]),
-            modeldir: modelsFolderId,
             girderApiUrl: '',
             girderToken: '',
             certainty: certaintyMetric
-        };
+        });
         this.triggerJob(data, true);
+    },
+
+    updateFolderMetadata(data) {
+        restRequest({
+            type: 'PUT',
+            url: `folder/${this.trainingDataFolderId}/metadata`,
+            data: JSON.stringify(data),
+            contentType: 'application/json'
+        });
     },
 
     /****************************************************************
@@ -672,6 +697,7 @@ const ActiveLearningView = View.extend({
                     } else {
                         // We're all done, grab the results
                         this.lastRunJobId = jobId;
+                        this.updateFolderMetadata({ lastRunJobId: jobId });
                         this.getAnnotations();
                     }
                 }
