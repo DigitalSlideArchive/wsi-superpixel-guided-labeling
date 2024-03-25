@@ -14,13 +14,19 @@ export default Vue.extend({
         'imageNamesById',
         'annotationsByImageId',
         'activeLearningStep',
-        'certaintyMetrics'
+        'certaintyMetrics',
+        'availableImages',
+        'categoryMap'
     ]
 });
 </script>
 
 <template>
-  <div class="h-active-learning-container">
+  <div
+    id="setupContainer"
+    :key="activeLearningStep"
+    class="h-active-learning-container"
+  >
     <active-learning-initial-superpixels
       v-if="activeLearningStep === 0"
       :backbone-parent="backboneParent"
@@ -31,6 +37,8 @@ export default Vue.extend({
       :backbone-parent="backboneParent"
       :image-names-by-id="imageNamesById"
       :annotations-by-image-id="annotationsByImageId"
+      :available-images="availableImages"
+      :category-map="categoryMap"
     />
   </div>
 </template>
