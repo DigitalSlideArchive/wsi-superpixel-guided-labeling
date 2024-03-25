@@ -4,7 +4,6 @@ import _ from 'underscore';
 import { store, updatePixelmapLayerStyle } from './store.js';
 
 export default {
-    props: ['categoryIndex', 'overlayLayers'],
     data() {
         return {
             fillColor: 'rgba(0, 0, 0, 1)'
@@ -30,19 +29,22 @@ export default {
             set(value) {
                 store.strokeOpacity = parseFloat(value);
             }
+        },
+        categoryIndex() {
+            return store.categoryIndex;
         }
     },
     watch: {
         opacitySlider() {
             this.updateConfigData();
-            updatePixelmapLayerStyle(this.overlayLayers);
+            updatePixelmapLayerStyle();
         },
         categoryIndex() {
             this.fillColor = store.categoriesAndIndices[this.categoryIndex].category.fillColor;
         },
         fillColor() {
             if (this.opacitySlider === 0) {
-                updatePixelmapLayerStyle(this.overlayLayers);
+                updatePixelmapLayerStyle();
             }
         },
         folderId: {
@@ -93,13 +95,14 @@ export default {
     z-index: 100;
     position: absolute;
     top: 5px;
-    right: 5px;
+    right: 20px;
     padding: 5px;
     min-width: 200px;
     display: flex;
     background-color: white;
     border-radius: 1px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+    width: 350px;
 }
 
 .h-opacity-slider-label {

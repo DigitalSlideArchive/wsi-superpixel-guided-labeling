@@ -16,6 +16,9 @@ export default Vue.extend({
         },
         viewMode() {
             return viewMode;
+        },
+        activeLearningStep() {
+            return store.activeLearningStep;
         }
     },
     methods: {}
@@ -23,12 +26,17 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div class="active-learning-toolbar row">
+  <div
+    v-if="activeLearningStep > 0"
+    class="active-learning-toolbar row"
+  >
     <div class="col-sm-9" />
     <div class="btn-group col-sm-3 active-learning-mode-buttons">
       <button
         class="btn btn-default"
         :class="[selected === viewMode.Labeling && 'btn-primary']"
+        data-toggle="tooltip"
+        title="Labeling Mode"
         @click="selected = viewMode.Labeling"
       >
         <i class="icon-pencil" />
@@ -36,6 +44,9 @@ export default Vue.extend({
       <button
         class="btn btn-default"
         :class="[selected === viewMode.Guided && 'btn-primary']"
+        :disabled="activeLearningStep < 2"
+        data-toggle="tooltip"
+        title="Guided Mode"
         @click="selected = viewMode.Guided"
       >
         <i class="icon-video" />
@@ -44,6 +55,8 @@ export default Vue.extend({
         class="btn btn-default"
         :class="[selected === viewMode.Review && 'btn-primary']"
         :disabled="true"
+        data-toggle="tooltip"
+        title="Review Mode"
         @click="selected = viewMode.Review"
       >
         <i class="icon-th" />
