@@ -5,39 +5,15 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
-import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
-import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
-import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
-
 import { store, updatePixelmapLayerStyle } from '../store.js';
 import { viewMode } from '../constants.js';
 
 export default Vue.extend({
-    components: {
-        ActiveLearningFilmStrip,
-        AnnotationOpacityControl,
-        ActiveLearningLabeling,
-        MouseAndKeyboardControls
-    },
-    props: [
-        'router',
-        'trainingDataFolderId',
-        'annotationsByImageId',
-        'annotationBaseName',
-        'sortedSuperpixelIndices',
-        'apiRoot',
-        'backboneParent',
-        'currentAverageCertainty',
-        'categoryMap',
-        'imageNamesById'
-    ],
+    props: ['sortedSuperpixelIndices'],
     data() {
         return {
             pageSize: 8,
             currentImageId: '',
-            imageItemsById: {},
-            annotationsByImage: {},
             currentImageMetadata: {},
             map: null,
             featureLayer: null,
@@ -45,7 +21,6 @@ export default Vue.extend({
             selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
             initialZoom: 1,
-            overlayLayers: [],
             windowResize: false
         };
     },
@@ -75,6 +50,15 @@ export default Vue.extend({
         },
         viewMode() {
             return viewMode;
+        },
+        annotationsByImageId() {
+            return store.annotationsByImageId;
+        },
+        backboneParent() {
+            return store.backboneParent;
+        },
+        overlayLayers() {
+            return store.overlayLayers;
         }
     },
     watch: {
@@ -106,6 +90,7 @@ export default Vue.extend({
     },
     mounted() {
         // set store
+        store.overlayLayers = [];
         store.maxPage = this.sortedSuperpixelIndices.length / this.pageSize;
         store.pageSize = this.pageSize;
         window.addEventListener('resize', this.updatePageSize);
@@ -187,8 +172,8 @@ export default Vue.extend({
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
                     // There can be multiple overlays present, track all of them
-                    this.overlayLayers.push(layer);
-                    updatePixelmapLayerStyle(this.overlayLayers);
+                    store.overlayLayers.push(layer);
+                    updatePixelmapLayerStyle();
                 }
             });
             this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
@@ -197,8 +182,8 @@ export default Vue.extend({
                     const index = _.findIndex(this.overlayLayers, (overlay) => {
                         return overlay.id() === layer.id();
                     });
-                    this.overlayLayers.splice(index, 1);
-                    updatePixelmapLayerStyle(this.overlayLayers);
+                    store.overlayLayers.splice(index, 1);
+                    updatePixelmapLayerStyle();
                 }
             });
         },
@@ -314,41 +299,18 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div class="h-active-learning-container">
-    <!-- Labels Panel -->
-    <active-learning-labeling
-      :image-names-by-id="imageNamesById"
-      :pixelmap-rendered="overlayLayers.length > 0"
-    />
-    <!-- Information Panel -->
-    <mouse-and-keyboard-controls
-      :pixelmap-paint-brush="false"
-    />
-    <!-- Opacity Slider -->
-    <annotation-opacity-control
-      v-if="mode !== viewMode.Review"
-      :active-learning-setup="false"
-      :overlay-layers="overlayLayers"
-    />
+  <div>
     <!-- Slide Image -->
     <div
       ref="map"
       class="h-active-learning-map"
     />
-    <!-- Prediction Chips -->
-    <active-learning-film-strip v-if="mode === viewMode.Guided" />
   </div>
 </template>
 
 <style scoped>
-.h-active-learning-container {
-    width: 100%;
-    height: calc(100vh - 52px);
-    position: absolute;
-}
-
 .h-active-learning-map {
     width: 100%;
-    height: 100%;
+    height: 100vh;
 }
 </style>
