@@ -3,7 +3,7 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { comboHotkeys } from './constants';
+import { comboHotkeys } from '../constants.js';
 import { store, previousCard, nextCard, assignHotkey } from '../store.js';
 
 import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
@@ -133,7 +133,6 @@ export default Vue.extend({
 <template>
   <div class="h-hotkeys-container">
     <mouse-and-keyboard-controls
-      :active-learning-setup="false"
       :pixelmap-paint-brush="false"
     />
     <div class="h-hotkeys-header">

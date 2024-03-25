@@ -31,3 +31,12 @@ export const schemeTableau10 = [
     '#9c755f',
     '#bab0ab'
 ];
+
+export const viewMode = {
+    Setup: 0,
+    Labeling: 1,
+    Guided: 2,
+    Review: 3
+};
+
+export const boundaryColor = 'rgba(0, 0, 0, 1)';

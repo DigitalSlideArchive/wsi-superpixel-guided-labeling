@@ -5,35 +5,15 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
-import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
-import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
-
 import { store, updatePixelmapLayerStyle } from '../store.js';
+import { viewMode } from '../constants.js';
 
 export default Vue.extend({
-    components: {
-        ActiveLearningFilmStrip,
-        ActiveLearningKeyboardShortcuts,
-        AnnotationOpacityControl
-    },
-    props: [
-        'router',
-        'trainingDataFolderId',
-        'annotationsByImageId',
-        'annotationBaseName',
-        'sortedSuperpixelIndices',
-        'apiRoot',
-        'backboneParent',
-        'currentAverageCertainty',
-        'categoryMap'
-    ],
+    props: ['sortedSuperpixelIndices'],
     data() {
         return {
             pageSize: 8,
             currentImageId: '',
-            imageItemsById: {},
-            annotationsByImage: {},
             currentImageMetadata: {},
             map: null,
             featureLayer: null,
@@ -41,7 +21,6 @@ export default Vue.extend({
             selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
             initialZoom: 1,
-            overlayLayers: [],
             windowResize: false
         };
     },
@@ -65,6 +44,21 @@ export default Vue.extend({
         },
         categories() {
             return store.categories;
+        },
+        mode() {
+            return store.mode;
+        },
+        viewMode() {
+            return viewMode;
+        },
+        annotationsByImageId() {
+            return store.annotationsByImageId;
+        },
+        backboneParent() {
+            return store.backboneParent;
+        },
+        overlayLayers() {
+            return store.overlayLayers;
         }
     },
     watch: {
@@ -96,16 +90,9 @@ export default Vue.extend({
     },
     mounted() {
         // set store
-        store.apiRoot = this.apiRoot;
-        store.annotationsByImageId = this.annotationsByImageId;
-        store.backboneParent = this.backboneParent;
-        store.page = 0;
+        store.overlayLayers = [];
         store.maxPage = this.sortedSuperpixelIndices.length / this.pageSize;
         store.pageSize = this.pageSize;
-        store.selectedIndex = 0;
-        store.predictions = false;
-        store.currentAverageCertainty = this.currentAverageCertainty;
-        store.categories = [...this.categoryMap.values()];
         window.addEventListener('resize', this.updatePageSize);
 
         this.updateConfig();
@@ -118,11 +105,12 @@ export default Vue.extend({
             this.currentImageMetadata = resp;
             this.createImageViewer();
             this.updatePageSize();
+            this.createCategories();
         });
     },
     methods: {
         updateMapBoundsForSelection() {
-            if (!this.viewerWidget) {
+            if (!this.viewerWidget || !this.viewerWidget.viewer) {
                 return;
             }
             // Center the selected superpixel
@@ -184,8 +172,8 @@ export default Vue.extend({
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
                     // There can be multiple overlays present, track all of them
-                    this.overlayLayers.push(layer);
-                    updatePixelmapLayerStyle(this.overlayLayers);
+                    store.overlayLayers.push(layer);
+                    updatePixelmapLayerStyle();
                 }
             });
             this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
@@ -194,8 +182,8 @@ export default Vue.extend({
                     const index = _.findIndex(this.overlayLayers, (overlay) => {
                         return overlay.id() === layer.id();
                     });
-                    this.overlayLayers.splice(index, 1);
-                    updatePixelmapLayerStyle(this.overlayLayers);
+                    store.overlayLayers.splice(index, 1);
+                    updatePixelmapLayerStyle();
                 }
             });
         },
@@ -234,6 +222,9 @@ export default Vue.extend({
             }
         },
         updatePageSize() {
+            if (this.mode !== viewMode.Guided) {
+                return;
+            }
             this.windowResize = true;
             // compute how many cards to show
             const el = document.getElementById('filmstrip-cards');
@@ -251,34 +242,75 @@ export default Vue.extend({
                 // Force an update
                 this.updateSelectedPage(this.page, oldPage);
             }
+        },
+        /**
+         * Parse existing label annotations to populate the categories used for labeling.
+         */
+        createCategories() {
+            // FIXME: Factor this out to use in InitialLabels as well
+            _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
+                if (_.has(annotations, 'labels')) {
+                    const pixelmapElement = annotations.labels.get('annotation').elements[0];
+                    const existingCategories = _.map(this.categoriesAndIndices, (category) => category.category.label);
+                    this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
+                }
+            });
+        },
+        /**
+         * Given a pixelmap annotation element and a list of categories, work to populate the component's
+         * `categories` data property. For each category in the annotation, add the labeled indices to that
+         * object. As a side effect, also populate the `existingCategories` parameter, which is used by the calling function
+         * above.
+         * @param {Object} pixelmapElement
+         * @param {number} imageId
+         * @param {string[]} existingCategories
+         */
+        createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories) {
+            // FIXME: Factor this out to use in InitialLabels as well
+            _.forEach(pixelmapElement.categories, (category, categoryIndex) => {
+                if (categoryIndex !== 0) {
+                    // For each non-default category, get all the labeled indices
+                    // for this superpixel element.
+                    const labeledSuperpixels = new Set();
+                    _.forEach(pixelmapElement.values, (value, index) => {
+                        if (value === categoryIndex) {
+                            labeledSuperpixels.add(index);
+                        }
+                    });
+                    // Either add the category to the initial label UI,
+                    // or increment the count if it already exists.
+                    const categoryToUpdateIndex = _.findIndex(store.categoriesAndIndices,
+                        (categoryAndIndices) => categoryAndIndices.category.label === category.label);
+                    if (categoryToUpdateIndex === -1) {
+                        const indices = {};
+                        indices[this.currentImageId] = labeledSuperpixels;
+                        store.categoriesAndIndices.push({
+                            category,
+                            indices
+                        });
+                    } else if (labeledSuperpixels.size) {
+                        store.categoriesAndIndices[categoryToUpdateIndex].indices[imageId] = labeledSuperpixels;
+                    }
+                }
+            });
         }
     }
 });
 </script>
 
 <template>
-  <div class="h-active-learning-container">
-    <active-learning-keyboard-shortcuts />
-    <annotation-opacity-control
-      :overlay-layers="overlayLayers"
-    />
+  <div>
+    <!-- Slide Image -->
     <div
       ref="map"
       class="h-active-learning-map"
     />
-    <active-learning-film-strip />
   </div>
 </template>
 
 <style scoped>
-.h-active-learning-container {
-    width: 100%;
-    height: calc(100vh - 52px);
-    position: absolute;
-}
-
 .h-active-learning-map {
     width: 100%;
-    height: 100%;
+    height: 100vh;
 }
 </style>
