@@ -98,8 +98,10 @@ export default Vue.extend({
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
         store.overlayLayers = [];
-        this.superpixelAnnotation = this.annotationsByImageId[store.currentImageId].labels;
-        this.setupViewer();
+        if (store.currentImageId) {
+            this.superpixelAnnotation = this.annotationsByImageId[store.currentImageId].labels;
+            this.setupViewer();
+        }
     },
     destroyed() {
         window.removeEventListener('keydown', this.keydownListener);

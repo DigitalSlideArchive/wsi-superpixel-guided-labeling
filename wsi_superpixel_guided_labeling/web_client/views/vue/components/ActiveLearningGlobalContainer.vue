@@ -79,10 +79,10 @@ export default Vue.extend({
     />
     <div v-else>
       <!-- Labeling Canvas -->
-      <active-learning-initial-labels v-if="activeLearningStep === 1" />
+      <active-learning-initial-labels v-if="mode === viewMode.Labeling" />
       <!-- Guided Canvas -->
       <active-learning-container
-        v-else
+        v-if="mode === viewMode.Guided"
         :sorted-superpixel-indices="sortedSuperpixelIndices"
       />
       <!-- Labels Panel -->

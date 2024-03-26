@@ -36,7 +36,8 @@ const store = Vue.observable({
     pixelmapPaintBrush: false,
     currentImageId: '',
     currentCategoryFormValid: false,
-    categoryIndex: 0
+    categoryIndex: 0,
+    activeLearningStep: 0
 });
 
 const previousCard = () => {

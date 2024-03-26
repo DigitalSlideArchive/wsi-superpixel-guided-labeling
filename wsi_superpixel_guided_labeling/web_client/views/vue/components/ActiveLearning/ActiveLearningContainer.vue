@@ -13,12 +13,10 @@ export default Vue.extend({
     data() {
         return {
             pageSize: 8,
-            currentImageId: '',
             currentImageMetadata: {},
             map: null,
             featureLayer: null,
             boundingBoxFeature: null,
-            selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
             initialZoom: 1,
             windowResize: false
@@ -59,6 +57,9 @@ export default Vue.extend({
         },
         overlayLayers() {
             return store.overlayLayers;
+        },
+        currentImageId() {
+            return store.currentImageId;
         }
     },
     watch: {
@@ -69,7 +70,7 @@ export default Vue.extend({
             this.updateSelectedPage(newPage, oldPage);
         },
         predictions() {
-            const annotation = this.annotationsByImageId[this.selectedImageId].predictions;
+            const annotation = this.annotationsByImageId[this.currentImageId].predictions;
             if (this.predictions) {
                 this.viewerWidget.drawAnnotation(annotation);
             } else {
@@ -99,8 +100,9 @@ export default Vue.extend({
         const startIndex = 0;
         const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
         store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
+        store.currentImageId = this.superpixelsToDisplay[0].imageId;
         restRequest({
-            url: `item/${this.selectedImageId}/tiles`
+            url: `item/${this.currentImageId}/tiles`
         }).done((resp) => {
             this.currentImageMetadata = resp;
             this.createImageViewer();
@@ -134,7 +136,7 @@ export default Vue.extend({
             this.featureLayer.draw();
         },
         drawLabels() {
-            const annotation = this.annotationsByImageId[this.selectedImageId].labels;
+            const annotation = this.annotationsByImageId[this.currentImageId].labels;
             this.viewerWidget.drawAnnotation(annotation);
         },
         createImageViewer() {
@@ -144,7 +146,7 @@ export default Vue.extend({
             this.viewerWidget = new ViewerWidget.geojs({ // eslint-disable-line new-cap
                 parentView: this.backboneParent,
                 el: this.$refs.map,
-                itemId: this.selectedImageId,
+                itemId: this.currentImageId,
                 hoverEvents: false,
                 highlightFeatureSizeLimit: 5000,
                 scale: { position: { bottom: 20, right: 10 } }
@@ -192,11 +194,11 @@ export default Vue.extend({
         }, 500),
         updateSelectedCard() {
             const newImageId = this.superpixelsToDisplay[this.selectedIndex].imageId;
-            if (newImageId !== this.selectedImageId) {
-                this.selectedImageId = newImageId;
+            if (newImageId !== this.currentImageId) {
+                store.currentImageId = newImageId;
                 // TODO: consider caching image metadata for each image the first time this request gets made
                 restRequest({
-                    url: `item/${this.selectedImageId}/tiles`
+                    url: `item/${this.currentImageId}/tiles`
                 }).done((resp) => {
                     this.currentImageMetadata = resp;
                     this.createImageViewer();

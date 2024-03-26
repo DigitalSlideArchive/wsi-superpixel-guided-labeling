@@ -301,7 +301,7 @@ export default Vue.extend({
             v-for="imageId in Object.keys(imageNamesById)"
             :key="imageId"
             :value="imageId"
-            :disabled="!annotationsByImageId[imageId].labels"
+            :disabled="!annotationsByImageId[imageId] || !annotationsByImageId[imageId].labels"
           >
             {{ imageNamesById[imageId] }}
           </option>
@@ -447,7 +447,7 @@ export default Vue.extend({
                     title="Change label color"
                   />
                 </td>
-                <td v-if="mode !== viewMode.Labeling">
+                <td v-if="mode === viewMode.Labeling">
                   <input
                     v-model="checkedCategories"
                     type="checkbox"
