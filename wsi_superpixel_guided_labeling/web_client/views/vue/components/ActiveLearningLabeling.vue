@@ -105,6 +105,9 @@ export default Vue.extend({
         },
         pixelmapRendered() {
             return store.overlayLayers.length > 0;
+        },
+        activeLearningStep() {
+            return store.activeLearningStep;
         }
     },
     watch: {
@@ -275,6 +278,10 @@ export default Vue.extend({
         tooglePixelmapPaintBrush() {
             store.pixelmapPaintBrush = !store.pixelmapPaintBrush;
         },
+        togglePredictions() {
+            store.predictions = !store.predictions;
+        },
+
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
@@ -327,7 +334,6 @@ export default Vue.extend({
     </div>
     <div
       :class="{'h-labeling-container': true, 'h-collapsed': !showLabelingContainer}"
-      :style="[mode !== viewMode.Labeling && {'height': 'auto'}]"
     >
       <div class="h-container-title">
         <button
@@ -527,12 +533,22 @@ export default Vue.extend({
         </ul>
       </div>
       <button
-        v-if="showLabelingContainer && mode === viewMode.Labeling"
+        v-if="showLabelingContainer && activeLearningStep >= 2"
         class="btn btn-primary btn-block"
+        title="Show or hide the most recent predictions"
+        @click="togglePredictions"
+      >
+        Show/hide predictions
+      </button>
+      <button
+        v-if="showLabelingContainer"
+        class="btn btn-block"
+        :class="[activeLearningStep < 2 ? 'btn-primary' : 'btn-success']"
         :disabled="!currentCategoryFormValid || !currentLabelsValid"
         @click="beginTraining"
       >
-        <i class="icon-star" /> Begin training
+        <i class="icon-star" />
+        {{ activeLearningStep < 2 ? 'Begin training' : 'Retrain' }}
       </button>
     </div>
   </div>
@@ -551,7 +567,6 @@ export default Vue.extend({
     border-radius: 5px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
     padding: 5px;
-    height: 85vh;
     justify-content: space-between;
 }
 
@@ -583,6 +598,7 @@ h4 {
 .h-al-setup-categories {
     border-radius: 5px;
     height: 100%;
+    margin-bottom: 5px;
 }
 
 .h-al-image-select {

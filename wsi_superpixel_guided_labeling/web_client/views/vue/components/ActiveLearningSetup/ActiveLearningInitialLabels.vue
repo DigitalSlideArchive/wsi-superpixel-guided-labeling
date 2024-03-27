@@ -35,6 +35,9 @@ export default Vue.extend({
         },
         categoryIndex() {
             return store.categoryIndex;
+        },
+        predictions() {
+            return store.predictions;
         }
     },
     watch: {
@@ -49,6 +52,14 @@ export default Vue.extend({
         },
         pixelmapPaintBrush() {
             this.updateActionModifiers();
+        },
+        predictions() {
+            const annotation = store.annotationsByImageId[store.currentImageId].predictions;
+            if (store.predictions) {
+                this.viewerWidget.drawAnnotation(annotation);
+            } else {
+                this.viewerWidget.removeAnnotation(annotation);
+            }
         }
     },
     mounted() {
@@ -90,9 +101,21 @@ export default Vue.extend({
             this.viewerWidget.on('g:imageRendered', this.drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
-                    store.overlayLayers = [layer];
-                    this.superpixelElement = element;
-                    this.onPixelmapRendered();
+                    store.overlayLayers.push(layer);
+                    if (!this.predictions) {
+                        this.superpixelElement = element;
+                        this.onPixelmapRendered();
+                    }
+                }
+            });
+            this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
+                if (element.type === 'pixelmap') {
+                    // Drop the reference to any overlays that have been removed
+                    const index = _.findIndex(this.overlayLayers, (overlay) => {
+                        return overlay.id() === layer.id();
+                    });
+                    store.overlayLayers.splice(index, 1);
+                    updatePixelmapLayerStyle();
                 }
             });
         },

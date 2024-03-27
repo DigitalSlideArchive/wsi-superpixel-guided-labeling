@@ -50,9 +50,6 @@ export default {
         nextPage() {
             store.page = store.page + 1;
         },
-        togglePredictions() {
-            store.predictions = !store.predictions;
-        },
         agreeAll() {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = superpixel.prediction;
@@ -62,9 +59,6 @@ export default {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = 0;
             });
-        },
-        triggerRetrain() {
-            this.backboneParent.retrain();
         }
     }
 };
@@ -100,29 +94,16 @@ export default {
     <div class="h-filmstrip-workflow-btns">
       <active-learning-stats />
       <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
-        title="Show or hide the most recent predictions"
-        @click="togglePredictions"
-      >
-        Show/hide predictions
-      </button>
-      <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
+        class="h-filmstrip-workflow-btn btn btn-primary btn-block"
         @click="resetAll"
       >
         Reset All
       </button>
       <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
+        class="h-filmstrip-workflow-btn btn btn-primary btn-block"
         @click="agreeAll"
       >
         Agree to All
-      </button>
-      <button
-        class="h-filmstrip-workflow-btn btn btn-success"
-        @click="triggerRetrain"
-      >
-        Retrain
       </button>
     </div>
   </div>
@@ -167,8 +148,6 @@ export default {
 .h-filmstrip-workflow-btns {
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
-    height: 150px;
 }
 
 .h-filmstrip-workflow-btn {
