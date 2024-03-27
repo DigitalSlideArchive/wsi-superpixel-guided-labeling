@@ -6,47 +6,59 @@ import { store } from './store.js';
 
 export default Vue.extend({
     computed: {
-        selected: {
-            get() {
-                return store.mode;
-            },
-            set(newMode) {
-                store.mode = newMode;
-            }
+        mode() {
+            return store.mode;
         },
         viewMode() {
             return viewMode;
+        },
+        activeLearningStep() {
+            return store.activeLearningStep;
         }
     },
-    methods: {}
+    methods: {
+        changeMode(newMode) {
+            store.mode = newMode;
+        }
+    }
 });
 </script>
 
 <template>
-  <div class="active-learning-toolbar row">
+  <div
+    v-if="activeLearningStep > 0"
+    class="active-learning-toolbar row"
+  >
     <div class="col-sm-9" />
     <div class="btn-group col-sm-3 active-learning-mode-buttons">
       <button
         class="btn btn-default"
-        :class="[selected === viewMode.Labeling && 'btn-primary']"
-        @click="selected = viewMode.Labeling"
+        :class="[mode === viewMode.Labeling && 'btn-primary']"
+        data-toggle="tooltip"
+        title="Labeling Mode"
+        @click="changeMode(viewMode.Labeling)"
       >
-        <i class="icon-pencil" />
+        <i class="icon-pencil" /> Labeling
       </button>
       <button
         class="btn btn-default"
-        :class="[selected === viewMode.Guided && 'btn-primary']"
-        @click="selected = viewMode.Guided"
+        :class="[mode === viewMode.Guided && 'btn-primary']"
+        :disabled="activeLearningStep < 2"
+        data-toggle="tooltip"
+        title="Guided Mode"
+        @click="changeMode(viewMode.Guided)"
       >
-        <i class="icon-video" />
+        <i class="icon-video" /> Guided
       </button>
       <button
         class="btn btn-default"
-        :class="[selected === viewMode.Review && 'btn-primary']"
+        :class="[mode === viewMode.Review && 'btn-primary']"
         :disabled="true"
-        @click="selected = viewMode.Review"
+        data-toggle="tooltip"
+        title="Review Mode"
+        @click="changeMode(viewMode.Review)"
       >
-        <i class="icon-th" />
+        <i class="icon-th" /> Review
       </button>
     </div>
   </div>

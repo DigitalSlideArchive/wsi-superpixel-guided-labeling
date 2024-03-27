@@ -5,32 +5,14 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
-import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
-import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
 import { comboHotkeys, boundaryColor } from '../constants.js';
-import { store, updatePixelmapLayerStyle, getFillColor } from '../store.js';
-
-// Define some helpful constants for adding categories
-const defaultCategory = {
-    label: 'default',
-    fillColor: 'rgba(0, 0, 0, 0)',
-    strokeColor: 'rgba(0, 0, 0, 1)'
-};
+import { store, updatePixelmapLayerStyle } from '../store.js';
+import { getFillColor } from '../utils.js';
 
 export default Vue.extend({
-    components: {
-        MouseAndKeyboardControls,
-        AnnotationOpacityControl,
-        ActiveLearningLabeling
-    },
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'availableImages', 'categoryMap'],
     data() {
         return {
             hasLoaded: false,
-
-            // data tracking current categories/currently active category
-            categoryIndex: 0,
 
             // keep track of the current image and annotation to edit
             superpixelAnnotation: null,
@@ -38,52 +20,31 @@ export default Vue.extend({
 
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
-            overlayLayer: null,
-            pixelmapRendered: false,
             pixelmapPaintValue: null
         };
     },
     computed: {
-        categoriesAndIndices() {
-            return store.categoriesAndIndices;
-        },
-        currentFormErrors() {
-            const errors = [];
-            const categoryNames = _.map(this.categoriesAndIndices, (category) => category.category.label);
-            const differentCategoryNames = new Set(categoryNames);
-            if (categoryNames.length !== differentCategoryNames.size) {
-                errors.push('All categories must have unique names.');
-            }
-            return errors;
-        },
-        currentCategoryFormValid() {
-            return this.currentFormErrors.length === 0;
-        },
-        usingBoundaries() {
-            return this.superpixelElement.boundaries;
-        },
-        allNewCategories() {
-            const activeLearningCategories = _.map(this.categoriesAndIndices, (category) => category.category);
-            return [defaultCategory, ...activeLearningCategories];
-        },
-        hotkeys() {
-            return store.hotkeys;
-        },
         pixelmapPaintBrush() {
             return store.pixelmapPaintBrush;
         },
         currentImageId() {
             return store.currentImageId;
+        },
+        overlayLayer() {
+            return store.overlayLayers[0];
+        },
+        categoryIndex() {
+            return store.categoryIndex;
         }
     },
     watch: {
         categoryIndex(index) {
-            if (index < 0 || index >= this.categoriesAndIndices.length) {
-                this.categoryIndex = 0;
+            if (index < 0 || index >= store.categoriesAndIndices.length) {
+                store.categoryIndex = 0;
             }
         },
         currentImageId() {
-            this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+            this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
             this.setupViewer();
         },
         pixelmapPaintBrush() {
@@ -92,9 +53,12 @@ export default Vue.extend({
     },
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
-        this.superpixelAnnotation = this.annotationsByImageId[store.currentImageId].labels;
-        this.setupViewer();
-        this.createCategories();
+        store.overlayLayers = [];
+        if (store.currentImageId) {
+            this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
+            this.setupViewer();
+            this.createCategories();
+        }
     },
     destroyed() {
         window.removeEventListener('keydown', this.keydownListener);
@@ -108,7 +72,7 @@ export default Vue.extend({
         },
         setupViewer() {
             restRequest({
-                url: `item/${this.currentImageId}/tiles`
+                url: `item/${store.currentImageId}/tiles`
             }).done(() => {
                 this.drawBaseImageLayer();
             });
@@ -118,15 +82,15 @@ export default Vue.extend({
                 this.viewerWidget.destroy();
             }
             this.viewerWidget = new ViewerWidget.geojs({ // eslint-disable-line new-cap
-                parentView: this.backboneParent,
+                parentView: store.backboneParent,
                 el: this.$refs.map,
-                itemId: this.currentImageId
+                itemId: store.currentImageId
             });
             this.viewerWidget.setUnclampBoundsForOverlay(false);
             this.viewerWidget.on('g:imageRendered', this.drawPixelmapAnnotation);
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
-                    this.overlayLayer = layer;
+                    store.overlayLayers = [layer];
                     this.superpixelElement = element;
                     this.onPixelmapRendered();
                 }
@@ -139,7 +103,6 @@ export default Vue.extend({
             this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
         },
         onPixelmapRendered() {
-            this.pixelmapRendered = true;
             if (!this.hasLoaded) {
                 this.createCategories();
                 this.updateConfig();
@@ -166,10 +129,10 @@ export default Vue.extend({
             }
 
             const userHotkeys = this.parseUserHotkeys(event);
-            const idx = this.hotkeys.get(userHotkeys.join('+'));
+            const idx = store.hotkeys.get(userHotkeys.join('+'));
             if (!_.isUndefined(idx)) {
                 event.preventDefault();
-                this.categoryIndex = idx - 1;
+                store.categoryIndex = idx - 1;
             }
         },
         /**
@@ -182,15 +145,15 @@ export default Vue.extend({
                 .value();
             this.categories = _.uniq([...cats, ...this.categories], (cat) => cat.category.label);
             // TODO handle missing default, default in wrong position
-            _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
+            _.forEach(Object.entries(store.annotationsByImageId), ([imageId, annotations]) => {
                 if (_.has(annotations, 'labels')) {
                     const pixelmapElement = annotations.labels.get('annotation').elements[0];
-                    const existingCategories = _.map(this.categoriesAndIndices, (category) => category.category.label);
+                    const existingCategories = _.map(store.categoriesAndIndices, (category) => category.category.label);
                     this.createCategoriesFromPixelmapElement(pixelmapElement, imageId, existingCategories);
                 }
             });
-            if (this.categoriesAndIndices.length === 0) {
-                const fillColor = getFillColor(this.categoriesAndIndices.length);
+            if (store.categoriesAndIndices.length === 0) {
+                const fillColor = getFillColor(store.categoriesAndIndices.length);
                 store.categoriesAndIndices.push({
                     category: {
                         label: 'New Category',
@@ -200,7 +163,7 @@ export default Vue.extend({
                     indices: {}
                 });
             }
-            this.categoryIndex = 0;
+            store.categoryIndex = 0;
         },
         /**
          * Given a pixelmap annotation element and a list of categories, work to populate the component's
@@ -226,13 +189,13 @@ export default Vue.extend({
                     // or increment the count if it already exists.
                     if (!existingCategories.includes(category.label)) {
                         const indices = {};
-                        indices[this.currentImageId] = labeledSuperpixels;
+                        indices[store.currentImageId] = labeledSuperpixels;
                         store.categoriesAndIndices.push({
                             category,
                             indices
                         });
                     } else if (labeledSuperpixels.size) {
-                        const categoryToUpdateIndex = _.findIndex(this.categoriesAndIndices, (categoryAndIndices) => categoryAndIndices.category.label === category.label);
+                        const categoryToUpdateIndex = _.findIndex(store.categoriesAndIndices, (categoryAndIndices) => categoryAndIndices.category.label === category.label);
                         store.categoriesAndIndices[categoryToUpdateIndex].indices[imageId] = labeledSuperpixels;
                     }
                 }
@@ -249,8 +212,8 @@ export default Vue.extend({
             if (
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
                 !event.mouse.buttonsDown.left || // Not a left click
-                !this.currentCategoryFormValid || // no valid category selected
-                (this.pixelmapPaintBrush && event.mouse.modifiers.shift)
+                !store.currentCategoryFormValid || // no valid category selected
+                (store.pixelmapPaintBrush && event.mouse.modifiers.shift)
             ) {
                 return;
             }
@@ -260,8 +223,8 @@ export default Vue.extend({
             if (
                 overlayElement.get('type') !== 'pixelmap' ||
                 !event.mouse.buttons.left ||
-                (!this.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
-                !this.currentCategoryFormValid
+                (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
+                !store.currentCategoryFormValid
             ) {
                 return;
             }
@@ -271,15 +234,15 @@ export default Vue.extend({
             if (
                 overlayElement.get('type') !== 'pixelmap' ||
                 !event.mouse.buttons.left ||
-                (!this.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
-                !this.currentCategoryFormValid
+                (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
+                !store.currentCategoryFormValid
             ) {
                 return;
             }
             // For shift + click painting, we can either start painting with the selected category,
             // or paint the default category
             if (this.pixelmapPaintValue === null) {
-                this.pixelmapPaintValue = event.data === this.categoryIndex + 1 ? 0 : this.categoryIndex + 1;
+                this.pixelmapPaintValue = event.data === store.categoryIndex + 1 ? 0 : store.categoryIndex + 1;
             }
             this.updatePixelmapData(overlayElement, event);
         },
@@ -296,7 +259,7 @@ export default Vue.extend({
             if ((event.event === geo.event.feature.mouseover || event.event === geo.event.feature.mousedown)) {
                 newLabel = this.pixelmapPaintValue;
             } else if (event.event === geo.event.feature.mouseclick) {
-                newLabel = (previousLabel === this.categoryIndex + 1) ? 0 : this.categoryIndex + 1;
+                newLabel = (previousLabel === store.categoryIndex + 1) ? 0 : store.categoryIndex + 1;
             }
             if (newLabel === previousLabel) {
                 return;
@@ -319,51 +282,39 @@ export default Vue.extend({
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
-            const currentCategoryIndices = this.categoriesAndIndices[this.categoryIndex].indices[this.currentImageId] || new Set();
+            const currentCategoryIndices = store.categoriesAndIndices[store.categoryIndex].indices[store.currentImageId] || new Set();
             if (!currentCategoryIndices.size) {
-                store.categoriesAndIndices[this.categoryIndex].indices[this.currentImageId] = currentCategoryIndices;
+                store.categoriesAndIndices[store.categoryIndex].indices[store.currentImageId] = currentCategoryIndices;
             }
             if (newLabel === 0) {
-                store.categoriesAndIndices[oldLabel - 1].indices[this.currentImageId].delete(elementValueIndex);
+                store.categoriesAndIndices[oldLabel - 1].indices[store.currentImageId].delete(elementValueIndex);
                 currentCategoryIndices.delete(elementValueIndex);
             } else if (oldLabel === 0) {
                 currentCategoryIndices.add(elementValueIndex);
             } else {
-                store.categoriesAndIndices[oldLabel - 1].indices[this.currentImageId].delete(elementValueIndex);
+                store.categoriesAndIndices[oldLabel - 1].indices[store.currentImageId].delete(elementValueIndex);
                 currentCategoryIndices.add(elementValueIndex);
             }
             // Force computed properties to update
-            store.categoriesAndIndices = [...this.categoriesAndIndices];
+            store.categoriesAndIndices = [...store.categoriesAndIndices];
         },
         /***********
          * UTILITY *
          ***********/
         synchronizeCategories() {
-            if (this.currentCategoryFormValid) {
-                store.categories = this.allNewCategories;
-                _.forEach(Object.values(this.annotationsByImageId), (annotations) => {
+            if (store.currentCategoryFormValid) {
+                _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
                     if (_.has(annotations, 'labels')) {
                         const superpixelElement = annotations.labels.get('annotation').elements[0];
                         if (superpixelElement) {
-                            superpixelElement.categories = JSON.parse(JSON.stringify(this.allNewCategories));
+                            superpixelElement.categories = JSON.parse(JSON.stringify(store.categories));
                         }
                     }
                 });
                 this.saveAnnotations(true);
-                if (this.overlayLayer) {
-                    updatePixelmapLayerStyle([this.overlayLayer]);
-                }
+                updatePixelmapLayerStyle();
                 this.updateConfig();
             }
-        },
-        enforceUniqueName(name) {
-            const existingNames = _.map(this.categoriesAndIndices, (category) => category.category.label);
-            let count = 1;
-            let uniqueName = name;
-            while (_.some(existingNames, (en) => en.includes(uniqueName)) && count < 50) {
-                uniqueName = `${name} (${count++})`;
-            }
-            return uniqueName;
         },
         updateActionModifiers() {
             // Panning is typically by with left-click and continuous painting
@@ -373,7 +324,7 @@ export default Vue.extend({
             const actions = interactor.options().actions;
             _.map(actions, (action) => {
                 if (action.action === 'geo_action_pan') {
-                    action.modifiers.shift = this.pixelmapPaintBrush;
+                    action.modifiers.shift = store.pixelmapPaintBrush;
                 }
             });
         },
@@ -385,15 +336,12 @@ export default Vue.extend({
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
-        beginTraining() {
-            this.backboneParent.retrain(true);
-        },
         saveAnnotations(saveAll) {
-            const idsToSave = saveAll ? Object.keys(this.annotationsByImageId) : [this.currentImageId];
-            this.backboneParent.saveLabelAnnotations(idsToSave);
+            const idsToSave = saveAll ? Object.keys(store.annotationsByImageId) : [store.currentImageId];
+            store.backboneParent.saveLabelAnnotations(idsToSave);
         },
         updateConfig: _.debounce(function () {
-            this.backboneParent.updateHistomicsYamlConfig(store.categories);
+            store.backboneParent.updateHistomicsYamlConfig(store.categories);
         }, 500)
     }
 });
@@ -401,31 +349,10 @@ export default Vue.extend({
 
 <template>
   <div>
-    <!-- Labeling Dialog -->
-    <active-learning-labeling
-      :image-names-by-id="imageNamesById"
-      :form-errors="currentFormErrors"
-      :current-index="categoryIndex"
-      :pixelmap-rendered="pixelmapRendered"
-      :available-images="availableImages"
-      @combine-categories="combineCategoriesHandler"
-      @update="synchronizeCategories"
-    />
     <!-- Slide Image -->
     <div
       ref="map"
       class="h-setup-categories-map"
-    />
-    <!-- Opacity Slider -->
-    <annotation-opacity-control
-      :style="{'width': '350px', 'right': '20px'}"
-      :category-index="categoryIndex"
-      :overlay-layers="[overlayLayer]"
-      :disabled="!overlayLayer"
-    />
-    <!-- Information Panel -->
-    <mouse-and-keyboard-controls
-      :pixelmap-paint-brush="pixelmapPaintBrush"
     />
   </div>
 </template>

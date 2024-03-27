@@ -4,10 +4,10 @@ import _ from 'underscore';
 import { store, updatePixelmapLayerStyle } from './store.js';
 
 export default {
-    props: ['categoryIndex', 'overlayLayers'],
     data() {
         return {
-            fillColor: 'rgba(0, 0, 0, 1)'
+            fillColor: 'rgba(0, 0, 0, 1)',
+            opacity: 1
         };
     },
     computed: {
@@ -23,26 +23,24 @@ export default {
             }
             return '';
         },
-        opacitySlider: {
-            get() {
-                return store.strokeOpacity;
-            },
-            set(value) {
-                store.strokeOpacity = parseFloat(value);
-            }
+        opacitySlider() {
+            return store.strokeOpacity;
+        },
+        categoryIndex() {
+            return store.categoryIndex;
         }
     },
     watch: {
         opacitySlider() {
             this.updateConfigData();
-            updatePixelmapLayerStyle(this.overlayLayers);
+            updatePixelmapLayerStyle();
         },
         categoryIndex() {
             this.fillColor = store.categoriesAndIndices[this.categoryIndex].category.fillColor;
         },
         fillColor() {
-            if (this.opacitySlider === 0) {
-                updatePixelmapLayerStyle(this.overlayLayers);
+            if (store.opacitySlider === 0) {
+                updatePixelmapLayerStyle();
             }
         },
         folderId: {
@@ -52,6 +50,9 @@ export default {
                 }
             },
             immediate: true
+        },
+        opacity(value) {
+            store.strokeOpacity = parseFloat(value);
         }
     },
     methods: {
@@ -61,12 +62,12 @@ export default {
             }
             const uiSettings = this.config.guidedLabelingUI || {};
             if (uiSettings.borderOpacity) {
-                this.opacitySlider = uiSettings.borderOpacity;
+                store.opacitySlider = uiSettings.borderOpacity;
             }
         },
         updateConfigData: _.debounce(function () {
             const uiSettings = this.config.guidedLabelingUI || {};
-            uiSettings.borderOpacity = parseFloat(this.opacitySlider);
+            uiSettings.borderOpacity = parseFloat(store.opacitySlider);
             store.backboneParent.histomicsUIConfig.guidedLabelingUI = uiSettings;
             store.backboneParent.updateHistomicsYamlConfig();
         }, 500)
@@ -78,7 +79,7 @@ export default {
   <div class="h-opacity-slider-learning-container">
     <span class="h-opacity-slider-label">Superpixel Boundary Opacity:</span>
     <input
-      v-model="opacitySlider"
+      v-model="opacity"
       class="h-opacity-slider"
       type="range"
       min="0"
@@ -94,13 +95,14 @@ export default {
     z-index: 100;
     position: absolute;
     top: 5px;
-    right: 5px;
+    right: 20px;
     padding: 5px;
     min-width: 200px;
     display: flex;
     background-color: white;
     border-radius: 1px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+    width: 350px;
 }
 
 .h-opacity-slider-label {

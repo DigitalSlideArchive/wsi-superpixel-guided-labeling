@@ -5,56 +5,24 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
-import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
-import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
-import MouseAndKeyboardControls from '../MouseAndKeyboardControls.vue';
-
 import { store, updatePixelmapLayerStyle } from '../store.js';
 import { viewMode } from '../constants.js';
 
 export default Vue.extend({
-    components: {
-        ActiveLearningFilmStrip,
-        AnnotationOpacityControl,
-        ActiveLearningLabeling,
-        MouseAndKeyboardControls
-    },
-    props: [
-        'router',
-        'trainingDataFolderId',
-        'annotationsByImageId',
-        'annotationBaseName',
-        'sortedSuperpixelIndices',
-        'apiRoot',
-        'backboneParent',
-        'currentAverageCertainty',
-        'categoryMap',
-        'imageNamesById'
-    ],
+    props: ['sortedSuperpixelIndices'],
     data() {
         return {
             pageSize: 8,
-            currentImageId: '',
-            imageItemsById: {},
-            annotationsByImage: {},
             currentImageMetadata: {},
             map: null,
             featureLayer: null,
             boundingBoxFeature: null,
-            selectedImageId: this.sortedSuperpixelIndices[0].imageId,
             viewerWidget: null,
             initialZoom: 1,
-            overlayLayers: [],
             windowResize: false
         };
     },
     computed: {
-        // For computed properties that just return store values, it probably just makes more sense
-        // to use store.<prop> instead of this.<computedProp> for readability
-        superpixelsToDisplay() {
-            return store.superpixelsToDisplay;
-        },
         selectedIndex() {
             return store.selectedIndex;
         },
@@ -66,15 +34,6 @@ export default Vue.extend({
         },
         predictions() {
             return store.predictions;
-        },
-        categories() {
-            return store.categories;
-        },
-        mode() {
-            return store.mode;
-        },
-        viewMode() {
-            return viewMode;
         }
     },
     watch: {
@@ -85,8 +44,8 @@ export default Vue.extend({
             this.updateSelectedPage(newPage, oldPage);
         },
         predictions() {
-            const annotation = this.annotationsByImageId[this.selectedImageId].predictions;
-            if (this.predictions) {
+            const annotation = store.annotationsByImageId[store.currentImageId].predictions;
+            if (store.predictions) {
                 this.viewerWidget.drawAnnotation(annotation);
             } else {
                 this.viewerWidget.removeAnnotation(annotation);
@@ -94,11 +53,11 @@ export default Vue.extend({
         },
         changeLog: {
             handler() {
-                if (!this.changeLog.length) {
+                if (!store.changeLog.length) {
                     return;
                 }
-                const change = this.changeLog.pop();
-                this.backboneParent.saveLabelAnnotations([change.imageId]);
+                const change = store.changeLog.pop();
+                store.backboneParent.saveLabelAnnotations([change.imageId]);
                 this.drawLabels();
             },
             deep: true
@@ -106,6 +65,7 @@ export default Vue.extend({
     },
     mounted() {
         // set store
+        store.overlayLayers = [];
         store.maxPage = this.sortedSuperpixelIndices.length / this.pageSize;
         store.pageSize = this.pageSize;
         window.addEventListener('resize', this.updatePageSize);
@@ -114,8 +74,9 @@ export default Vue.extend({
         const startIndex = 0;
         const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
         store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
+        store.currentImageId = store.superpixelsToDisplay[0].imageId;
         restRequest({
-            url: `item/${this.selectedImageId}/tiles`
+            url: `item/${store.currentImageId}/tiles`
         }).done((resp) => {
             this.currentImageMetadata = resp;
             this.createImageViewer();
@@ -129,7 +90,7 @@ export default Vue.extend({
                 return;
             }
             // Center the selected superpixel
-            const superpixel = this.superpixelsToDisplay[this.selectedIndex];
+            const superpixel = store.superpixelsToDisplay[store.selectedIndex];
             const bbox = superpixel.bbox;
             const bboxWidth = bbox[2] - bbox[0];
             const bboxHeight = bbox[3] - bbox[1];
@@ -149,7 +110,7 @@ export default Vue.extend({
             this.featureLayer.draw();
         },
         drawLabels() {
-            const annotation = this.annotationsByImageId[this.selectedImageId].labels;
+            const annotation = store.annotationsByImageId[store.currentImageId].labels;
             this.viewerWidget.drawAnnotation(annotation);
         },
         createImageViewer() {
@@ -157,9 +118,9 @@ export default Vue.extend({
                 this.viewerWidget.destroy();
             }
             this.viewerWidget = new ViewerWidget.geojs({ // eslint-disable-line new-cap
-                parentView: this.backboneParent,
+                parentView: store.backboneParent,
                 el: this.$refs.map,
-                itemId: this.selectedImageId,
+                itemId: store.currentImageId,
                 hoverEvents: false,
                 highlightFeatureSizeLimit: 5000,
                 scale: { position: { bottom: 20, right: 10 } }
@@ -187,31 +148,31 @@ export default Vue.extend({
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
                     // There can be multiple overlays present, track all of them
-                    this.overlayLayers.push(layer);
-                    updatePixelmapLayerStyle(this.overlayLayers);
+                    store.overlayLayers.push(layer);
+                    updatePixelmapLayerStyle();
                 }
             });
             this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
                     // Drop the reference to any overlays that have been removed
-                    const index = _.findIndex(this.overlayLayers, (overlay) => {
+                    const index = _.findIndex(store.overlayLayers, (overlay) => {
                         return overlay.id() === layer.id();
                     });
-                    this.overlayLayers.splice(index, 1);
-                    updatePixelmapLayerStyle(this.overlayLayers);
+                    store.overlayLayers.splice(index, 1);
+                    updatePixelmapLayerStyle();
                 }
             });
         },
         updateConfig: _.debounce(function () {
-            this.backboneParent.updateHistomicsYamlConfig();
+            store.backboneParent.updateHistomicsYamlConfig();
         }, 500),
         updateSelectedCard() {
-            const newImageId = this.superpixelsToDisplay[this.selectedIndex].imageId;
-            if (newImageId !== this.selectedImageId) {
-                this.selectedImageId = newImageId;
+            const newImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
+            if (newImageId !== store.currentImageId) {
+                store.currentImageId = newImageId;
                 // TODO: consider caching image metadata for each image the first time this request gets made
                 restRequest({
-                    url: `item/${this.selectedImageId}/tiles`
+                    url: `item/${store.currentImageId}/tiles`
                 }).done((resp) => {
                     this.currentImageMetadata = resp;
                     this.createImageViewer();
@@ -224,20 +185,20 @@ export default Vue.extend({
             const startIndex = newPage * store.pageSize;
             const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
             store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
-            const oldIndex = this.selectedIndex;
+            const oldIndex = store.selectedIndex;
             if (!this.windowResize) {
                 // Only reset the selected index if the user has changed the page
                 // and the page has not been changed because of window resize.
                 store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
             }
             this.windowResize = false;
-            if (oldIndex === this.selectedIndex) {
+            if (oldIndex === store.selectedIndex) {
                 // Force the update
                 this.updateSelectedCard();
             }
         },
         updatePageSize() {
-            if (this.mode !== viewMode.Guided) {
+            if (store.mode !== viewMode.Guided) {
                 return;
             }
             this.windowResize = true;
@@ -246,16 +207,16 @@ export default Vue.extend({
             const card = el.firstElementChild.clientWidth;
             const paddingOffset = 20;
             // update page
-            const currentIndex = this.page * store.pageSize + this.selectedIndex;
+            const currentIndex = store.page * store.pageSize + store.selectedIndex;
             const oldPageSize = store.pageSize;
             store.pageSize = Math.max(Math.floor(el.clientWidth / (card + paddingOffset)), 1);
-            const oldPage = this.page;
+            const oldPage = store.page;
             store.page = Math.floor(currentIndex / store.pageSize);
             store.selectedIndex = currentIndex - (store.pageSize * store.page);
             store.maxPage = Math.ceil(this.sortedSuperpixelIndices.length / store.pageSize);
-            if (oldPageSize !== store.pageSize && oldPage === this.page) {
+            if (oldPageSize !== store.pageSize && oldPage === store.page) {
                 // Force an update
-                this.updateSelectedPage(this.page, oldPage);
+                this.updateSelectedPage(store.page, oldPage);
             }
         },
         /**
@@ -263,7 +224,7 @@ export default Vue.extend({
          */
         createCategories() {
             // FIXME: Factor this out to use in InitialLabels as well
-            _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
+            _.forEach(Object.entries(store.annotationsByImageId), ([imageId, annotations]) => {
                 if (_.has(annotations, 'labels')) {
                     const pixelmapElement = annotations.labels.get('annotation').elements[0];
                     const existingCategories = _.map(this.categoriesAndIndices, (category) => category.category.label);
@@ -298,7 +259,7 @@ export default Vue.extend({
                         (categoryAndIndices) => categoryAndIndices.category.label === category.label);
                     if (categoryToUpdateIndex === -1) {
                         const indices = {};
-                        indices[this.currentImageId] = labeledSuperpixels;
+                        indices[store.currentImageId] = labeledSuperpixels;
                         store.categoriesAndIndices.push({
                             category,
                             indices
@@ -314,44 +275,18 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div
-    id="learningContainer"
-    class="h-active-learning-container"
-  >
-    <!-- Labels Panel -->
-    <active-learning-labeling
-      :image-names-by-id="imageNamesById"
-      :pixelmap-rendered="overlayLayers.length > 0"
-    />
-    <!-- Information Panel -->
-    <mouse-and-keyboard-controls
-      :pixelmap-paint-brush="false"
-    />
-    <!-- Opacity Slider -->
-    <annotation-opacity-control
-      v-if="mode !== viewMode.Review"
-      :active-learning-setup="false"
-      :overlay-layers="overlayLayers"
-    />
+  <div>
     <!-- Slide Image -->
     <div
       ref="map"
       class="h-active-learning-map"
     />
-    <!-- Prediction Chips -->
-    <active-learning-film-strip v-if="mode === viewMode.Guided" />
   </div>
 </template>
 
 <style scoped>
-.h-active-learning-container {
-    width: 100%;
-    height: calc(100vh - 52px);
-    position: absolute;
-}
-
 .h-active-learning-map {
     width: 100%;
-    height: 100%;
+    height: 100vh;
 }
 </style>

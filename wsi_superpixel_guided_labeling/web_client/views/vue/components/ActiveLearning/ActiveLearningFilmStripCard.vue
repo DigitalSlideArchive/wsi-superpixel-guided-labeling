@@ -25,17 +25,11 @@ export default Vue.extend({
         predictionAnnotation() {
             return store.annotationsByImageId[this.superpixelDecision.imageId].predictions;
         },
-        apiRoot() {
-            return store.apiRoot;
-        },
-        selectedIndex() {
-            return store.selectedIndex;
-        },
         lastCategorySelected() {
             return store.lastCategorySelected;
         },
         isSelected() {
-            return this.selectedIndex === this.index;
+            return store.selectedIndex === this.index;
         },
         headerStyle() {
             return {
@@ -62,7 +56,7 @@ export default Vue.extend({
             const thumbnailWidth = Math.floor(125 * regionWidth / scaleFactor);
             const thumbnailHeight = Math.floor(125 * regionHeight / scaleFactor);
             const params = `?left=${bbox[0]}&top=${bbox[1]}&right=${bbox[2]}&bottom=${bbox[3]}&width=${thumbnailWidth}&height=${thumbnailHeight}`;
-            return `${this.apiRoot}/item/${imageId}/tiles/region${params}`;
+            return `${store.apiRoot}/item/${imageId}/tiles/region${params}`;
         },
         superpixelRegionUrl() {
             const imageId = this.superpixelDecision.superpixelImageId;
@@ -89,7 +83,7 @@ export default Vue.extend({
                 bands: []
             });
             const functionParam = `&style=${encodeURIComponent(functionJson)}`;
-            return `${this.apiRoot}/item/${imageId}/tiles/region${params}${functionParam}`;
+            return `${store.apiRoot}/item/${imageId}/tiles/region${params}${functionParam}`;
         }
     },
     watch: {

@@ -4,42 +4,49 @@ import _ from 'underscore';
 
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
+import { store } from '../store.js';
+
 export default Vue.extend({
     components: {
         ColorPickerInput
     },
-    props: ['callback', 'categoryName', 'fillColor', 'selectedLabels'],
     data() {
         return {
-            currentCategoryLabel: 'Merged Categories',
-            currentCategoryFillColor: 'rgba(0, 0, 0, 0.5)',
-            newFillColor: 'rgba(0, 0, 0, 0.5)'
+            currentCategoryFillColor: 'rgba(0, 0, 0, 0.5)'
         };
     },
     computed: {
         warningMessage() {
-            const numCategories = this.selectedLabels.size;
-            const labelCounts = _.reduce([...this.selectedLabels.values()], (acc, selected) => {
+            const numCategories = store.selectedLabels.size;
+            const labelCounts = _.reduce([...store.selectedLabels.values()], (acc, selected) => {
                 return acc + selected.count;
             }, 0);
             const message = `This will combine ${numCategories} categories into
                           one category containing all ${labelCounts} labeled
                           superpixels.`;
             return message;
+        },
+        categoryName() {
+            if (store.selectedLabels.size < 1) {
+                return 'New Merged Category';
+            }
+            return _.last([...store.selectedLabels.values()]).label;
+        },
+        fillColor() {
+            if (store.selectedLabels.size < 1) {
+                return 'rgba(0, 0, 0, 0.5)';
+            }
+            return _.last([...store.selectedLabels.values()]).fillColor;
         }
     },
     watch: {
-        categoryName(name) {
-            this.currentCategoryLabel = name;
-        },
         fillColor(color) {
-            this.newFillColor = color;
             this.currentCategoryFillColor = color;
         }
     },
     methods: {
         submit() {
-            this.callback(this.currentCategoryLabel, this.currentCategoryFillColor);
+            this.$emit('merge', this.categoryName, this.currentCategoryFillColor);
         }
     }
 });
@@ -47,6 +54,7 @@ export default Vue.extend({
 
 <template>
   <div
+    id="mergeConfirmation"
     class="modal fade"
     role="dialog"
   >
@@ -70,14 +78,14 @@ export default Vue.extend({
             <label for="usr">New Name:</label>
             <input
               id="category-label"
-              v-model="currentCategoryLabel"
+              v-model="categoryName"
               class="form-control category-input"
             >
             <color-picker-input
               :key="fillColor"
               v-model="currentCategoryFillColor"
               class="condensed-color-picker"
-              :color="newFillColor"
+              :color="fillColor"
             />
           </div>
         </div>

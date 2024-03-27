@@ -5,7 +5,6 @@ import { store } from './store';
 import { viewMode } from './constants';
 
 export default Vue.extend({
-    props: ['pixelmapPaintBrush'],
     data() {
         return {
             showInfoContainer: true
@@ -14,6 +13,9 @@ export default Vue.extend({
     computed: {
         labeling() {
             return store.mode === viewMode.Labeling;
+        },
+        pixelmapPaintBrush() {
+            return store.pixelmapPaintBrush;
         }
     },
     watch: {

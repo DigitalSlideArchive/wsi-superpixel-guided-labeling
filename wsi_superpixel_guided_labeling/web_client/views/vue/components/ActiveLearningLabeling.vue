@@ -5,27 +5,23 @@ import _ from 'underscore';
 import { confirm } from '@girder/core/dialog';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
-import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
-import { store, getFillColor } from './store.js';
+import { store } from './store.js';
 import { boundaryColor, viewMode } from './constants.js';
+import { getFillColor } from './utils.js';
 
+// Define some helpful constants for adding categories
+const defaultCategory = {
+    label: 'default',
+    fillColor: 'rgba(0, 0, 0, 0)',
+    strokeColor: 'rgba(0, 0, 0, 1)'
+};
 const colorPattern = /^(#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\(\d+,\s*\d+,\s*\d+\)|rgba\(\d+,\s*\d+,\s*\d+,\s*(\d?\.|)\d+\))$/;
 
 export default Vue.extend({
     components: {
-        ColorPickerInput,
-        ActiveLearningMergeConfirmation
+        ColorPickerInput
     },
-    props: [
-        'imageNamesById',
-        'labeledSuperpixelCounts',
-        'currentFormErrors',
-        'categoryIndex',
-        'pixelmapRendered',
-        'availableImages',
-        'formErrors',
-        'index'
-    ],
+    props: ['imageNamesById', 'availableImages'],
     data() {
         return {
             showLabelingContainer: true,
@@ -34,45 +30,22 @@ export default Vue.extend({
             currentCategoryLabel: 'New Category',
             currentCategoryFillColor: getFillColor(0),
             newImagesAvailable: false,
-            currentFormErrors: this.formErrors || [],
-            categoryIndex: this.index || 0
+            selectedImageId: store.currentImageId
         };
     },
     computed: {
-        pixelmapPaintBrush: {
-            get() {
-                return store.pixelmapPaintBrush;
-            },
-            set(mode) {
-                store.pixelmapPaintBrush = mode;
-            }
+        pixelmapPaintBrush() {
+            return store.pixelmapPaintBrush;
         },
-        currentImageId: {
-            get() {
-                return store.currentImageId;
-            },
-            set(imageId) {
-                store.currentImageId = imageId;
-            }
-        },
-        allNewCategories() {
-            return store.categories;
+        categoryIndex() {
+            return store.categoryIndex;
         },
         annotationsByImageId() {
             return store.annotationsByImageId;
         },
-        backboneParent() {
-            return store.backboneParent;
-        },
-        categoriesAndIndices() {
-            return store.categoriesAndIndices;
-        },
-        hotkeys() {
-            return store.hotkeys;
-        },
         selectedLabels() {
             return new Map(_.map(this.checkedCategories, (i) => {
-                const label = this.categoriesAndIndices[i].category.label;
+                const label = store.categoriesAndIndices[i].category.label;
                 return [i, this.labeledSuperpixelCounts[`${i}_${label}`]];
             }));
         },
@@ -87,14 +60,28 @@ export default Vue.extend({
         currentLabelsValid() {
             return this.currentLabelingErrors.length === 0;
         },
+        allNewCategories() {
+            const activeLearningCategories = _.pluck(store.categoriesAndIndices, 'category');
+            return [defaultCategory, ...activeLearningCategories];
+        },
         mode() {
             return store.mode;
         },
         viewMode() {
             return viewMode;
         },
+        currentFormErrors() {
+            const errors = [];
+            const categoryNames = _.map(store.categoriesAndIndices, (category) => category.category.label);
+            const differentCategoryNames = new Set(categoryNames);
+            if (categoryNames.length !== differentCategoryNames.size) {
+                errors.push('All categories must have unique names.');
+            }
+            return errors;
+        },
         currentCategoryFormValid() {
-            return this.currentFormErrors.length === 0;
+            store.currentCategoryFormValid = this.currentFormErrors.length === 0;
+            return store.currentCategoryFormValid;
         },
         labeledSuperpixelCounts() {
             const counts = {};
@@ -115,6 +102,9 @@ export default Vue.extend({
                 }
             });
             return counts;
+        },
+        pixelmapRendered() {
+            return store.overlayLayers.length > 0;
         }
     },
     watch: {
@@ -127,8 +117,8 @@ export default Vue.extend({
         },
         categories: {
             handler() {
-                this.currentCategoryLabel = this.categoriesAndIndices[0].category.label;
-                this.currentCategoryFillColor = this.categoriesAndIndices[0].category.fillColor;
+                this.currentCategoryLabel = store.categoriesAndIndices[0].category.label;
+                this.currentCategoryFillColor = store.categoriesAndIndices[0].category.fillColor;
             },
             deep: true
         },
@@ -136,31 +126,37 @@ export default Vue.extend({
             if (newLabel === oldLabel) {
                 return;
             }
-            store.categoriesAndIndices[this.categoryIndex].category.label = this.currentCategoryLabel;
-            this.$emit('update');
+            store.categoriesAndIndices[store.categoryIndex].category.label = this.currentCategoryLabel;
+            this.synchronizeCategories();
         },
         currentCategoryFillColor(newColor, oldColor) {
             if (newColor === oldColor || !colorPattern.test(newColor)) {
                 return;
             }
-            store.categoriesAndIndices[this.categoryIndex].category.fillColor = this.currentCategoryFillColor;
-            this.$emit('update');
+            store.categoriesAndIndices[store.categoryIndex].category.fillColor = this.currentCategoryFillColor;
+            this.synchronizeCategories();
         },
         categoryIndex(index) {
-            if (index < 0 || index >= this.categoriesAndIndices.length) {
+            if (index < 0 || index >= store.categoriesAndIndices.length) {
                 return;
             }
-            this.currentCategoryLabel = this.categoriesAndIndices[this.categoryIndex].category.label;
-            this.currentCategoryFillColor = this.categoriesAndIndices[this.categoryIndex].category.fillColor;
+            this.currentCategoryLabel = store.categoriesAndIndices[store.categoryIndex].category.label;
+            this.currentCategoryFillColor = store.categoriesAndIndices[store.categoryIndex].category.fillColor;
         },
         availableImages(newAvail, oldAvail) {
             const newImage = _.difference(newAvail, oldAvail)[0];
-            if (newImage === this.currentImageId) {
+            if (newImage === store.currentImageId) {
                 // Update image with annotations
                 this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
                 this.setupViewer();
             }
             this.newImagesAvailable = true;
+        },
+        selectedImageId(newImageId) {
+            store.currentImageId = newImageId;
+        },
+        checkedCategories() {
+            store.selectedLabels = this.selectedLabels;
         }
     },
     methods: {
@@ -172,7 +168,7 @@ export default Vue.extend({
                 newName = 'New Category';
             }
             if (_.isUndefined(newFillColor)) {
-                newFillColor = getFillColor(this.categoriesAndIndices.length);
+                newFillColor = getFillColor(store.categoriesAndIndices.length);
             }
 
             store.categoriesAndIndices.push({
@@ -183,7 +179,7 @@ export default Vue.extend({
                 },
                 indices: {}
             });
-            this.$parent.categoryIndex = this.categoriesAndIndices.length - 1;
+            store.categoryIndex = store.categoriesAndIndices.length - 1;
         },
         combineCategories(indices, isMerge) {
             // Remove the selected categories
@@ -192,8 +188,8 @@ export default Vue.extend({
                 return store.categoriesAndIndices.splice(index, 1)[0];
             });
 
-            _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
-                const labels = this.annotationsByImageId[imageId].labels;
+            _.forEach(Object.keys(store.annotationsByImageId), (imageId) => {
+                const labels = store.annotationsByImageId[imageId].labels;
                 const pixelmapElement = labels.get('annotation').elements[0];
                 pixelmapElement.categories = [...this.allNewCategories];
 
@@ -205,13 +201,13 @@ export default Vue.extend({
                     });
                     if (isMerge) {
                         // All merged indices should be assigned to the new combined category
-                        const newIndices = _.last(this.categoriesAndIndices).indices[imageId] || new Set();
+                        const newIndices = _.last(store.categoriesAndIndices).indices[imageId] || new Set();
                         _.last(store.categoriesAndIndices).indices[imageId] = new Set([...newIndices, ...indices]);
                     }
                 });
 
                 // Indices have shifted after removing the selected categories
-                _.forEach(this.categoriesAndIndices, (category, val) => {
+                _.forEach(store.categoriesAndIndices, (category, val) => {
                     const indices = category.indices[imageId] || new Set();
                     _.forEach([...indices], (index) => {
                         pixelmapElement.values[index] = val + 1;
@@ -219,7 +215,8 @@ export default Vue.extend({
                 });
             });
             this.checkedCategories = [];
-            this.$emit('combine-categories');
+            store.categories = this.allNewCategories;
+            this.$emit('combine');
         },
         mergeCategory(newLabel, newFillColor) {
             this.addCategory('Merged Categories', newFillColor);
@@ -245,11 +242,18 @@ export default Vue.extend({
                 confirmCallback: () => this.combineCategories(indices, false)
             });
         },
+        selectCategory(index) {
+            store.categoryIndex = index;
+        },
+        synchronizeCategories() {
+            store.categories = this.allNewCategories;
+            this.$emit('synchronize');
+        },
         /***********
          * UTILITY *
          ***********/
         hotkeyFromIndex(index) {
-            return _.find([...this.hotkeys], ([, v]) => v === index)[0];
+            return _.find([...store.hotkeys], ([, v]) => v === index)[0];
         },
         togglePicker(event, index) {
             const picker = this.$refs.colorpicker[index];
@@ -260,7 +264,7 @@ export default Vue.extend({
             }
         },
         enforceUniqueName(name) {
-            const existingNames = _.map(this.categoriesAndIndices, (category) => category.category.label);
+            const existingNames = _.map(store.categoriesAndIndices, (category) => category.category.label);
             let count = 1;
             let uniqueName = name;
             while (_.some(existingNames, (en) => en.includes(uniqueName)) && count < 50) {
@@ -268,11 +272,14 @@ export default Vue.extend({
             }
             return uniqueName;
         },
+        tooglePixelmapPaintBrush() {
+            store.pixelmapPaintBrush = !store.pixelmapPaintBrush;
+        },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
         beginTraining() {
-            this.backboneParent.retrain(true);
+            store.backboneParent.retrain(true);
         }
     }
 });
@@ -291,16 +298,18 @@ export default Vue.extend({
         <select
           v-if="mode === viewMode.Labeling"
           id="currentImage"
-          v-model="currentImageId"
+          v-model="selectedImageId"
+          data-toggle="tooltip"
+          :title="imageNamesById[selectedImageId]"
           :class="['h-al-image-select', newImagesAvailable && 'h-al-image-select-new']"
-          :style="[!availableImages.includes(currentImageId) && {'font-style': 'italic'}]"
+          :style="[!availableImages.includes(selectedImageId) && {'font-style': 'italic'}]"
           @click="newImagesAvailable = false"
         >
           <option
             v-for="imageId in Object.keys(imageNamesById)"
             :key="imageId"
             :value="imageId"
-            :disabled="!annotationsByImageId[imageId].labels"
+            :disabled="!annotationsByImageId[imageId] || !annotationsByImageId[imageId].labels"
             :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
           >
             {{ imageNamesById[imageId] }}
@@ -310,9 +319,9 @@ export default Vue.extend({
           v-else
           class="slide-name"
           data-toggle="tooltip"
-          :title="imageNamesById[currentImageId]"
+          :title="imageNamesById[selectedImageId]"
         >
-          {{ imageNamesById[currentImageId] }}
+          {{ imageNamesById[selectedImageId] }}
         </div>
       </div>
     </div>
@@ -355,7 +364,7 @@ export default Vue.extend({
             :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
             data-toggle="tooltip"
             title="Left-click + drag to pan"
-            @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+            @click="tooglePixelmapPaintBrush"
           >
             <i class="icon-move" />
           </button>
@@ -364,7 +373,7 @@ export default Vue.extend({
             :class="['btn btn-default', pixelmapPaintBrush && 'active btn-primary']"
             data-toggle="tooltip"
             title="Left-click + drag to paint"
-            @click="pixelmapPaintBrush = !pixelmapPaintBrush"
+            @click="tooglePixelmapPaintBrush"
           >
             <i class="icon-paint-roller" />
           </button>
@@ -387,7 +396,7 @@ export default Vue.extend({
                 :key="index"
                 :class="{'h-selected-row': categoryIndex === index}"
                 :disabled="mode === viewMode.Labeling"
-                @click="$parent.categoryIndex = index"
+                @click="selectCategory(index)"
               >
                 <td>{{ hotkeyFromIndex(index + 1) }}</td>
                 <td
@@ -447,7 +456,7 @@ export default Vue.extend({
                     title="Change label color"
                   />
                 </td>
-                <td v-if="mode !== viewMode.Labeling">
+                <td v-if="mode === viewMode.Labeling">
                   <input
                     v-model="checkedCategories"
                     type="checkbox"
@@ -525,13 +534,6 @@ export default Vue.extend({
       >
         <i class="icon-star" /> Begin training
       </button>
-      <active-learning-merge-confirmation
-        id="mergeConfirmation"
-        :callback="mergeCategory"
-        :category-name="currentCategoryLabel"
-        :fill-color="currentCategoryFillColor"
-        :selected-labels="selectedLabels"
-      />
     </div>
   </div>
 </template>

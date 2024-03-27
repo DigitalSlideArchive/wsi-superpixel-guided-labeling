@@ -16,9 +16,6 @@ export default {
         };
     },
     computed: {
-        apiRoot() {
-            return store.apiRoot;
-        },
         selectedIndex() {
             return store.selectedIndex;
         },
@@ -28,13 +25,10 @@ export default {
         page() {
             return store.page;
         },
-        backboneParent() {
-            return store.backboneParent;
-        },
         slideName() {
             if (this.superpixelsToDisplay.length) {
                 const id = this.superpixelsToDisplay[this.selectedIndex].imageId;
-                return this.backboneParent.imageItemsById[id].name;
+                return store.backboneParent.imageItemsById[id].name;
             }
             return '';
         }

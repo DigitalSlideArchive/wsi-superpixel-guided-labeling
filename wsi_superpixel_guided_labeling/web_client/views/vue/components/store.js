@@ -2,29 +2,40 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { hotkeys as hotkeysConsts, schemeTableau10 } from './constants';
+import { hotkeys as hotkeysConsts } from './constants';
+import { rgbStringToArray } from './utils';
 
 const store = Vue.observable({
-    selectedIndex: 0,
-    page: 0,
-    maxPage: 1,
-    pageSize: 8,
+    /*********
+     * DATA
+     *********/
     apiRoot: '',
-    loading: false, // limit how quickly one can switch between images
     superpixelsToDisplay: [],
     changeLog: [],
     annotationsByImageId: {},
     backboneParent: null,
-    predictions: false,
-    currentAverageCertainty: 0,
     categories: [],
     categoriesAndIndices: [],
-    lastCategorySelected: null,
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
+    overlayLayers: [],
+    /*********
+     * UI
+     *********/
+    selectedIndex: 0,
+    page: 0,
+    maxPage: 1,
+    pageSize: 8,
+    predictions: false,
+    currentAverageCertainty: 0,
+    lastCategorySelected: null,
     strokeOpacity: 1.0,
     mode: 0,
+    currentCategoryFormValid: true,
     pixelmapPaintBrush: false,
-    currentImageId: ''
+    currentImageId: '',
+    categoryIndex: 0,
+    activeLearningStep: 0,
+    selectedLabels: []
 });
 
 const previousCard = () => {
@@ -48,8 +59,11 @@ const nextCard = () => {
 };
 
 /**
- * UTILITY FUNCTIONS
-*/
+ * Assign a hotkey to a category
+ *
+ * @param {string} oldkey The old hotkey value
+ * @param {string} newKey The new hotkey value
+ */
 const assignHotkey = (oldkey, newKey) => {
     // Check for duplicate key bindings
     const oldVal = store.hotkeys.get(newKey);
@@ -62,27 +76,16 @@ const assignHotkey = (oldkey, newKey) => {
     }
 };
 
-const getFillColor = (index) => {
-    const hexColor = schemeTableau10[index % 10];
-    const [r, g, b] = hexColor.slice(1).match(/.{1,2}/g);
-    return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, 0.5)`;
-};
-
 /**
  * Ensure that the label and prediction annotations are drawn correctly by
  * keeping the geojs layer up to date with the most recent category list
  */
-
-const rgbStringToArray = (rgbStr) => {
-    return rgbStr.match(/\d+(?:\.\d+)?/g).map(Number);
-};
-
-const updatePixelmapLayerStyle = (overlayLayers) => {
-    if (!overlayLayers.length) {
+const updatePixelmapLayerStyle = () => {
+    if (!store.overlayLayers.length) {
         return;
     }
 
-    _.forEach(overlayLayers, (overlayLayer) => {
+    _.forEach(store.overlayLayers, (overlayLayer) => {
         _.forEach(overlayLayer.features(), (feature) => {
             feature.style('color', (d, i) => {
                 if (d < 0 || d >= store.categories.length) {
@@ -109,6 +112,5 @@ export {
     nextCard,
     previousCard,
     assignHotkey,
-    updatePixelmapLayerStyle,
-    getFillColor
+    updatePixelmapLayerStyle
 };

@@ -13,7 +13,6 @@ import { parse } from '@girder/slicer_cli_web/parser';
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGlobalContainer.vue';
-// import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
 import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
 
@@ -271,9 +270,6 @@ const ActiveLearningView = View.extend({
                     annotationsByImageId: this.annotationsByImageId,
                     activeLearningStep: this.activeLearningStep,
                     certaintyMetrics: this.certaintyMetrics,
-                    router,
-                    trainingDataFolderId: this.trainingDataFolderId,
-                    annotationBaseName: this.annotationBaseName,
                     sortedSuperpixelIndices: this.sortedSuperpixelIndices,
                     apiRoot: getApiRoot(),
                     currentAverageCertainty: this.currentAverageCertainty,
