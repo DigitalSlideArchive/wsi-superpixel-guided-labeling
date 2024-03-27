@@ -171,7 +171,8 @@ export default Vue.extend({
                 newName = 'New Category';
             }
             if (_.isUndefined(newFillColor)) {
-                newFillColor = getFillColor(store.categoriesAndIndices.length);
+                const idx = store.categoriesAndIndices.length || 0;
+                newFillColor = getFillColor(idx);
             }
 
             store.categoriesAndIndices.push({
@@ -219,6 +220,7 @@ export default Vue.extend({
             });
             this.checkedCategories = [];
             store.categories = this.allNewCategories;
+            store.categoryIndex = store.categoriesAndIndices.length - 1;
             this.$emit('combine');
         },
         mergeCategory(newLabel, newFillColor) {
@@ -449,7 +451,7 @@ export default Vue.extend({
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
                 <td
                   id="colorPickerInput"
-                  :disabled="mode === viewMode.Labeling"
+                  :disabled="mode !== viewMode.Labeling"
                   @click="(e) => togglePicker(e, index)"
                 >
                   <color-picker-input
@@ -556,7 +558,7 @@ export default Vue.extend({
 
 <style scoped>
 .h-labeling-container {
-    z-index: 1000;
+    z-index: 100;
     position: absolute;
     top: 60px;
     left: 5px;
@@ -698,7 +700,7 @@ tr:hover .editing-icons {
 }
 
 .slide-name-container {
-    z-index: 1000;
+    z-index: 100;
     position: absolute;
     top: 5px;
     left: 5px;

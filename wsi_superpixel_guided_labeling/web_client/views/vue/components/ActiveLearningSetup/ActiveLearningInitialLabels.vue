@@ -63,7 +63,7 @@ export default Vue.extend({
         }
     },
     mounted() {
-        window.addEventListener('keydown', this.keydownListener);
+        window.addEventListener('resize', this.updatePageSize);
         store.overlayLayers = [];
         if (store.currentImageId) {
             this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
@@ -72,7 +72,7 @@ export default Vue.extend({
         }
     },
     destroyed() {
-        window.removeEventListener('keydown', this.keydownListener);
+        window.removeEventListener('resize', this.updatePageSize);
     },
     methods: {
         /***********************************
@@ -86,6 +86,7 @@ export default Vue.extend({
                 url: `item/${store.currentImageId}/tiles`
             }).done(() => {
                 this.drawBaseImageLayer();
+                this.updatePageSize();
             });
         },
         drawBaseImageLayer() {
@@ -145,24 +146,74 @@ export default Vue.extend({
             this.updateActionModifiers();
             this.synchronizeCategories();
         },
-        parseUserHotkeys(event) {
-            // Combine the list of selected keys
-            const pressed = _.filter(comboHotkeys, (key) => event[`${key}Key`]);
-            if (!(event.key in pressed)) pressed.push(event.key);
-            return pressed;
-        },
-        keydownListener(event) {
-            if (event.target.type === 'text') {
-                // User is typing, not using a hot key selector
+        updateMapBoundsForSelection() {
+            if (!this.viewerWidget || !this.viewerWidget.viewer) {
                 return;
             }
-
-            const userHotkeys = this.parseUserHotkeys(event);
-            const idx = store.hotkeys.get(userHotkeys.join('+'));
-            if (!_.isUndefined(idx)) {
-                event.preventDefault();
-                store.categoryIndex = idx - 1;
+            // Center the selected superpixel
+            const superpixel = store.superpixelsToDisplay[store.selectedIndex];
+            const bbox = superpixel.bbox;
+            const bboxWidth = bbox[2] - bbox[0];
+            const bboxHeight = bbox[3] - bbox[1];
+            const scaleX = Math.abs((2 * bboxWidth) / this.currentImageMetadata.sizeX);
+            const scaleY = Math.abs((2 * bboxHeight) / this.currentImageMetadata.sizeY);
+            const zoom = this.initialZoom - Math.log2(Math.max(scaleX, scaleY));
+            const center = {
+                x: (bbox[0] + bbox[2]) / 2,
+                y: (bbox[1] + bbox[3]) / 2
+            };
+            // Draw bounding box around selected superpixel
+            this.viewerWidget.viewer.zoom(zoom - 1.5);
+            this.viewerWidget.viewer.center(center);
+            this.boundingBoxFeature.data([[
+                [bbox[0], bbox[1]], [bbox[2], bbox[1]], [bbox[2], bbox[3]], [bbox[0], bbox[3]]
+            ]]);
+            this.featureLayer.draw();
+        },
+        updateSelectedCard() {
+            const newImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
+            if (newImageId !== store.currentImageId) {
+                store.currentImageId = newImageId;
+            } else {
+                this.updateMapBoundsForSelection();
             }
+        },
+        updateSelectedPage(newPage, oldPage) {
+            const startIndex = newPage * store.pageSize;
+            const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
+            store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
+            const oldIndex = store.selectedIndex;
+            if (!this.windowResize) {
+                // Only reset the selected index if the user has changed the page
+                // and the page has not been changed because of window resize.
+                store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
+            }
+            this.windowResize = false;
+            if (oldIndex === store.selectedIndex) {
+                // Force the update
+                this.updateSelectedCard();
+            }
+        },
+        updatePageSize() {
+            // FIXME: Not working (not being called enough?)
+            if (store.mode !== viewMode.Guided) {
+                return;
+            }
+            this.windowResize = true;
+            // compute how many cards to show
+            const el = document.getElementById('filmstrip-cards');
+            const card = el.firstElementChild.clientWidth;
+            const paddingOffset = 20;
+            // update page
+            const currentIndex = store.page * store.pageSize + store.selectedIndex;
+            const oldPageSize = store.pageSize;
+            store.pageSize = Math.max(Math.floor(el.clientWidth / (card + paddingOffset)), 1);
+            const oldPage = store.page;
+            store.page = Math.floor(currentIndex / store.pageSize);
+            store.selectedIndex = currentIndex - (store.pageSize * store.page);
+            store.maxPage = Math.ceil(store.sortedSuperpixelIndices.length / store.pageSize);
+            // Force an update
+            this.updateSelectedPage(store.page, oldPage);
         },
         /**
          * Parse existing label annotations to populate the categories used for labeling.
@@ -346,6 +397,9 @@ export default Vue.extend({
             }
         },
         updateActionModifiers() {
+            if (!this.viewerWidget || !this.viewerWidget.viewer) {
+                return;
+            }
             // Panning is typically by with left-click and continuous painting
             // by shift+left-click. When the paint brush is enabled swap these
             // interactions.
@@ -353,7 +407,8 @@ export default Vue.extend({
             const actions = interactor.options().actions;
             _.map(actions, (action) => {
                 if (action.action === 'geo_action_pan') {
-                    action.modifiers.shift = store.pixelmapPaintBrush;
+                    const state = store.pixelmapPaintBrush && store.mode === viewMode.Labeling;
+                    action.modifiers.shift = state;
                 }
             });
         },
@@ -369,9 +424,9 @@ export default Vue.extend({
             const idsToSave = saveAll ? Object.keys(store.annotationsByImageId) : [store.currentImageId];
             store.backboneParent.saveLabelAnnotations(idsToSave);
         },
-        updateConfig: _.debounce(function () {
-            store.backboneParent.updateHistomicsYamlConfig(store.categories);
-        }, 500)
+        updateConfig() {
+            store.backboneParent.updateHistomicsYamlConfig();
+        }
     }
 });
 </script>

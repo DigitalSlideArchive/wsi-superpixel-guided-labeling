@@ -47,6 +47,14 @@ export default Vue.extend({
     methods: {
         submit() {
             this.$emit('merge', this.categoryName, this.currentCategoryFillColor);
+        },
+        togglePicker(event) {
+            const picker = this.$refs.colorpicker;
+            const colorPicker = picker.$refs.colorPicker;
+            if (event.target.className === 'current-color' && colorPicker) {
+                // Default to th RGBA input
+                colorPicker.fieldsIndex++;
+            }
         }
     }
 });
@@ -81,12 +89,14 @@ export default Vue.extend({
               v-model="categoryName"
               class="form-control category-input"
             >
-            <color-picker-input
-              :key="fillColor"
-              v-model="currentCategoryFillColor"
-              class="condensed-color-picker"
-              :color="fillColor"
-            />
+            <div @click="(e) => togglePicker(e)">
+              <color-picker-input
+                ref="colorpicker"
+                :key="fillColor"
+                v-model="currentCategoryFillColor"
+                :color="fillColor"
+              />
+            </div>
           </div>
         </div>
         <div class="modal-footer">

@@ -123,6 +123,8 @@ const ActiveLearningView = View.extend({
 
     updateHistomicsYamlConfig() {
         const groups = new Map();
+        // Keep the internal categoryMap in sync with changes
+        this.categoryMap.clear();
         _.forEach(store.categories, (category, index) => {
             const key = _.find([...store.hotkeys], ([, v]) => v === index)[0];
             groups.set(category.label, {
@@ -131,6 +133,7 @@ const ActiveLearningView = View.extend({
                 lineColor: category.strokeColor || 'rgba(0,0,0,1)',
                 hotKey: `${key}`
             });
+            this.categoryMap.set(category.label, category);
         });
         this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
 

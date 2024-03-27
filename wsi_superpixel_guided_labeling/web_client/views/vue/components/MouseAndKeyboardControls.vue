@@ -18,11 +18,6 @@ export default Vue.extend({
             return store.pixelmapPaintBrush;
         }
     },
-    watch: {
-        labeling() {
-            this.showInfoContainer = this.labeling;
-        }
-    },
     mounted() {
         // Default to hidden when we are not in the setup step
         this.showInfoContainer = this.labeling;
@@ -108,7 +103,7 @@ export default Vue.extend({
 
 <style scoped>
 .h-setup-categories-information {
-    z-index: 1000;
+    z-index: 100;
     position: absolute;
     top: 45px;
     right: 20px;
