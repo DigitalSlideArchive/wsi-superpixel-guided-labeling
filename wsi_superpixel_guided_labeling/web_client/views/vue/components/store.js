@@ -18,6 +18,8 @@ const store = Vue.observable({
     categoriesAndIndices: [],
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
     overlayLayers: [],
+    zoom: 1,
+    center: { x: 1, y: 1 },
     /*********
      * UI
      *********/

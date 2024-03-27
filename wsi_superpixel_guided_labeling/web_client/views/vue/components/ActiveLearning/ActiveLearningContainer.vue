@@ -84,6 +84,10 @@ export default Vue.extend({
             this.createCategories();
         });
     },
+    beforeDestroy() {
+        store.zoom = this.viewerWidget.viewer.zoom();
+        store.center = this.viewerWidget.viewer.center();
+    },
     methods: {
         updateMapBoundsForSelection() {
             if (!this.viewerWidget || !this.viewerWidget.viewer) {

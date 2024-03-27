@@ -100,6 +100,12 @@ export default Vue.extend({
             if (!this.superpixelAnnotation) {
                 return;
             }
+
+            if (store.activeLearningStep >= 2) {
+                // We've come here from the Guided view, keep current zoom
+                this.viewerWidget.viewer.zoom(store.zoom);
+                this.viewerWidget.viewer.center(store.center);
+            }
             this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
         },
         onPixelmapRendered() {
