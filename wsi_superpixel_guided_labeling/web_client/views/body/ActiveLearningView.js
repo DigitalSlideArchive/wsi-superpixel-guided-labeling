@@ -60,6 +60,7 @@ const ActiveLearningView = View.extend({
         this.imageItemsById = {};
         this.annotationsByImageId = {};
         this.sortedSuperpixelIndices = [];
+        this.superpixelPredictionsData = [];
         this._isSaving = false;
         this._saveAnnotationsForIds = new Set();
         // Use a map to preserve insertion order
@@ -490,6 +491,9 @@ const ActiveLearningView = View.extend({
                 superpixelPredictionsData.push(prediction);
             });
         });
+        // TODO: Come back to "this.superpixelPredictionsData" - this works for now,
+        // needs to be rethought for use across components
+        this.superpixelPredictionsData = superpixelPredictionsData;
         this.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
     },
 

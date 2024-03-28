@@ -8,6 +8,7 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 import ActiveLearningFilmStrip from './ActiveLearningFilmStrip.vue';
 import ActiveLearningKeyboardShortcuts from './ActiveLearningKeyboardShortcuts.vue';
 import AnnotationOpacityControl from '../AnnotationOpacityControl.vue';
+import ActiveLearningReviewContainer from '../ActiveLearningReview/ActiveLearningReviewContainer.vue';
 
 import { store, updatePixelmapLayerStyle } from '../store.js';
 
@@ -15,7 +16,8 @@ export default Vue.extend({
     components: {
         ActiveLearningFilmStrip,
         ActiveLearningKeyboardShortcuts,
-        AnnotationOpacityControl
+        AnnotationOpacityControl,
+        ActiveLearningReviewContainer
     },
     props: [
         'router',
@@ -258,15 +260,47 @@ export default Vue.extend({
 
 <template>
   <div class="h-active-learning-container">
-    <active-learning-keyboard-shortcuts />
-    <annotation-opacity-control
-      :overlay-layers="overlayLayers"
-    />
-    <div
-      ref="map"
-      class="h-active-learning-map"
-    />
-    <active-learning-film-strip />
+    <ul class="nav nav-tabs">
+      <li class="active">
+        <a
+          data-toggle="tab"
+          href="#learning"
+        >
+          Active Learning
+        </a>
+      </li>
+      <li>
+        <a
+          data-toggle="tab"
+          href="#reviewing"
+        >
+          Active Learning Review
+        </a>
+      </li>
+    </ul>
+    <div class="tab-content">
+      <div
+        id="learning"
+        class="tab-pane fade in active"
+      >
+        <active-learning-keyboard-shortcuts />
+        <annotation-opacity-control
+          :active-learning-setup="false"
+          :overlay-layers="overlayLayers"
+        />
+        <div
+          ref="map"
+          class="h-active-learning-map"
+        />
+        <active-learning-film-strip />
+      </div>
+      <div
+        id="reviewing"
+        class="tab-pane fade"
+      >
+        <active-learning-review-container />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -279,6 +313,6 @@ export default Vue.extend({
 
 .h-active-learning-map {
     width: 100%;
-    height: 100%;
+    height: calc(100vh - 40px);
 }
 </style>
