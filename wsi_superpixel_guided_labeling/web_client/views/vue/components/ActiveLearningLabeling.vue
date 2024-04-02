@@ -5,8 +5,8 @@ import _ from 'underscore';
 import { confirm } from '@girder/core/dialog';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
-import { store } from './store.js';
-import { boundaryColor, viewMode } from './constants.js';
+import { store, assignHotkey, nextCard, previousCard } from './store.js';
+import { boundaryColor, comboHotkeys, viewMode } from './constants.js';
 import { getFillColor } from './utils.js';
 
 // Define some helpful constants for adding categories
@@ -25,12 +25,14 @@ export default Vue.extend({
     data() {
         return {
             showLabelingContainer: true,
-            editing: -1,
+            editingLabel: -1,
             checkedCategories: [],
             currentCategoryLabel: 'New Category',
             currentCategoryFillColor: getFillColor(0),
             newImagesAvailable: false,
-            selectedImageId: store.currentImageId
+            selectedImageId: store.currentImageId,
+            editingHotkey: -1,
+            currentHotkeyInput: []
         };
     },
     computed: {
@@ -108,14 +110,26 @@ export default Vue.extend({
         },
         activeLearningStep() {
             return store.activeLearningStep;
+        },
+        nonDefaultCategories() {
+            // Expect 'default' to be at index 0 ALWAYS
+            return _.filter(store.categories, (category) => {
+                return category.label !== 'default';
+            });
+        },
+        editingText() {
+            return this.currentHotkeyInput.join(',');
         }
     },
     watch: {
-        editing() {
-            if (this.editing === -1) {
+        editingLabel() {
+            if (this.editingLabel === -1) {
+                this.synchronizeCategories();
                 return;
+            } else {
+                store.categoryIndex = this.editingLabel;
             }
-            const key = `label_${this.editing}`;
+            const key = `label_${this.editingLabel}`;
             this.$nextTick(() => this.$refs[key][0].focus());
         },
         categories: {
@@ -160,7 +174,35 @@ export default Vue.extend({
         },
         checkedCategories() {
             store.selectedLabels = this.selectedLabels;
+        },
+        mode: {
+            handler() {
+                store.categoryIndex = store.mode === viewMode.Labeling ? 0 : -1;
+                if (store.mode === viewMode.Guided) {
+                    store.lastCategorySelected = null;
+                } else {
+                    store.lastCategorySelected = null;
+                }
+            },
+            immediate: true,
+        },
+        editingHotkey(newIndex, oldIndex) {
+            if (newIndex !== oldIndex && oldIndex !== -1) {
+                // We were previously editing a different key, save what we were working on
+                this.commitHotkeyChange();
+                this.currentHotkeyInput = [];
+                if (this.editingHotkey !== -1) {
+                    const key = `hotkey_${this.editingHotkey}`;
+                    this.$nextTick(() => this.$refs[key][0].focus());
+                }
+            }
         }
+    },
+    mounted() {
+        window.addEventListener('keydown', this.keydownListener);
+    },
+    destroyed() {
+        window.removeEventListener('keydown', this.keydownListener);
     },
     methods: {
         /*************************
@@ -248,11 +290,43 @@ export default Vue.extend({
             });
         },
         selectCategory(index) {
+            if (store.mode !== viewMode.Labeling) {
+              return;
+            }
             store.categoryIndex = index;
         },
         synchronizeCategories() {
             store.categories = this.allNewCategories;
             this.$emit('synchronize');
+        },
+        keydownListener(event) {
+            if (event.target.type === 'text') {
+                // User is typing, not using a hot key selector
+                return;
+            }
+
+            if (this.editingHotkey !== -1) {
+                this.editKeydownListener(event);
+            } else {
+                this.categoryKeydownListener(event);
+            }
+        },
+        commitHotkeyChange() {
+            // Hotkeys should either be a single alpha-numeric value or be
+            // preceded by one or more modifiers (ctrl, shift, alt)
+            const okayModifiers = _.every(_.initial(this.currentHotkeyInput), (mod) => {
+                return comboHotkeys.includes(mod);
+            });
+            const okayKey = /^[a-zA-Z0-9]$/.test(_.last(this.currentHotkeyInput));
+            const validHotkey = okayModifiers && okayKey;
+            if (!_.isEmpty(this.currentHotkeyInput) && validHotkey && this.editingHotkey > -1) {
+                // Accept user input as finalized hotkey selection
+                const newKey = this.currentHotkeyInput.join('+');
+                const hotKey = this.hotkeyFromIndex(this.editingHotkey + 1);
+                assignHotkey(hotKey, newKey);
+                store.backboneParent.updateHistomicsYamlConfig();
+                this.editingHotkey = -1;
+            }
         },
         /***********
          * UTILITY *
@@ -283,7 +357,65 @@ export default Vue.extend({
         togglePredictions() {
             store.predictions = !store.predictions;
         },
-
+        toggleEdit(row, column) {
+            this.editingLabel = -1;
+            this.editingHotkey = -1;
+            if (column === 0) {
+                // This is a hotkey edit
+                this.editingHotkey = row;
+            } else if (column === 1) {
+                // This is a label name edit
+                this.editingLabel = row;
+            }
+            this.selectCategory(row);
+        },
+        parseUserHotkeys(event) {
+            // Combine the list of selected keys
+            const pressed = _.filter(comboHotkeys, (key) => event[`${key}Key`]);
+            if (!(event.key in pressed)) pressed.push(event.key);
+            return pressed;
+        },
+        categoryKeydownListener(event) {
+            // Using hotkeys to select categories
+            // In order to accommodate more than 9 categories map default and
+            // user-defined hotkeys to each category index
+            const userHotkeys = this.parseUserHotkeys(event);
+            const idx = store.hotkeys.get(userHotkeys.join('+'));
+            if (this.mode === viewMode.Labeling) {
+                if (!_.isUndefined(idx)) {
+                    event.preventDefault();
+                    store.categoryIndex = idx - 1;
+                }
+            } else if (this.mode === viewMode.Guided) {
+                if (!_.isUndefined(idx)) {
+                    store.lastCategorySelected = idx;
+                    return;
+                }
+                switch (event.key) {
+                    case 'ArrowRight':
+                        nextCard();
+                        break;
+                    case 'ArrowLeft':
+                        previousCard();
+                        break;
+                }
+            }
+        },
+        editKeydownListener(event) {
+            // Using keyboard to set hotkeys
+            const newKey = this.currentHotkeyInput.join('+');
+            const assignedHotkeys = _.filter(store.hotkeys, (_key, idx) => {
+                return idx < store.categories.length;
+            });
+            if (newKey in assignedHotkeys) {
+                event.preventDefault();
+            }
+            this.currentHotkeyInput = this.parseUserHotkeys(event);
+            this.commitHotkeyChange();
+        },
+        hotkeyFromIndex(index) {
+            return _.find([...store.hotkeys], ([, v]) => v === index)[0];
+        },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
@@ -403,12 +535,36 @@ export default Vue.extend({
                 v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
                 :key="index"
                 :class="{'h-selected-row': categoryIndex === index}"
-                :disabled="mode === viewMode.Labeling"
                 @click="selectCategory(index)"
               >
-                <td>{{ hotkeyFromIndex(index + 1) }}</td>
+                <td v-if="editingHotkey === index">
+                  <input
+                    :ref="`hotkey_${index}`"
+                    class="form-control input-sm category-input hotkey-input"
+                    :value="editingText"
+                    readonly
+                    @keyup.enter="editingHotkey = -1"
+                    @blur="editingHotkey = -1"
+                  >
+                </td>
+                <td v-else>
+                  {{ hotkeyFromIndex(index + 1) }}
+                  <div
+                    v-if="mode !== viewMode.Review"
+                    class="editing-icons edit-hotkey"
+                  >
+                    <button
+                      class="btn h-table-button"
+                      data-toggle="tooltip"
+                      title="Edit label name"
+                      @click="toggleEdit(index, 0)"
+                    >
+                      <i class="icon-pencil" />
+                    </button>
+                  </div>
+                </td>
                 <td
-                  v-if="editing === index"
+                  v-if="editingLabel === index"
                   class="table-labels"
                 >
                   <input
@@ -416,15 +572,15 @@ export default Vue.extend({
                     :ref="`label_${index}`"
                     v-model="currentCategoryLabel"
                     class="form-control input-sm category-input"
-                    @keyup.enter="editing = -1"
-                    @blur="editing = -1"
+                    @keyup.enter="editingLabel = -1"
+                    @blur="editingLabel = -1"
                     @focus="$event.target.select()"
                   >
                   <button
                     class="btn h-table-button"
                     data-toggle="tooltip"
                     title="Accept changes"
-                    @click="editing = -1"
+                    @click="editingLabel = -1"
                   >
                     <i class="icon-ok" />
                   </button>
@@ -442,7 +598,7 @@ export default Vue.extend({
                       class="btn h-table-button"
                       data-toggle="tooltip"
                       title="Edit label name"
-                      @click="editing = index"
+                      @click="toggleEdit(index, 1)"
                     >
                       <i class="icon-pencil" />
                     </button>
@@ -651,6 +807,7 @@ tr:hover .editing-icons {
     display: flex;
     justify-content: space-between;
     min-width: 100%;
+    width: 225px;
 }
 
 .h-selected-row {
@@ -709,5 +866,16 @@ tr:hover .editing-icons {
     box-shadow: 5px 5px 5px rgba(0,0,0,.5);
     padding: 5px;
     background-color: #fff;
+}
+
+.edit-hotkey {
+    display: inline-flex;
+    position: absolute;
+    left: 10px;
+}
+
+.hotkey-input {
+    max-width: 20px;
+    margin: auto;
 }
 </style>
