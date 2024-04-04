@@ -2,7 +2,7 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { hotkeys as hotkeysConsts } from './constants';
+import { hotkeys as hotkeysConsts, activeLearningSteps } from './constants';
 import { rgbStringToArray } from './utils';
 
 const store = Vue.observable({
@@ -20,6 +20,7 @@ const store = Vue.observable({
     overlayLayers: [],
     zoom: 1,
     center: { x: 1, y: 1 },
+    sortedSuperpixelIndices: [],
     /*********
      * UI
      *********/
@@ -36,8 +37,8 @@ const store = Vue.observable({
     pixelmapPaintBrush: false,
     currentImageId: '',
     categoryIndex: 0,
-    activeLearningStep: 0,
-    selectedLabels: []
+    activeLearningStep: activeLearningSteps.SuperpixelSegmentation,
+    selectedLabels: new Map()
 });
 
 const previousCard = () => {

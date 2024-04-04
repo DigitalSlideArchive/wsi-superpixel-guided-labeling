@@ -6,7 +6,7 @@ import { confirm } from '@girder/core/dialog';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
 import { store, assignHotkey, nextCard, previousCard } from './store.js';
-import { boundaryColor, comboHotkeys, viewMode } from './constants.js';
+import { boundaryColor, comboHotkeys, viewMode, activeLearningSteps } from './constants.js';
 import { getFillColor } from './utils.js';
 
 // Define some helpful constants for adding categories
@@ -119,18 +119,21 @@ export default Vue.extend({
         },
         editingText() {
             return this.currentHotkeyInput.join(',');
+        },
+        activeLearningSteps() {
+            return activeLearningSteps;
         }
     },
     watch: {
         editingLabel() {
+            store.categoryIndex = this.editingLabel;
             if (this.editingLabel === -1) {
                 this.synchronizeCategories();
                 return;
             } else {
                 store.categoryIndex = this.editingLabel;
             }
-            const key = `label_${this.editingLabel}`;
-            this.$nextTick(() => this.$refs[key][0].focus());
+            this.$nextTick(() => document.getElementById('category-label').focus());
         },
         categories: {
             handler() {
@@ -177,14 +180,13 @@ export default Vue.extend({
         },
         mode: {
             handler() {
-                store.categoryIndex = store.mode === viewMode.Labeling ? 0 : -1;
                 if (store.mode === viewMode.Guided) {
                     store.lastCategorySelected = null;
                 } else {
                     store.lastCategorySelected = null;
                 }
             },
-            immediate: true,
+            immediate: true
         },
         editingHotkey(newIndex, oldIndex) {
             if (newIndex !== oldIndex && oldIndex !== -1) {
@@ -192,8 +194,8 @@ export default Vue.extend({
                 this.commitHotkeyChange();
                 this.currentHotkeyInput = [];
                 if (this.editingHotkey !== -1) {
-                    const key = `hotkey_${this.editingHotkey}`;
-                    this.$nextTick(() => this.$refs[key][0].focus());
+                    const el = document.getElementById('category-hotkey');
+                    this.$nextTick(() => el.focus());
                 }
             }
         }
@@ -235,28 +237,37 @@ export default Vue.extend({
             });
 
             _.forEach(Object.keys(store.annotationsByImageId), (imageId) => {
-                const labels = store.annotationsByImageId[imageId].labels;
-                const pixelmapElement = labels.get('annotation').elements[0];
-                pixelmapElement.categories = [...this.allNewCategories];
-
-                // Reset removed category labels to the default category
-                _.forEach(oldCategories, (category, val) => {
-                    const indices = category.indices[imageId] || new Set();
-                    _.forEach([...indices], (index) => {
-                        pixelmapElement.values[index] = 0;
-                    });
-                    if (isMerge) {
-                        // All merged indices should be assigned to the new combined category
-                        const newIndices = _.last(store.categoriesAndIndices).indices[imageId] || new Set();
-                        _.last(store.categoriesAndIndices).indices[imageId] = new Set([...newIndices, ...indices]);
+                _.forEach(['labels', 'predictions'], (key) => {
+                    const values = store.annotationsByImageId[imageId][key];
+                    if (!values) {
+                        return;
                     }
-                });
+                    const pixelmapElement = values.get('annotation').elements[0];
+                    if (key === 'labels') {
+                        pixelmapElement.categories = [...this.allNewCategories];
+                    } else {
+                        pixelmapElement.categories = _.rest([...this.allNewCategories]);
+                    }
 
-                // Indices have shifted after removing the selected categories
-                _.forEach(store.categoriesAndIndices, (category, val) => {
-                    const indices = category.indices[imageId] || new Set();
-                    _.forEach([...indices], (index) => {
-                        pixelmapElement.values[index] = val + 1;
+                    // Reset removed category labels to the default category
+                    _.forEach(oldCategories, (category, val) => {
+                        const indices = category.indices[imageId] || new Set();
+                        _.forEach([...indices], (index) => {
+                            pixelmapElement.values[index] = 0;
+                        });
+                        if (isMerge) {
+                            // All merged indices should be assigned to the new combined category
+                            const newIndices = _.last(store.categoriesAndIndices).indices[imageId] || new Set();
+                            _.last(store.categoriesAndIndices).indices[imageId] = new Set([...newIndices, ...indices]);
+                        }
+                    });
+
+                    // Indices have shifted after removing the selected categories
+                    _.forEach(store.categoriesAndIndices, (category, val) => {
+                        const indices = category.indices[imageId] || new Set();
+                        _.forEach([...indices], (index) => {
+                            pixelmapElement.values[index] = val + 1;
+                        });
                     });
                 });
             });
@@ -290,9 +301,6 @@ export default Vue.extend({
             });
         },
         selectCategory(index) {
-            if (store.mode !== viewMode.Labeling) {
-              return;
-            }
             store.categoryIndex = index;
         },
         synchronizeCategories() {
@@ -413,9 +421,6 @@ export default Vue.extend({
             this.currentHotkeyInput = this.parseUserHotkeys(event);
             this.commitHotkeyChange();
         },
-        hotkeyFromIndex(index) {
-            return _.find([...store.hotkeys], ([, v]) => v === index)[0];
-        },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
@@ -534,12 +539,12 @@ export default Vue.extend({
               <tr
                 v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
                 :key="index"
-                :class="{'h-selected-row': categoryIndex === index}"
+                :class="{'h-selected-row': categoryIndex === index && mode === viewMode.Labeling}"
                 @click="selectCategory(index)"
               >
                 <td v-if="editingHotkey === index">
                   <input
-                    :ref="`hotkey_${index}`"
+                    id="category-hotkey"
                     class="form-control input-sm category-input hotkey-input"
                     :value="editingText"
                     readonly
@@ -569,7 +574,6 @@ export default Vue.extend({
                 >
                   <input
                     id="category-label"
-                    :ref="`label_${index}`"
                     v-model="currentCategoryLabel"
                     class="form-control input-sm category-input"
                     @keyup.enter="editingLabel = -1"
@@ -591,7 +595,7 @@ export default Vue.extend({
                 >
                   {{ labeledSuperpixelCounts[key].label }}
                   <div
-                    v-if="mode === viewMode.Labeling"
+                    v-if="mode !== viewMode.Review"
                     class="editing-icons"
                   >
                     <button
@@ -607,7 +611,6 @@ export default Vue.extend({
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
                 <td
                   id="colorPickerInput"
-                  :disabled="mode !== viewMode.Labeling"
                   @click="(e) => togglePicker(e, index)"
                 >
                   <color-picker-input
@@ -691,7 +694,7 @@ export default Vue.extend({
         </ul>
       </div>
       <button
-        v-if="showLabelingContainer && activeLearningStep >= 2"
+        v-if="showLabelingContainer && activeLearningStep >= activeLearningSteps.GuidedLabeling"
         class="btn btn-primary btn-block"
         title="Show or hide the most recent predictions"
         @click="togglePredictions"
@@ -701,12 +704,12 @@ export default Vue.extend({
       <button
         v-if="showLabelingContainer"
         class="btn btn-block"
-        :class="[activeLearningStep < 2 ? 'btn-primary' : 'btn-success']"
+        :class="[activeLearningStep < activeLearningSteps.GuidedLabeling ? 'btn-primary' : 'btn-success']"
         :disabled="!currentCategoryFormValid || !currentLabelsValid"
         @click="beginTraining"
       >
         <i class="icon-star" />
-        {{ activeLearningStep < 2 ? 'Begin training' : 'Retrain' }}
+        {{ activeLearningStep < activeLearningSteps.GuidedLabeling ? 'Begin training' : 'Retrain' }}
       </button>
     </div>
   </div>

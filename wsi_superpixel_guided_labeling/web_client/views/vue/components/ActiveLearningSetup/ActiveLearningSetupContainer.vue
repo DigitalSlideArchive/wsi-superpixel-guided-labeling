@@ -4,6 +4,8 @@ import Vue from 'vue';
 import ActiveLearningInitialSuperpixels from './ActiveLearningInitialSuperpixels.vue';
 import ActiveLearningInitialLabels from './ActiveLearningInitialLabels.vue';
 
+import { activeLearningSteps } from '../constants.js';
+
 export default Vue.extend({
     components: {
         ActiveLearningInitialSuperpixels,
@@ -17,7 +19,12 @@ export default Vue.extend({
         'certaintyMetrics',
         'availableImages',
         'categoryMap'
-    ]
+    ],
+    computed: {
+        activeLearningSteps() {
+            return activeLearningSteps;
+        }
+    }
 });
 </script>
 
@@ -28,7 +35,7 @@ export default Vue.extend({
     class="h-active-learning-container"
   >
     <active-learning-initial-superpixels
-      v-if="activeLearningStep === 0"
+      v-if="activeLearningStep === activeLearningSteps.SuperpixelSegmentation"
       :backbone-parent="backboneParent"
       :certainty-metrics="certaintyMetrics"
     />

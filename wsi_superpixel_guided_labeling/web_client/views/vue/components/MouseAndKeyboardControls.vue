@@ -27,7 +27,10 @@ export default Vue.extend({
 
 <template>
   <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
-    <div v-if="showInfoContainer">
+    <div
+      v-if="showInfoContainer"
+      class="col-sm-10"
+    >
       <h6 v-if="labeling">
         Annotations
       </h6>
@@ -80,9 +83,13 @@ export default Vue.extend({
         </li>
       </ul>
     </div>
-    <i class="icon-info-circled" />
+    <i
+      class="icon-info-circled"
+      :class="[showInfoContainer && 'col-sm-1']"
+    />
     <button
       class="h-collapse-button"
+      :class="[showInfoContainer && 'col-sm-1']"
       @click="showInfoContainer = !showInfoContainer"
     >
       <i

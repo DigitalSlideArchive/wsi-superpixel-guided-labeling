@@ -12,7 +12,8 @@ export default Vue.extend({
     },
     data() {
         return {
-            currentCategoryFillColor: 'rgba(0, 0, 0, 0.5)'
+            currentCategoryFillColor: 'rgba(0, 0, 0, 0.5)',
+            categoryName: 'Merged Categories'
         };
     },
     computed: {
@@ -26,11 +27,8 @@ export default Vue.extend({
                           superpixels.`;
             return message;
         },
-        categoryName() {
-            if (store.selectedLabels.size < 1) {
-                return 'New Merged Category';
-            }
-            return _.last([...store.selectedLabels.values()]).label;
+        selectedLabels() {
+            return store.selectedLabels;
         },
         fillColor() {
             if (store.selectedLabels.size < 1) {
@@ -42,6 +40,11 @@ export default Vue.extend({
     watch: {
         fillColor(color) {
             this.currentCategoryFillColor = color;
+        },
+        selectedLabels() {
+            if (store.selectedLabels.size >= 1) {
+                this.categoryName = _.last([...store.selectedLabels.values()]).label;
+            }
         }
     },
     methods: {

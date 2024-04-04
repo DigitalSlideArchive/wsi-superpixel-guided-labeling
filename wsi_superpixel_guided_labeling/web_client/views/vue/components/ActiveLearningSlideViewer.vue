@@ -5,22 +5,28 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import { comboHotkeys, boundaryColor } from '../constants.js';
-import { store, updatePixelmapLayerStyle } from '../store.js';
-import { getFillColor } from '../utils.js';
+import { comboHotkeys, boundaryColor, viewMode } from './constants.js';
+import { store, updatePixelmapLayerStyle } from './store.js';
+import { getFillColor } from './utils.js';
 
 export default Vue.extend({
     data() {
         return {
             hasLoaded: false,
+            windowResize: false,
+            currentImageMetadata: {},
 
             // keep track of the current image and annotation to edit
             superpixelAnnotation: null,
             superpixelElement: null,
+            map: null,
 
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
-            pixelmapPaintValue: null
+            pixelmapPaintValue: null,
+            featureLayer: null,
+            initialZoom: 1,
+            boundingBoxFeature: null
         };
     },
     computed: {
@@ -38,9 +44,42 @@ export default Vue.extend({
         },
         predictions() {
             return store.predictions;
+        },
+        mode() {
+            return store.mode;
+        },
+        page() {
+            return store.page;
+        },
+        selectedIndex() {
+            return store.selectedIndex;
+        },
+        changeLog() {
+            return store.changeLog;
         }
     },
     watch: {
+        mode: {
+            handler(newMode, oldMode) {
+                if (newMode === oldMode) {
+                    return;
+                }
+                if (store.mode === viewMode.Labeling) {
+                    if (this.boundingBoxFeature) {
+                        this.boundingBoxFeature.visible(false);
+                        this.featureLayer.draw();
+                    }
+                } else if (store.mode === viewMode.Guided) {
+                    if (this.boundingBoxFeature) {
+                        this.boundingBoxFeature.visible(true);
+                    }
+                    this.updateMapBoundsForSelection();
+                    this.$nextTick(() => this.updatePageSize());
+                }
+                this.updateActionModifiers();
+            },
+            immediate: true
+        },
         categoryIndex(index) {
             if (index < 0 || index >= store.categoriesAndIndices.length) {
                 store.categoryIndex = 0;
@@ -60,11 +99,28 @@ export default Vue.extend({
             } else {
                 this.viewerWidget.removeAnnotation(annotation);
             }
+        },
+        selectedIndex() {
+            this.updateSelectedCard();
+        },
+        page(newPage, oldPage) {
+            this.updateSelectedPage(newPage, oldPage);
+        },
+        changeLog: {
+            // TODO: Use the changelog more often instead of saving all label annotations every time
+            handler() {
+                if (!store.changeLog.length) {
+                    return;
+                }
+                const change = store.changeLog.pop();
+                store.backboneParent.saveLabelAnnotations([change.imageId]);
+                this.drawPixelmapAnnotation();
+            },
+            deep: true
         }
     },
     mounted() {
         window.addEventListener('resize', this.updatePageSize);
-        store.overlayLayers = [];
         if (store.currentImageId) {
             this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
             this.setupViewer();
@@ -84,7 +140,9 @@ export default Vue.extend({
         setupViewer() {
             restRequest({
                 url: `item/${store.currentImageId}/tiles`
-            }).done(() => {
+            }).done((resp) => {
+                // TODO: consider caching image metadata for each image the first time this request gets made
+                this.currentImageMetadata = resp;
                 this.drawBaseImageLayer();
                 this.updatePageSize();
             });
@@ -99,7 +157,26 @@ export default Vue.extend({
                 itemId: store.currentImageId
             });
             this.viewerWidget.setUnclampBoundsForOverlay(false);
-            this.viewerWidget.on('g:imageRendered', this.drawPixelmapAnnotation);
+            this.viewerWidget.on('g:imageRendered', () => {
+                store.overlayLayers = [];
+
+                this.featureLayer = this.viewerWidget.viewer.createLayer('feature', { features: ['polygon'] });
+                this.boundingBoxFeature = this.featureLayer.createFeature('polygon');
+                this.boundingBoxFeature.style({
+                    fillOpacity: 0,
+                    stroke: true,
+                    strokeWidth: 4,
+                    strokeColor: { r: 255, g: 255, b: 0 }
+                });
+                this.initialZoom = this.viewerWidget.viewer.zoom();
+                this.viewerWidget.viewer.clampBoundsX(false);
+                this.viewerWidget.viewer.clampBoundsY(false);
+
+                if (store.mode === viewMode.Guided) {
+                    this.updateMapBoundsForSelection();
+                }
+                this.drawPixelmapAnnotation();
+            });
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
                     store.overlayLayers.push(layer);
@@ -124,12 +201,6 @@ export default Vue.extend({
             if (!this.superpixelAnnotation) {
                 return;
             }
-
-            if (store.activeLearningStep >= 2) {
-                // We've come here from the Guided view, keep current zoom
-                this.viewerWidget.viewer.zoom(store.zoom);
-                this.viewerWidget.viewer.center(store.center);
-            }
             this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
         },
         onPixelmapRendered() {
@@ -144,7 +215,7 @@ export default Vue.extend({
             this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
             this.updateActionModifiers();
-            this.synchronizeCategories();
+            this.$emit('synchronize');
         },
         updateMapBoundsForSelection() {
             if (!this.viewerWidget || !this.viewerWidget.viewer) {
@@ -206,7 +277,6 @@ export default Vue.extend({
             const paddingOffset = 20;
             // update page
             const currentIndex = store.page * store.pageSize + store.selectedIndex;
-            const oldPageSize = store.pageSize;
             store.pageSize = Math.max(Math.floor(el.clientWidth / (card + paddingOffset)), 1);
             const oldPage = store.page;
             store.page = Math.floor(currentIndex / store.pageSize);
@@ -290,6 +360,7 @@ export default Vue.extend({
          */
         handlePixelmapClicked(overlayElement, overlayLayer, event) {
             if (
+                store.mode !== viewMode.Labeling || // We can only paint in labeling mode
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
                 !event.mouse.buttonsDown.left || // Not a left click
                 !store.currentCategoryFormValid || // no valid category selected
@@ -301,6 +372,7 @@ export default Vue.extend({
         },
         handleMouseOverPixelmap(overlayElement, overlayLayer, event) {
             if (
+                store.mode !== viewMode.Labeling || // We can only paint in labeling mode
                 overlayElement.get('type') !== 'pixelmap' ||
                 !event.mouse.buttons.left ||
                 (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
@@ -312,6 +384,7 @@ export default Vue.extend({
         },
         handleMouseDownPixelmap(overlayElement, overlayLayer, event) {
             if (
+                store.mode !== viewMode.Labeling || // We can only paint in labeling mode
                 overlayElement.get('type') !== 'pixelmap' ||
                 !event.mouse.buttons.left ||
                 (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
@@ -358,7 +431,7 @@ export default Vue.extend({
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
             superpixelElement.values = data;
-            this.saveAnnotations();
+            this.$emit('save-annotations');
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
@@ -381,21 +454,6 @@ export default Vue.extend({
         /***********
          * UTILITY *
          ***********/
-        synchronizeCategories() {
-            if (store.currentCategoryFormValid) {
-                _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
-                    if (_.has(annotations, 'labels')) {
-                        const superpixelElement = annotations.labels.get('annotation').elements[0];
-                        if (superpixelElement) {
-                            superpixelElement.categories = JSON.parse(JSON.stringify(store.categories));
-                        }
-                    }
-                });
-                this.saveAnnotations(true);
-                updatePixelmapLayerStyle();
-                this.updateConfig();
-            }
-        },
         updateActionModifiers() {
             if (!this.viewerWidget || !this.viewerWidget.viewer) {
                 return;
@@ -414,16 +472,12 @@ export default Vue.extend({
         },
         combineCategoriesHandler() {
             this.drawPixelmapAnnotation();
-            this.saveAnnotations(true);
+            this.$emit('save-annotations', true);
             this.updateConfig();
         },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
-        saveAnnotations(saveAll) {
-            const idsToSave = saveAll ? Object.keys(store.annotationsByImageId) : [store.currentImageId];
-            store.backboneParent.saveLabelAnnotations(idsToSave);
-        },
         updateConfig() {
             store.backboneParent.updateHistomicsYamlConfig();
         }

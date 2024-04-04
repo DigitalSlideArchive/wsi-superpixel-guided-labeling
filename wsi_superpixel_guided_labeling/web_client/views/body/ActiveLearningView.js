@@ -15,16 +15,11 @@ import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGlobalContainer.vue';
 import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
+import { activeLearningSteps } from '../vue/components/constants.js';
 
 import '../../stylesheets/body/learning.styl';
 
 const yaml = require('js-yaml');
-
-const activeLearningSteps = {
-    SuperpixelSegmentation: 0, // Nothing has been started yet
-    InitialLabeling: 1, // User can view images and begin labeling as annotations become available
-    GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review
-};
 
 const epochRegex = /epoch (\d+)/i;
 
@@ -424,7 +419,7 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateCategoriesAndData(pixelmapElement) {
+    updateCategoriesAndData(pixelmapElement, isPrediction = false) {
         // Map old data values to category id
         const dataValuesToCategoryId = new Map();
         _.forEach(pixelmapElement.categories, (category, index) => {
@@ -432,7 +427,9 @@ const ActiveLearningView = View.extend({
         });
         // Map category id to new data values
         const categoryIdToNewDataValue = new Map();
-        _.forEach([...this.categoryMap.values()], (category, index) => {
+        let cats = [...this.categoryMap.values()];
+        cats = isPrediction ? _.rest(cats) : cats;
+        _.forEach(cats, (category, index) => {
             categoryIdToNewDataValue.set(category.label, index);
         });
         // Replace data
@@ -441,7 +438,7 @@ const ActiveLearningView = View.extend({
             pixelmapElement.values[index] = categoryIdToNewDataValue.get(category);
         });
         // Replace categories
-        pixelmapElement.categories = [...this.categoryMap.values()];
+        pixelmapElement.categories = cats;
     },
 
     /**
@@ -464,6 +461,9 @@ const ActiveLearningView = View.extend({
                 this.getAnnotationCategories(labelPixelmapElement);
             }
             if (this.annotationsByImageId[imageId].predictions) {
+                // FIXME: Do we need this? When we re-train do we use the labels? Predictions? Both?
+                // What risks do we face if the annotationsByImageId labels are out-of-sync with predictions
+                // if we leave and come back to the app? If we re-run predictions?
                 const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
                 this.getAnnotationCategories(predictionPixelmapElement);
             }
@@ -475,8 +475,9 @@ const ActiveLearningView = View.extend({
                 this.updateCategoriesAndData(labelPixelmapElement);
             }
             if (this.annotationsByImageId[imageId].predictions) {
+                // FIXME: Do we need this?
                 const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
-                this.updateCategoriesAndData(predictionPixelmapElement);
+                this.updateCategoriesAndData(predictionPixelmapElement, true);
             }
         });
         this.saveLabelAnnotations(Object.keys(this.annotationsByImageId));
@@ -618,6 +619,11 @@ const ActiveLearningView = View.extend({
             if (labelAnnotation) {
                 // Images added without re-train have no labels yet
                 const promise = labelAnnotation.save();
+                promises.push(promise);
+            }
+            const predictionAnnotation = this.annotationsByImageId[imageId].predictions;
+            if (predictionAnnotation) {
+                const promise = predictionAnnotation.save();
                 promises.push(promise);
             }
         });

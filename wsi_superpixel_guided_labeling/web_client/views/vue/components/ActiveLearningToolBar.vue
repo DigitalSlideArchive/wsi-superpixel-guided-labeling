@@ -1,7 +1,7 @@
 <script>
 import Vue from 'vue';
 
-import { viewMode } from './constants.js';
+import { viewMode, activeLearningSteps } from './constants.js';
 import { store } from './store.js';
 
 export default Vue.extend({
@@ -14,6 +14,9 @@ export default Vue.extend({
         },
         activeLearningStep() {
             return store.activeLearningStep;
+        },
+        activeLearningSteps() {
+            return activeLearningSteps;
         }
     },
     methods: {
@@ -26,7 +29,7 @@ export default Vue.extend({
 
 <template>
   <div
-    v-if="activeLearningStep > 0"
+    v-if="activeLearningStep > activeLearningSteps.SuperpixelSegmentation"
     class="active-learning-toolbar row"
   >
     <div class="col-sm-9" />
@@ -43,7 +46,7 @@ export default Vue.extend({
       <button
         class="btn btn-default"
         :class="[mode === viewMode.Guided && 'btn-primary']"
-        :disabled="activeLearningStep < 2"
+        :disabled="activeLearningStep < activeLearningSteps.GuidedLabeling"
         data-toggle="tooltip"
         title="Guided Mode"
         @click="changeMode(viewMode.Guided)"
