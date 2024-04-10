@@ -689,7 +689,11 @@ const ActiveLearningView = View.extend({
             restRequest({
                 url: `job/${jobId}`
             }).done((update) => {
-                if (update.status >= JobStatus.SUCCESS) {
+                if (
+                    update.status === JobStatus.SUCCESS ||
+                    update.status === JobStatus.ERROR ||
+                    update.status === JobStatus.CANCELED
+                ) {
                     clearInterval(poll);
                     this.hideSpinner();
                     if (update.status === JobStatus.SUCCESS) {
