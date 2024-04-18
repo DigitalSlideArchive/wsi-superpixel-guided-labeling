@@ -207,6 +207,10 @@ export default Vue.extend({
                 return;
             }
             this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
+            if (store.predictions) {
+                const predictionsAnnotation = store.annotationsByImageId[store.currentImageId].predictions;
+                this.viewerWidget.drawAnnotation(predictionsAnnotation);
+            }
         },
         onPixelmapRendered() {
             if (!this.hasLoaded) {
@@ -479,6 +483,7 @@ export default Vue.extend({
             this.drawPixelmapAnnotation();
             this.$emit('save-annotations', true);
             this.updateConfig();
+            store.backboneParent.getSortedSuperpixelIndices();
         },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *

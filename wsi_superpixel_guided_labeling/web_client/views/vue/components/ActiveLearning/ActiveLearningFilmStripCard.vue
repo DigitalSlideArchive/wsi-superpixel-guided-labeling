@@ -11,7 +11,10 @@ export default Vue.extend({
             return store.superpixelsToDisplay[this.index];
         },
         agreeChoice() {
-            return this.superpixelDecision.selectedCategory === this.superpixelDecision.prediction;
+            return this.labelCategory.label === this.predictedCategory.label;
+        },
+        labelCategory() {
+            return this.superpixelDecision.labelCategories[this.superpixelDecision.selectedCategory];
         },
         predictedCategory() {
             return this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction];

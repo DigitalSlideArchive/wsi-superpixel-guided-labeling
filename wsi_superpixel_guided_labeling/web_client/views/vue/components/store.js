@@ -90,6 +90,11 @@ const updatePixelmapLayerStyle = () => {
 
         _.forEach(overlayLayer.features(), (feature) => {
             feature.style('color', (d, i) => {
+                if (idx === 1) {
+                    // For the predictions overlay we need to account
+                    // for the excluded "default" category
+                    d += 1;
+                }
                 if (d < 0 || d >= store.categories.length) {
                     console.warn(`No category found at index ${d} in the category map.`);
                     return 'rgba(0, 0, 0, 0)';

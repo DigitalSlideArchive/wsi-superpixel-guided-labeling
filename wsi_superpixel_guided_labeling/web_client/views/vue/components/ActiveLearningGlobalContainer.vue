@@ -29,7 +29,6 @@ export default Vue.extend({
         'annotationsByImageId',
         'activeLearningStep',
         'certaintyMetrics',
-        'sortedSuperpixelIndices',
         'apiRoot',
         'currentAverageCertainty',
         'availableImages',
@@ -50,6 +49,9 @@ export default Vue.extend({
         },
         activeLearningSteps() {
             return activeLearningSteps;
+        },
+        superpixelsToDisplay() {
+            return store.superpixelsToDisplay;
         }
     },
     watch: {
@@ -71,11 +73,10 @@ export default Vue.extend({
         store.selectedIndex = 0;
         store.activeLearningStep = this.activeLearningStep;
         store.pageSize = this.pageSize;
-        store.sortedSuperpixelIndices = this.sortedSuperpixelIndices;
         const startIndex = 0;
-        const endIndex = Math.min(startIndex + store.pageSize, this.sortedSuperpixelIndices.length);
-        store.superpixelsToDisplay = this.sortedSuperpixelIndices.slice(startIndex, endIndex);
-        store.maxPage = this.sortedSuperpixelIndices.length / this.pageSize;
+        const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
+        store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
+        store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];
         store.currentImageId = Object.keys(this.imageNamesById)[0];
 

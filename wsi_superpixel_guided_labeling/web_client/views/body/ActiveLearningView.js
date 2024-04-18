@@ -57,7 +57,6 @@ const ActiveLearningView = View.extend({
         this.imageItemsById = {};
         this.availableImages = [];
         this.annotationsByImageId = {};
-        this.sortedSuperpixelIndices = [];
         this._isSaving = false;
         this._saveAnnotationsForIds = new Set();
         // Use a map to preserve insertion order
@@ -268,7 +267,6 @@ const ActiveLearningView = View.extend({
                     annotationsByImageId: this.annotationsByImageId,
                     activeLearningStep: this.activeLearningStep,
                     certaintyMetrics: this.certaintyMetrics,
-                    sortedSuperpixelIndices: this.sortedSuperpixelIndices,
                     apiRoot: getApiRoot(),
                     currentAverageCertainty: this.currentAverageCertainty,
                     categoryMap: this.categoryMap
@@ -522,7 +520,7 @@ const ActiveLearningView = View.extend({
                 superpixelPredictionsData.push(prediction);
             });
         });
-        this.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
+        store.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
     },
 
     getJobXmlUrl() {

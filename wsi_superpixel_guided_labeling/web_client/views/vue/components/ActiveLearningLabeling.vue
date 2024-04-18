@@ -231,44 +231,55 @@ export default Vue.extend({
         },
         combineCategories(indices, isMerge) {
             // Remove the selected categories
-            indices = _.sortBy(indices, (i) => i).reverse();
-            const oldCategories = _.map(indices, (index) => {
-                return store.categoriesAndIndices.splice(index, 1)[0];
-            });
+            const removedCategories = _.groupBy(store.categoriesAndIndices,
+                (_cat, idx) => indices.includes(idx));
+            const allOldCategories = this.allNewCategories;
+            store.categoriesAndIndices = removedCategories.false;
+            const oldCategories = removedCategories.true;
 
             _.forEach(Object.keys(store.annotationsByImageId), (imageId) => {
                 _.forEach(['labels', 'predictions'], (key) => {
-                    const values = store.annotationsByImageId[imageId][key];
-                    if (!values) {
+                    if (!_.has(store.annotationsByImageId[imageId], key)) {
                         return;
                     }
-                    const pixelmapElement = values.get('annotation').elements[0];
-                    if (key === 'labels') {
-                        pixelmapElement.categories = [...this.allNewCategories];
-                    } else {
+
+                    // Update the categories list
+                    const annotations = store.annotationsByImageId[imageId][key];
+                    const pixelmapElement = annotations.get('annotation').elements[0];
+                    pixelmapElement.categories = [...this.allNewCategories];
+                    if (key === 'predictions') {
+                        // We don't include the default (first) category for predictions
                         pixelmapElement.categories = _.rest([...this.allNewCategories]);
                     }
 
-                    // Reset removed category labels to the default category
-                    _.forEach(oldCategories, (category, val) => {
-                        const indices = category.indices[imageId] || new Set();
-                        _.forEach([...indices], (index) => {
-                            pixelmapElement.values[index] = 0;
-                        });
-                        if (isMerge) {
-                            // All merged indices should be assigned to the new combined category
-                            const newIndices = _.last(store.categoriesAndIndices).indices[imageId] || new Set();
-                            _.last(store.categoriesAndIndices).indices[imageId] = new Set([...newIndices, ...indices]);
+                    // Map old values to new values
+                    const valuesMap = new Map();
+                    const labels = _.map(removedCategories.false, (data) => data.category.label);
+                    // Account for the extra "default" category for labels
+                    const offset = key === 'labels' ? 0 : 1;
+                    _.forEach(allOldCategories.slice(offset), (data, index) => {
+                        const mergeValue = this.allNewCategories.length - (1 + offset);
+                        let newValue = isMerge ? mergeValue : (0 - offset);
+                        if (data.label === 'default' || labels.includes(data.label)) {
+                          newValue = _.indexOf(_.pluck(this.allNewCategories, 'label'), data.label);
+                          newValue -= offset;
                         }
+                        valuesMap.set(index, newValue);
                     });
 
-                    // Indices have shifted after removing the selected categories
-                    _.forEach(store.categoriesAndIndices, (category, val) => {
-                        const indices = category.indices[imageId] || new Set();
-                        _.forEach([...indices], (index) => {
-                            pixelmapElement.values[index] = val + 1;
-                        });
+                    // Update values to reflect updated categories
+                    _.forEach(pixelmapElement.values, (value, index) => {
+                        pixelmapElement.values[index] = valuesMap.get(value);
                     });
+
+                    if (key === 'labels' && isMerge) {
+                        // All indices from merged categories should be assigned to the new combined category
+                        _.forEach(_.pluck(oldCategories, 'indices'), (allIndices) => {
+                            const oldIndices = allIndices[imageId] || new Set();
+                            const newIndices = _.last(store.categoriesAndIndices).indices[imageId] || new Set();
+                            _.last(store.categoriesAndIndices).indices[imageId] = new Set([...newIndices, ...oldIndices]);
+                        });
+                    }
                 });
             });
             this.checkedCategories = [];
@@ -638,7 +649,7 @@ export default Vue.extend({
             >
               <button
                 class="btn btn-danger btn-xs"
-                :disabled="checkedCategories.length < 1"
+                :disabled="checkedCategories.length < 1 || activeLearningStep >= activeLearningSteps.GuidedLabeling"
                 data-toggle="tooltip"
                 title="Delete category"
                 @click="() => deleteCategory(checkedCategories)"
