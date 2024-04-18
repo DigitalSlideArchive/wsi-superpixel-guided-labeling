@@ -17,7 +17,8 @@ const store = Vue.observable({
     categories: [],
     categoriesAndIndices: [],
     hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
-    overlayLayers: [],
+    labelsOverlayLayer: null,
+    predictionsOverlayLayer: null,
     zoom: 1,
     center: { x: 1, y: 1 },
     sortedSuperpixelIndices: [],
@@ -84,11 +85,9 @@ const assignHotkey = (oldkey, newKey) => {
  * keeping the geojs layer up to date with the most recent category list
  */
 const updatePixelmapLayerStyle = () => {
-    if (!store.overlayLayers.length) {
-        return;
-    }
+    _.forEach([store.labelsOverlayLayer, store.predictionsOverlayLayer], (overlayLayer, idx) => {
+        if (_.isNull(overlayLayer)) return;
 
-    _.forEach(store.overlayLayers, (overlayLayer) => {
         _.forEach(overlayLayer.features(), (feature) => {
             feature.style('color', (d, i) => {
                 if (d < 0 || d >= store.categories.length) {

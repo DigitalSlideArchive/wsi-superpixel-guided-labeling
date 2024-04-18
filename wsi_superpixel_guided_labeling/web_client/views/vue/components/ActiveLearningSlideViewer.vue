@@ -36,9 +36,6 @@ export default Vue.extend({
         currentImageId() {
             return store.currentImageId;
         },
-        overlayLayer() {
-            return store.overlayLayers[0];
-        },
         categoryIndex() {
             return store.categoryIndex;
         },
@@ -158,7 +155,8 @@ export default Vue.extend({
             });
             this.viewerWidget.setUnclampBoundsForOverlay(false);
             this.viewerWidget.on('g:imageRendered', () => {
-                store.overlayLayers = [];
+                store.labelsOverlayLayer = null;
+                store.predictionsOverlayLayer = null;
 
                 this.featureLayer = this.viewerWidget.viewer.createLayer('feature', { features: ['polygon'] });
                 this.boundingBoxFeature = this.featureLayer.createFeature('polygon');
@@ -179,20 +177,27 @@ export default Vue.extend({
             });
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
-                    store.overlayLayers.push(layer);
-                    if (!this.predictions) {
+                    if (element.categories.length === store.categories.length) {
+                        store.labelsOverlayLayer = layer;
                         this.superpixelElement = element;
                         this.onPixelmapRendered();
+                    } else {
+                        // Predictions do not include the default category so
+                        // they will not have the same number of categories
+                        // as the labels overlay layer
+                        store.predictionsOverlayLayer = layer;
                     }
                 }
             });
             this.viewerWidget.on('g:removeOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
                     // Drop the reference to any overlays that have been removed
-                    const index = _.findIndex(this.overlayLayers, (overlay) => {
-                        return overlay.id() === layer.id();
+                    const overlays = ['labelsOverlayLayer', 'predictionsOverlayLayer'];
+                    _.forEach(overlays, (overlay) => {
+                        if (store[overlay].id() === layer.id()) {
+                            store[overlay] = null;
+                        }
                     });
-                    store.overlayLayers.splice(index, 1);
                     updatePixelmapLayerStyle();
                 }
             });
@@ -405,7 +410,7 @@ export default Vue.extend({
                 return;
             }
             const index = boundaries ? (event.index - event.index % 2) : event.index;
-            const data = this.overlayLayer.data();
+            const data = store.labelsOverlayLayer.data();
             let newLabel = 0;
             const previousLabel = data[index];
             // the +1 accounts for the default, reset to default if already labeled with the selected category
@@ -419,7 +424,7 @@ export default Vue.extend({
             }
             const offset = boundaries ? 1 : 0;
             data[index] = data[index + offset] = newLabel;
-            this.overlayLayer.indexModified(index, index + offset).draw();
+            store.labelsOverlayLayer.indexModified(index, index + offset).draw();
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);

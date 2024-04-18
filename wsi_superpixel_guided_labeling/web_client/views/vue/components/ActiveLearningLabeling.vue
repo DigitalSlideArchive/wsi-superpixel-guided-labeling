@@ -106,7 +106,7 @@ export default Vue.extend({
             return counts;
         },
         pixelmapRendered() {
-            return store.overlayLayers.length > 0;
+            return !_.isNull(store.labelsOverlayLayer);
         },
         activeLearningStep() {
             return store.activeLearningStep;
