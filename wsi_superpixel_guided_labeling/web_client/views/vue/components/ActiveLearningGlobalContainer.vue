@@ -50,8 +50,11 @@ export default Vue.extend({
         activeLearningSteps() {
             return activeLearningSteps;
         },
-        superpixelsToDisplay() {
-            return store.superpixelsToDisplay;
+        activeLearningSlideViewer() {
+            return this.$refs.activeLearningSlideViewer;
+        },
+        activeLearningLabeling() {
+            return this.$refs.activeLearningLabeling;
         }
     },
     watch: {
@@ -80,21 +83,22 @@ export default Vue.extend({
         store.categories = [...this.categoryMap.values()];
         store.currentImageId = Object.keys(this.imageNamesById)[0];
 
-        // We don't want to mount child components until the store has been populated
+        // We don't want to mount child components until the store has been updated
         this.storeReady = true;
     },
     methods: {
         combineCategories() {
-            this.$refs.activeLearningSlideViewer.combineCategoriesHandler();
+            this.activeLearningSlideViewer.combineCategoriesHandler();
         },
         mergeCategory(label, color) {
-            this.$refs.activeLearningLabeling.mergeCategory(label, color);
+            this.activeLearningLabeling.mergeCategory(label, color);
         },
         saveAnnotations(saveAll) {
             const idsToSave = saveAll ? Object.keys(store.annotationsByImageId) : [store.currentImageId];
-            store.backboneParent.saveLabelAnnotations(idsToSave);
+            store.backboneParent.saveAnnotations(idsToSave);
         },
         synchronizeCategories() {
+            // Keep the save annotations in sync with the local state
             if (store.currentCategoryFormValid) {
                 _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
                     _.forEach(['labels', 'predictions'], (key) => {
@@ -103,6 +107,7 @@ export default Vue.extend({
                             if (superpixelElement) {
                                 let updatedCategories = JSON.parse(JSON.stringify(store.categories));
                                 if (key === 'predictions') {
+                                    // We don't include the default (first) category for predictions
                                     updatedCategories = _.rest(updatedCategories);
                                 }
                                 superpixelElement.categories = updatedCategories;
@@ -131,7 +136,7 @@ export default Vue.extend({
       :certainty-metrics="certaintyMetrics"
     />
     <div v-if="storeReady && activeLearningStep > activeLearningSteps.SuperpixelSegmentation">
-      <!-- Slide Viewer -->
+      <!-- Image Viewer -->
       <active-learning-slide-viewer
         ref="activeLearningSlideViewer"
         @synchronize="synchronizeCategories"

@@ -117,8 +117,7 @@ const ActiveLearningView = View.extend({
 
     updateHistomicsYamlConfig() {
         const groups = new Map();
-        // Keep the internal categoryMap in sync with changes
-        this.categoryMap.clear();
+        this.categoryMap.clear(); // Keep the internal categoryMap in sync with changes
         _.forEach(store.categories, (category, index) => {
             const key = _.find([...store.hotkeys], ([, v]) => v === index)[0];
             groups.set(category.label, {
@@ -254,7 +253,7 @@ const ActiveLearningView = View.extend({
             url: geojsUrl,
             dataType: 'script',
             cache: true
-        }).done((resp) => {
+        }).done(() => {
             const imageNamesById = {};
             _.forEach(Object.keys(this.imageItemsById), (imageId) => {
                 imageNamesById[imageId] = this.imageItemsById[imageId].name;
@@ -417,26 +416,33 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateCategoriesAndData(pixelmapElement, isPrediction = false) {
+    updateCategoriesAndData(pixelmapElement, isPrediction) {
+        let categories = [...this.categoryMap.values()];
+        if (isPrediction) {
+            // We exclude the default (first) category for predictions
+            categories = _.rest(categories);
+        }
+
         // Map old data values to category id
         const dataValuesToCategoryId = new Map();
         _.forEach(pixelmapElement.categories, (category, index) => {
             dataValuesToCategoryId.set(index, category.label);
         });
+
         // Map category id to new data values
         const categoryIdToNewDataValue = new Map();
-        let cats = [...this.categoryMap.values()];
-        cats = isPrediction ? _.rest(cats) : cats;
-        _.forEach(cats, (category, index) => {
+        _.forEach(categories, (category, index) => {
             categoryIdToNewDataValue.set(category.label, index);
         });
+
         // Replace data
         _.forEach(pixelmapElement.values, (value, index) => {
             const category = dataValuesToCategoryId.get(value);
             pixelmapElement.values[index] = categoryIdToNewDataValue.get(category);
         });
+
         // Replace categories
-        pixelmapElement.categories = cats;
+        pixelmapElement.categories = categories;
     },
 
     /**
@@ -459,9 +465,6 @@ const ActiveLearningView = View.extend({
                 this.getAnnotationCategories(labelPixelmapElement);
             }
             if (this.annotationsByImageId[imageId].predictions) {
-                // FIXME: Do we need this? When we re-train do we use the labels? Predictions? Both?
-                // What risks do we face if the annotationsByImageId labels are out-of-sync with predictions
-                // if we leave and come back to the app? If we re-run predictions?
                 const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
                 this.getAnnotationCategories(predictionPixelmapElement);
             }
@@ -470,16 +473,14 @@ const ActiveLearningView = View.extend({
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             if (this.annotationsByImageId[imageId].labels) {
                 const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
-                this.updateCategoriesAndData(labelPixelmapElement);
+                this.updateCategoriesAndData(labelPixelmapElement, false);
             }
             if (this.annotationsByImageId[imageId].predictions) {
-                // FIXME: Do we need this?
                 const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
                 this.updateCategoriesAndData(predictionPixelmapElement, true);
             }
         });
-        this.saveLabelAnnotations(Object.keys(this.annotationsByImageId));
-        // TODO Also save prediction annotations - they might have changed
+        this.saveAnnotations(Object.keys(this.annotationsByImageId));
     },
 
     /**
@@ -598,12 +599,12 @@ const ActiveLearningView = View.extend({
      ****************************************************************/
 
     /**
-     * Save the label annotations that are queued to be saved.
+     * Save the annotations that are queued to be saved.
      * Prevent multiple save requests from being sent to the server
      * simultaneously.
      * @param {string[]} imageIds
      */
-    saveLabelAnnotations(imageIds) {
+    saveAnnotations(imageIds) {
         _.forEach(imageIds, (id) => {
             this._saveAnnotationsForIds.add(id);
         });
@@ -629,7 +630,7 @@ const ActiveLearningView = View.extend({
         $.when(...promises).then(() => {
             this._isSaving = false;
             if (this._saveAnnotationsForIds.size > 0) {
-                this.saveLabelAnnotations([]);
+                this.saveAnnotations([]);
             }
             return true;
         });

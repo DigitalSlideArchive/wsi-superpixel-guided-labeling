@@ -112,7 +112,6 @@ export default Vue.extend({
             return store.activeLearningStep;
         },
         nonDefaultCategories() {
-            // Expect 'default' to be at index 0 ALWAYS
             return _.filter(store.categories, (category) => {
                 return category.label !== 'default';
             });
@@ -261,13 +260,13 @@ export default Vue.extend({
                         const mergeValue = this.allNewCategories.length - (1 + offset);
                         let newValue = isMerge ? mergeValue : (0 - offset);
                         if (data.label === 'default' || labels.includes(data.label)) {
-                          newValue = _.indexOf(_.pluck(this.allNewCategories, 'label'), data.label);
-                          newValue -= offset;
+                            newValue = _.indexOf(_.pluck(this.allNewCategories, 'label'), data.label);
+                            newValue -= offset;
                         }
                         valuesMap.set(index, newValue);
                     });
 
-                    // Update values to reflect updated categories
+                    // Update values to reflect updated category values
                     _.forEach(pixelmapElement.values, (value, index) => {
                         pixelmapElement.values[index] = valuesMap.get(value);
                     });

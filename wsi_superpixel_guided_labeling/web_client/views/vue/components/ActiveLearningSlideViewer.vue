@@ -5,7 +5,7 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import { comboHotkeys, boundaryColor, viewMode } from './constants.js';
+import { boundaryColor, viewMode } from './constants.js';
 import { store, updatePixelmapLayerStyle } from './store.js';
 import { getFillColor } from './utils.js';
 
@@ -110,7 +110,7 @@ export default Vue.extend({
                     return;
                 }
                 const change = store.changeLog.pop();
-                store.backboneParent.saveLabelAnnotations([change.imageId]);
+                store.backboneParent.saveAnnotations([change.imageId]);
                 this.drawPixelmapAnnotation();
             },
             deep: true
@@ -275,7 +275,6 @@ export default Vue.extend({
             }
         },
         updatePageSize() {
-            // FIXME: Not working (not being called enough?)
             if (store.mode !== viewMode.Guided) {
                 return;
             }
