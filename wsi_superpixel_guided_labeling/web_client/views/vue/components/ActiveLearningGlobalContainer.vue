@@ -5,6 +5,7 @@ import _ from 'underscore';
 import ActiveLearningInitialSuperpixels from './ActiveLearningSetup/ActiveLearningInitialSuperpixels.vue';
 import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
 import ActiveLearningFilmStrip from './ActiveLearning/ActiveLearningFilmStrip.vue';
+import ActiveLearningReviewContainer from './ActiveLearningReview/ActiveLearningReviewContainer.vue';
 import ActiveLearningLabeling from './ActiveLearningLabeling.vue';
 import AnnotationOpacityControl from './AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from './MouseAndKeyboardControls.vue';
@@ -21,7 +22,8 @@ export default Vue.extend({
         AnnotationOpacityControl,
         MouseAndKeyboardControls,
         ActiveLearningMergeConfirmation,
-        ActiveLearningSlideViewer
+        ActiveLearningSlideViewer,
+        ActiveLearningReviewContainer
     },
     props: [
         'backboneParent',
@@ -74,6 +76,11 @@ export default Vue.extend({
             const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
             store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
             store.maxPage = store.sortedSuperpixelIndices.length / store.pageSize;
+        },
+        mode() {
+            if (store.mode === viewMode.Review) {
+                store.backboneParent.getSortedSuperpixelIndices();
+            }
         }
     },
     mounted() {
@@ -153,11 +160,13 @@ export default Vue.extend({
       <!-- Merge Confirmation Dialog -->
       <active-learning-merge-confirmation @merge="mergeCategory" />
       <!-- Information Panel -->
-      <mouse-and-keyboard-controls />
+      <mouse-and-keyboard-controls v-if="mode !== viewMode.Review" />
       <!-- Opacity Slider -->
       <annotation-opacity-control v-if="mode !== viewMode.Review" />
       <!-- Prediction Chips -->
       <active-learning-film-strip v-if="mode === viewMode.Guided" />
+      <!-- Review View -->
+      <active-learning-review-container v-if="mode === viewMode.Review" />
     </div>
   </div>
 </template>

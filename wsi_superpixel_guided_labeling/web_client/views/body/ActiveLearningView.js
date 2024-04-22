@@ -480,7 +480,7 @@ const ActiveLearningView = View.extend({
      * Build an array of predictions on superpixels sorted by certainty.
      */
     getSortedSuperpixelIndices() {
-        const superpixelPredictionsData = [];
+        this.superpixelPredictionsData = [];
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             if (!this.annotationsByImageId[imageId].predictions) {
                 // New images may not have any predictions
@@ -511,10 +511,10 @@ const ActiveLearningView = View.extend({
                     labelCategories: labels.elements[0].categories,
                     selectedCategory: labelValues[index]
                 };
-                superpixelPredictionsData.push(prediction);
+                this.superpixelPredictionsData.push(prediction);
             });
         });
-        store.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
+        store.sortedSuperpixelIndices = _.sortBy(this.superpixelPredictionsData, 'certainty');
     },
 
     getJobXmlUrl() {
@@ -717,9 +717,7 @@ const ActiveLearningView = View.extend({
     },
 
     waitForJobCompletion(jobId, goToNextStep) {
-        if (store.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
-            this.showSpinner();
-        }
+        this.showSpinner();
         const poll = setInterval(() => {
             // If this view is no longer rendered in the tab, stop
             // polling the server.
