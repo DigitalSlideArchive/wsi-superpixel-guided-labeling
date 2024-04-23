@@ -3,6 +3,7 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
+import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { viewMode } from '../constants';
 
@@ -10,7 +11,8 @@ const filterDefault = '-----';
 
 export default Vue.extend({
     components: {
-        ActiveLearningReviewCard
+        ActiveLearningReviewCard,
+        ActiveLearningLabeling
     },
     data() {
         return {
@@ -23,7 +25,11 @@ export default Vue.extend({
             selectedSuperpixel: null,
             sortAscending: true,
             cardDetails: [],
-            numChips: 450
+            numChips: 450,
+            categoriesPanelCollapsed: false,
+            filtersPanelCollapsed: false,
+            viewPanelCollapsed: false,
+            bulkPanelCollapsed: false
         };
     },
     computed: {
@@ -211,8 +217,50 @@ export default Vue.extend({
   <div class="v-row review-container">
     <div class="col-sm-3 settings-panel">
       <div class="panel panel-info">
-        <div class="panel-heading">Filters</div>
-        <div class="panel-body">
+        <div
+          class="panel-heading collapsible"
+          data-toggle="collapse"
+          href="#categories"
+          @click="categoriesPanelCollapsed = !categoriesPanelCollapsed"
+        >
+          Categories
+          <i
+            v-if="categoriesPanelCollapsed"
+            class="icon-angle-down"
+          />
+          <i
+            v-else
+            class="icon-angle-up"
+          />
+        </div>
+        <div
+          id="categories"
+          class="panel-body collapse in"
+        >
+          <active-learning-labeling />
+        </div>
+      </div>
+      <div class="panel panel-info">
+        <div
+          class="panel-heading collapsible"
+          data-toggle="collapse"
+          href="#filters"
+          @click="filtersPanelCollapsed = !filtersPanelCollapsed"
+        >
+          Filters
+          <i
+            v-if="filtersPanelCollapsed"
+            class="icon-angle-down"
+          />
+          <i
+            v-else
+            class="icon-angle-up"
+          />
+        </div>
+        <div
+          id="filters"
+          class="panel-body collapse in"
+        >
           <div>
             <label for="groupby">Group By</label>
             <select
@@ -317,8 +365,26 @@ export default Vue.extend({
         </div>
       </div>
       <div class="panel panel-info">
-        <div class="panel-heading">View</div>
-        <div class="panel-body">
+        <div
+          class="panel-heading collapsible"
+          data-toggle="collapse"
+          href="#view"
+          @click="viewPanelCollapsed = !viewPanelCollapsed"
+        >
+          View
+          <i
+            v-if="viewPanelCollapsed"
+            class="icon-angle-down"
+          />
+          <i
+            v-else
+            class="icon-angle-up"
+          />
+        </div>
+        <div
+          id="view"
+          class="panel-body collapse in"
+        >
           <div class="preview-size-selector">
             <label for="sizeSelector">Preview Size</label>
             <input
@@ -390,8 +456,26 @@ export default Vue.extend({
         </div>
       </div>
       <div class="panel panel-info">
-        <div class="panel-heading">Bulk Actions</div>
-        <div class="panel-body">
+        <div
+          class="panel-heading collapsible"
+          data-toggle="collapse"
+          href="#bulk"
+          @click="bulkPanelCollapsed = !bulkPanelCollapsed"
+        >
+          Bulk Actions
+          <i
+            v-if="bulkPanelCollapsed"
+            class="icon-angle-down"
+          />
+          <i
+            v-else
+            class="icon-angle-up"
+          />
+        </div>
+        <div
+          id="bulk"
+          class="panel-body collapse in"
+        >
           <div class="bulk-buttons">
             <button
               type="button"
@@ -520,7 +604,7 @@ export default Vue.extend({
 .panel-content-cards {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: space-evenly;
   align-content: flex-start;
   height: 100%;
 }
@@ -569,5 +653,10 @@ export default Vue.extend({
 
 .chips-container {
   overflow-y: auto;
+}
+
+.collapsible {
+  padding: 5px;
+  text-align-last: justify;
 }
 </style>
