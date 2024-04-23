@@ -57,8 +57,13 @@ export default Vue.extend({
         activeLearningLabeling() {
             return this.$refs.activeLearningLabeling;
         },
-        activeLearningStep() {
-            return store.activeLearningStep;
+        selectedImageId: {
+            get() {
+                return store.currentImageId;
+            },
+            set(newImageId) {
+                store.currentImageId = newImageId;
+            }
         },
         sortedSuperpixelIndices() {
             return store.sortedSuperpixelIndices;
@@ -149,11 +154,45 @@ export default Vue.extend({
         @synchronize="synchronizeCategories"
         @save-annotations="saveAnnotations"
       />
+      <!-- Current Slide Name -->
+      <div class="h-category-form slide-name-container">
+        <div class="h-form-controls">
+          <label
+            for="currentImage"
+            :style="[{'margin-right': '5px'}]"
+          >
+            Image
+          </label>
+          <select
+            v-if="mode === viewMode.Labeling"
+            id="currentImage"
+            v-model="selectedImageId"
+            class="h-al-image-select"
+            data-toggle="tooltip"
+            :title="imageNamesById[selectedImageId]"
+          >
+            <option
+              v-for="imageId in Object.keys(imageNamesById)"
+              :key="imageId"
+              :value="imageId"
+            >
+              {{ imageNamesById[imageId] }}
+            </option>
+          </select>
+          <div
+            v-else
+            class="slide-name"
+            data-toggle="tooltip"
+            :title="imageNamesById[selectedImageId]"
+          >
+            {{ imageNamesById[selectedImageId] }}
+          </div>
+        </div>
+      </div>
       <!-- Labels Panel -->
       <active-learning-labeling
+        v-if="mode !== viewMode.Review"
         ref="activeLearningLabeling"
-        :image-names-by-id="imageNamesById"
-        :available-images="availableImages"
         @synchronize="synchronizeCategories"
         @combine="combineCategories"
       />
@@ -185,4 +224,38 @@ export default Vue.extend({
 .guided {
     height: calc(100vh - 52px);
 }
+
+.h-category-form {
+   display: flex;
+   flex-direction: column;
+}
+
+.slide-name-container {
+    z-index: 100;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 400px;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0,0,0,.5);
+    padding: 5px;
+    background-color: #fff;
+}
+
+.h-form-controls {
+    display: flex;
+    align-items: baseline;
+}
+
+.h-al-image-select {
+    width: 100%;
+    padding: 5px 10px;
+}
+
+.slide-name {
+    text-overflow: ellipsis;
+    text-wrap: nowrap;
+    overflow: hidden;
+}
+
 </style>

@@ -21,7 +21,6 @@ export default Vue.extend({
     components: {
         ColorPickerInput
     },
-    props: ['imageNamesById', 'availableImages'],
     data() {
         return {
             showLabelingContainer: true,
@@ -29,8 +28,6 @@ export default Vue.extend({
             checkedCategories: [],
             currentCategoryLabel: 'New Category',
             currentCategoryFillColor: getFillColor(0),
-            newImagesAvailable: false,
-            selectedImageId: store.currentImageId,
             editingHotkey: -1,
             currentHotkeyInput: []
         };
@@ -187,12 +184,6 @@ export default Vue.extend({
             }
             this.currentCategoryLabel = store.categoriesAndIndices[store.categoryIndex].category.label;
             this.currentCategoryFillColor = store.categoriesAndIndices[store.categoryIndex].category.fillColor;
-        },
-        availableImages() {
-            this.newImagesAvailable = true;
-        },
-        selectedImageId(newImageId) {
-            store.currentImageId = newImageId;
         },
         checkedCategories() {
             store.selectedLabels = this.selectedLabels;
@@ -472,47 +463,13 @@ export default Vue.extend({
 
 <template>
   <div>
-    <div class="h-category-form slide-name-container">
-      <div class="h-form-controls">
-        <label
-          for="currentImage"
-          :style="[{'margin-right': '5px'}]"
-        >
-          Image
-        </label>
-        <select
-          v-if="mode === viewMode.Labeling"
-          id="currentImage"
-          v-model="selectedImageId"
-          data-toggle="tooltip"
-          :title="imageNamesById[selectedImageId]"
-          :class="['h-al-image-select', newImagesAvailable && 'h-al-image-select-new']"
-          :style="[!availableImages.includes(selectedImageId) && {'font-style': 'italic'}]"
-          @click="newImagesAvailable = false"
-        >
-          <option
-            v-for="imageId in Object.keys(imageNamesById)"
-            :key="imageId"
-            :value="imageId"
-            :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
-          >
-            {{ imageNamesById[imageId] }}
-          </option>
-        </select>
-        <div
-          v-else
-          class="slide-name"
-          data-toggle="tooltip"
-          :title="imageNamesById[selectedImageId]"
-        >
-          {{ imageNamesById[selectedImageId] }}
-        </div>
-      </div>
-    </div>
     <div
-      :class="{'h-labeling-container': true, 'h-collapsed': !showLabelingContainer}"
+      :class="{'h-labeling-container': mode !== viewMode.Review, 'h-collapsed': !showLabelingContainer}"
     >
-      <div class="h-container-title">
+      <div
+        v-if="mode !== viewMode.Review"
+        class="h-container-title"
+      >
         <button
           class="h-collapse-button"
           @click="showLabelingContainer = !showLabelingContainer"
@@ -609,6 +566,7 @@ export default Vue.extend({
                 <td
                   v-if="editingLabel === index"
                   class="table-labels"
+                  :style="[mode === viewMode.Review && {'width': 'auto'}]"
                 >
                   <input
                     id="category-label"
@@ -630,6 +588,7 @@ export default Vue.extend({
                 <td
                   v-else
                   class="table-labels"
+                  :style="[mode === viewMode.Review && {'width': 'auto'}]"
                 >
                   {{ labeledSuperpixelCounts[key].label }}
                   <div
@@ -648,6 +607,7 @@ export default Vue.extend({
                 </td>
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
                 <td
+                  v-if="mode !== viewMode.Review"
                   id="colorPickerInput"
                   @click="(e) => togglePicker(e, index)"
                 >
@@ -659,6 +619,12 @@ export default Vue.extend({
                     :color="labeledSuperpixelCounts[key].fillColor"
                     data-toggle="tooltip"
                     title="Change label color"
+                  />
+                </td>
+                <td v-else>
+                  <i
+                    class="icon-stop"
+                    :style="[{'color': labeledSuperpixelCounts[key].fillColor}]"
                   />
                 </td>
                 <td v-if="mode === viewMode.Labeling">
@@ -799,25 +765,6 @@ h4 {
     margin-bottom: 5px;
 }
 
-.h-al-image-select {
-    width: 100%;
-    padding: 5px 10px;
-}
-
-.h-al-image-select-new {
-    box-shadow: 0px 0px 5px 1px rgba(0, 127, 0, 0.5);
-}
-
-.h-form-controls {
-    display: flex;
-    align-items: baseline;
-}
-
-.h-category-form {
-   display: flex;
-   flex-direction: column;
-}
-
 td, th {
     padding: 0px 2px;
     text-align: center;
@@ -888,24 +835,6 @@ tr:hover .editing-icons {
     display: flex;
     justify-content: flex-end;
     margin-bottom: 5px;
-}
-
-.slide-name {
-    text-overflow: ellipsis;
-    text-wrap: nowrap;
-    overflow: hidden;
-}
-
-.slide-name-container {
-    z-index: 100;
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    width: 400px;
-    border-radius: 5px;
-    box-shadow: 5px 5px 5px rgba(0,0,0,.5);
-    padding: 5px;
-    background-color: #fff;
 }
 
 .edit-hotkey {
