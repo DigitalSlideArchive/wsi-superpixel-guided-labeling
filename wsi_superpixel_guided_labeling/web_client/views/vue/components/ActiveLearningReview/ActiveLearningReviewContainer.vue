@@ -30,7 +30,8 @@ export default Vue.extend({
             filtersPanelCollapsed: false,
             viewPanelCollapsed: false,
             bulkPanelCollapsed: false,
-            overviewPanelCollapsed: false
+            overviewPanelCollapsed: false,
+            isResizing: false
         };
     },
     computed: {
@@ -120,7 +121,19 @@ export default Vue.extend({
     mounted() {
         const el = document.getElementById('chipsContainer');
         el.addEventListener('scroll', this.updateDisplayedCards);
-        this.$nextTick(() => this.updateDisplayedCards());
+        this.$nextTick(() => {
+            this.updateDisplayedCards();
+            const resizeHandle = document.querySelector('.resize-handle');
+            resizeHandle.addEventListener('mousedown', () => { this.isResizing = true; });
+            document.addEventListener('mousemove', this.mouseMove);
+            document.addEventListener('mouseup', () => { this.isResizing = false; });
+        });
+    },
+    destroyed() {
+        const resizeHandle = document.querySelector('.resize-handle');
+        resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
+        document.removeEventListener('mousemove', this.mouseMove);
+        document.removeEventListener('mouseup', () => { this.isResizing = false; });
     },
     methods: {
         sortSuperpixels(sorted) {
@@ -209,6 +222,15 @@ export default Vue.extend({
             const { clientWidth, clientHeight } = document.getElementById('superpixelChips');
             const cardSize = 100 * this.previewSize;
             this.numChips = Math.floor(clientWidth / cardSize) * Math.floor(clientHeight / cardSize);
+        },
+        mouseMove(event) {
+            if (!this.isResizing) {
+                return;
+            }
+            const container = document.getElementById('activeLearningContainer');
+            const bounds = container.getBoundingClientRect();
+            const resizableContainer = document.getElementById('resizable');
+            resizableContainer.style.height = `${bounds.height - event.clientY}px`;
         }
     }
 });
@@ -642,13 +664,17 @@ export default Vue.extend({
 
 <style scoped>
 .review-container {
-  position: fixed;
-  bottom: 0;
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  left: 0px;
   height: 80%;
   width: 100%;
   z-index: 100;
   background-color: #fff;
   display: flex;
+  max-height: 95vh;
+  min-height: 10vh;
 }
 
 .settings-panel {
@@ -714,6 +740,24 @@ export default Vue.extend({
 
 .chips-container {
   overflow-y: auto;
+  padding: 5px;
+}
+
+.resize-handle {
+  height: 10px;
+  width: 100%;
+  background: #ccc;
+  position: absolute;
+  top: -5px;
+  left: 0;
+  cursor: row-resize;
+  z-index: 10;
+  opacity: 0;
+}
+
+.resize-handle:hover {
+  animation: fade-in 0.5s linear;
+  opacity: 1;
 }
 
 .collapsible {
