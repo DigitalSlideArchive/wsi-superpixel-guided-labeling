@@ -23,11 +23,6 @@ export default Vue.extend({
         wsiRegionUrl() {
             const imageId = this.superpixel.imageId;
             const bbox = this.superpixel.bbox;
-            // const regionWidth = bbox[2] - bbox[0];
-            // const regionHeight = bbox[3] - bbox[1];
-            // const scaleFactor = Math.max(regionWidth, regionHeight);
-            // const thumbnailWidth = Math.floor((125 * regionWidth / scaleFactor) * this.previewSize);
-            // const thumbnailHeight = Math.floor((125 * regionHeight / scaleFactor) * this.previewSize);
             const thumbnailSize = this.previewSize * 100;
             const params = `?left=${bbox[0]}&top=${bbox[1]}&right=${bbox[2]}&bottom=${bbox[3]}&width=${thumbnailSize}&height=${thumbnailSize}`;
             return `${this.apiRoot}/item/${imageId}/tiles/region${params}`;
@@ -38,11 +33,6 @@ export default Vue.extend({
             const pixelVals = this.superpixel.boundaries ? [index * 2, index * 2 + 1] : [index];
             const bbox = this.superpixel.bbox;
             const scale = this.superpixel.scale;
-            // const regionWidth = bbox[2] - bbox[0];
-            // const regionHeight = bbox[3] - bbox[1];
-            // const scaleFactor = Math.max(regionWidth, regionHeight);
-            // const thumbnailWidth = Math.floor((125 * regionWidth / scaleFactor) * this.previewSize);
-            // const thumbnailHeight = Math.floor((125 * regionHeight / scaleFactor) * this.previewSize);
             const thumbnailSize = this.previewSize * 100;
             const params = `?left=${bbox[0] / scale}&top=${bbox[1] / scale}&right=${bbox[2] / scale}&bottom=${bbox[3] / scale}&width=${thumbnailSize}&height=${thumbnailSize}&encoding=PNG`;
             const functionJson = JSON.stringify({
@@ -60,25 +50,26 @@ export default Vue.extend({
             const functionParam = `&style=${encodeURIComponent(functionJson)}`;
             return `${this.apiRoot}/item/${imageId}/tiles/region${params}${functionParam}`;
         },
-        tooltipText() {
-            return (
-                `Confidence: ${this.superpixel.confidence}\n` +
-                `Certainty: ${this.superpixel.certainty}\n` +
-                `Predicted: ${this.superpixel.predictionCategories[this.superpixel.prediction].label}\n` +
-                `Selected: ${this.superpixel.predictionCategories[this.superpixel.selectedCategory].label}\n` +
-                `Slide: ${this.imageItemsById[this.superpixel.imageId].name}`
-            );
+        previewSizeClass() {
+            switch (this.previewSize) {
+                case 0.25:
+                    return 'one-quarter-size';
+                case 0.50:
+                    return 'one-half-size';
+                case 0.75:
+                    return 'three-quarters-size';
+                case 1.00:
+                    return 'full-size';
+                default:
+                    return '';
+            }
         }
     }
 });
 </script>
 
 <template>
-  <div
-    class="h-superpixel-card"
-    data-toggle="tooltip"
-    :title="tooltipText"
-  >
+  <div :class="['h-superpixel-card', previewSizeClass]">
     <button class="h-superpixel-region-button">
       <img :src="wsiRegionUrl">
       <img
@@ -96,6 +87,7 @@ export default Vue.extend({
     background-color: white;
     border-style: solid;
     justify-content: center;
+    box-sizing: content-box
 }
 
 .h-superpixel-region-button {
@@ -110,5 +102,25 @@ export default Vue.extend({
     z-index: 100;
     float: left;
     margin-right: -100%;
+}
+
+.one-quarter-size {
+    height: 25px;
+    width: 25px;
+}
+
+.one-half-size {
+    height: 50px;
+    width: 50px;
+}
+
+.three-quarters-size {
+    height: 75px;
+    width: 75px;
+}
+
+.full-size {
+    height: 100px;
+    width: 100px;
 }
 </style>
