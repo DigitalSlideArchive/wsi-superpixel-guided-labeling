@@ -29,7 +29,8 @@ export default Vue.extend({
             categoriesPanelCollapsed: false,
             filtersPanelCollapsed: false,
             viewPanelCollapsed: false,
-            bulkPanelCollapsed: false
+            bulkPanelCollapsed: false,
+            overviewPanelCollapsed: false
         };
     },
     computed: {
@@ -214,8 +215,67 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div class="v-row review-container">
+  <div
+    id="resizable"
+    class="v-row review-container"
+  >
+    <div class="resize-handle" />
     <div class="col-sm-3 settings-panel">
+      <div class="panel panel-info">
+        <div
+          class="panel-heading collapsible"
+          data-toggle="collapse"
+          href="#overview"
+          @click="overviewPanelCollapsed = !overviewPanelCollapsed"
+        >
+          Superpixel Overview
+          <i
+            v-if="overviewPanelCollapsed"
+            class="icon-angle-down"
+          />
+          <i
+            v-else
+            class="icon-angle-up"
+          />
+        </div>
+        <div
+          id="overview"
+          class="panel-body collapse in"
+          :style="[superpixel && {'padding-bottom': '0px'}]"
+        >
+          <table
+            v-if="selectedSuperpixel"
+            class="table table-striped"
+          >
+            <label for="summaryTable">Summary</label>
+            <tbody id="summaryTable">
+              <tr>
+                <td>Slide</td>
+                <td>{{ imageItemsById[selectedSuperpixel.imageId].name }}</td>
+              </tr>
+              <tr>
+                <td>Prediction</td>
+                <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.prediction].label }}</td>
+              </tr>
+              <tr>
+                <td>Selection</td>
+                <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.selectedCategory].label }}</td>
+              </tr>
+              <tr>
+                <td>Certainty</td>
+                <td>{{ selectedSuperpixel.certainty }}</td>
+              </tr>
+              <tr>
+                <td>Confidence</td>
+                <td>{{ selectedSuperpixel.confidence }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else>
+            <h5>No superpixel selected</h5>
+          </div>
+        </div>
+      </div>
       <div class="panel panel-info">
         <div
           class="panel-heading collapsible"
@@ -594,6 +654,7 @@ export default Vue.extend({
 .settings-panel {
   padding: 5px;
   border-right: solid 1px lightgray;
+  overflow-y: scroll;
 }
 
 .dropdown-menu-block {
@@ -657,6 +718,7 @@ export default Vue.extend({
 
 .collapsible {
   padding: 5px;
-  text-align-last: justify;
+  display: flex;
+  justify-content: space-between;
 }
 </style>
