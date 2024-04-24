@@ -138,6 +138,7 @@ export default Vue.extend({
 
 <template>
   <div
+    id="activeLearningContainer"
     class="h-active-learning-container"
     :class="[activeLearningStep > activeLearningSteps.InitialLabeling ? 'guided' : 'setup']"
   >
