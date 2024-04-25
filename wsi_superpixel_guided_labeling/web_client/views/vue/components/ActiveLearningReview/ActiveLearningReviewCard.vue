@@ -71,10 +71,14 @@ export default Vue.extend({
 <template>
   <div :class="['h-superpixel-card', previewSizeClass]">
     <button class="h-superpixel-region-button">
-      <img :src="wsiRegionUrl">
+      <img
+        :src="wsiRegionUrl"
+        loading="lazy"
+      >
       <img
         class="h-superpixel-region"
         :src="superpixelRegionUrl"
+        loading="lazy"
       >
     </button>
   </div>
