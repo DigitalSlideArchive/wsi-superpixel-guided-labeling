@@ -5,7 +5,6 @@ import _ from 'underscore';
 import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
-import { viewMode } from '../constants';
 
 const filterDefault = '-----';
 
@@ -16,7 +15,6 @@ export default Vue.extend({
     },
     data() {
         return {
-            groupedSuperpixels: [],
             groupBy: 0,
             sortBy: 0,
             filterBy: [filterDefault],
@@ -25,7 +23,6 @@ export default Vue.extend({
             selectedSuperpixel: null,
             sortAscending: true,
             cardDetails: [],
-            numChips: 450,
             categoriesPanelCollapsed: false,
             filtersPanelCollapsed: false,
             viewPanelCollapsed: false,
@@ -47,7 +44,7 @@ export default Vue.extend({
         superpixelsForReview() {
             return _.filter(this.predictionsData, (superpixel) => {
                 return superpixel.selectedCategory !== 0;
-            }).slice(0, this.numChips);
+            });
         },
         annotationsByImageId() {
             return store.annotationsByImageId;
@@ -75,32 +72,14 @@ export default Vue.extend({
         },
         mode() {
             return store.mode;
+        },
+        filteredSortedGroupedSuperpixels() {
+            let data = this.filterSuperpixels(this.superpixelsForReview);
+            data = this.sortSuperpixels(data);
+            return this.groupSuperpixels(data);
         }
     },
     watch: {
-        groupBy(selection) {
-            const sfr = this.superpixelsForReview;
-            switch (selection) {
-                case 1:
-                    this.groupedSuperpixels = _.groupBy(sfr, (superpixel) => {
-                        return this.imageItemsById[superpixel.imageId].name;
-                    });
-                    break;
-                case 2:
-                    this.groupedSuperpixels = _.groupBy(sfr, (superpixel) => {
-                        return this.categories[superpixel.selectedCategory].label;
-                    });
-                    break;
-                case 3:
-                    this.groupedSuperpixels = _.groupBy(sfr, (superpixel) => {
-                        const { selectedCategory, prediction } = superpixel;
-                        return selectedCategory === prediction ? 'Agree' : 'Disagree';
-                    });
-                    break;
-                default:
-                    this.groupedSuperpixels = [];
-            }
-        },
         filterBy() {
             if (
                 (this.filterBy.includes(filterDefault) && this.filterBy.length > 1) ||
@@ -108,21 +87,10 @@ export default Vue.extend({
             ) {
                 this.filterBy = [filterDefault];
             }
-        },
-        mode: {
-            handler() {
-                if (store.mode === viewMode.Review) {
-                    this.updateDisplayedCards();
-                }
-            },
-            immediate: true
         }
     },
     mounted() {
-        const el = document.getElementById('chipsContainer');
-        el.addEventListener('scroll', this.updateDisplayedCards);
         this.$nextTick(() => {
-            this.updateDisplayedCards();
             const resizeHandle = document.querySelector('.resize-handle');
             resizeHandle.addEventListener('mousedown', () => { this.isResizing = true; });
             document.addEventListener('mousemove', this.mouseMove);
@@ -205,6 +173,25 @@ export default Vue.extend({
             }
             return results.length ? _.intersection(...results) : data;
         },
+        groupSuperpixels(data) {
+            switch (this.groupBy) {
+                case 1:
+                    return _.groupBy(data, (superpixel) => {
+                        return this.imageItemsById[superpixel.imageId].name;
+                    });
+                case 2:
+                    return _.groupBy(data, (superpixel) => {
+                        return this.categories[superpixel.selectedCategory].label;
+                    });
+                case 3:
+                    return _.groupBy(data, (superpixel) => {
+                        const { selectedCategory, prediction } = superpixel;
+                        return selectedCategory === prediction ? 'Agree' : 'Disagree';
+                    });
+                default:
+                    return data;
+            }
+        },
         filterAndSort(data) {
             return this.sortSuperpixels(this.filterSuperpixels(data));
         },
@@ -213,15 +200,6 @@ export default Vue.extend({
         },
         triggerRetrain() {
             this.backboneParent.retrain();
-        },
-        updateDisplayedCards() {
-            // compute how many chips to show
-            if (!document.getElementById('superpixelChips')) {
-                return;
-            }
-            const { clientWidth, clientHeight } = document.getElementById('superpixelChips');
-            const cardSize = 100 * this.previewSize;
-            this.numChips = Math.floor(clientWidth / cardSize) * Math.floor(clientHeight / cardSize);
         },
         mouseMove(event) {
             if (!this.isResizing) {
@@ -263,7 +241,7 @@ export default Vue.extend({
         <div
           id="overview"
           class="panel-body collapse in"
-          :style="[superpixel && {'padding-bottom': '0px'}]"
+          :style="[selectedSuperpixel && {'padding-bottom': '0px'}]"
         >
           <table
             v-if="selectedSuperpixel"
@@ -612,7 +590,7 @@ export default Vue.extend({
         id="superpixelChips"
       >
         <div
-          v-for="[key, value] in Object.entries(groupedSuperpixels)"
+          v-for="[key, value] in Object.entries(filteredSortedGroupedSuperpixels)"
           :key="key"
         >
           <h4
@@ -630,7 +608,7 @@ export default Vue.extend({
           <hr>
           <div class="panel-content-cards">
             <active-learning-review-card
-              v-for="superpixel, index in filterAndSort(value)"
+              v-for="superpixel, index in value"
               :key="index"
               :style="[groupBy === 2 ? {'border': 'none'} : {'border-color': categoryColor(superpixel), 'margin': '5px'}]"
               :superpixel="superpixel"
@@ -648,7 +626,7 @@ export default Vue.extend({
         class="panel-content-cards"
       >
         <active-learning-review-card
-          v-for="superpixel, index in filterAndSort(superpixelsForReview)"
+          v-for="superpixel, index in filteredSortedGroupedSuperpixels"
           :key="index"
           :style="{'border-color': categoryColor(superpixel), 'margin': '5px'}"
           :superpixel="superpixel"
