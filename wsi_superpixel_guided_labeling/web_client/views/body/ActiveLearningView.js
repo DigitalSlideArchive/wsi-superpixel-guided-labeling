@@ -660,8 +660,8 @@ const ActiveLearningView = View.extend({
             url: `slicer_cli_web/${this.activeLearningJobUrl}/run`,
             data
         }).done((response) => {
-            const newJobId = response._id;
-            this.waitForJobCompletion(newJobId, goToNextStep);
+            this.lastRunJobId = response._id;
+            this.waitForJobCompletion(response._id, goToNextStep);
             if (this.activeLearningStep === activeLearningSteps.InitialLabeling) {
                 this.watchForSuperpixels();
             }
