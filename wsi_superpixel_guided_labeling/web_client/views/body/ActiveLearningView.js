@@ -183,15 +183,13 @@ const ActiveLearningView = View.extend({
                         this.lastRunJobId = folder.meta.lastRunJobId;
                     }
                 });
-                this.getAnnotations();
             } else {
-                if (this.activeLearningStep <= activeLearningSteps.InitialLabeling) {
-                    // In initial labeling we want to see annotations as the job progresses
-                    this.getAnnotations();
-                }
                 // There is a job running
+                this.activeLearningStep = activeLearningSteps.InitialLabeling;
                 this.waitForJobCompletion(previousJobs[0]._id);
+                this.watchForSuperpixels();
             }
+            this.getAnnotations();
         });
     },
 
