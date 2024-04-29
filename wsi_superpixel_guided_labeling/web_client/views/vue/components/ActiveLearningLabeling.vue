@@ -538,7 +538,7 @@ export default Vue.extend({
         v-if="showLabelingContainer"
         class="h-al-setup-categories"
       >
-        <div v-if="pixelmapRendered">
+        <div>
           <div>
             <table class="table">
               <tr>
