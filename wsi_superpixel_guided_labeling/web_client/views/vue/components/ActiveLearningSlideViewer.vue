@@ -13,7 +13,6 @@ export default Vue.extend({
     data() {
         return {
             hasLoaded: false,
-            windowResize: false,
             currentImageMetadata: {},
 
             // keep track of the current image and annotation to edit
@@ -71,7 +70,6 @@ export default Vue.extend({
                         this.boundingBoxFeature.visible(true);
                     }
                     this.updateMapBoundsForSelection();
-                    this.$nextTick(() => this.updatePageSize());
                 }
                 this.updateActionModifiers();
             },
@@ -98,10 +96,10 @@ export default Vue.extend({
             }
         },
         selectedIndex() {
-            this.updateSelectedCard();
+            this.updateMapBoundsForSelection();
         },
-        page(newPage, oldPage) {
-            this.updateSelectedPage(newPage, oldPage);
+        page() {
+            this.updateMapBoundsForSelection();
         },
         changeLog: {
             // TODO: Use the changelog more often instead of saving all label annotations every time
@@ -117,15 +115,11 @@ export default Vue.extend({
         }
     },
     mounted() {
-        window.addEventListener('resize', this.updatePageSize);
         if (store.currentImageId) {
             this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
             this.setupViewer();
             this.createCategories();
         }
-    },
-    destroyed() {
-        window.removeEventListener('resize', this.updatePageSize);
     },
     methods: {
         /***********************************
@@ -141,7 +135,6 @@ export default Vue.extend({
                 // TODO: consider caching image metadata for each image the first time this request gets made
                 this.currentImageMetadata = resp;
                 this.drawBaseImageLayer();
-                this.updatePageSize();
             });
         },
         drawBaseImageLayer() {
@@ -249,49 +242,6 @@ export default Vue.extend({
                 [bbox[0], bbox[1]], [bbox[2], bbox[1]], [bbox[2], bbox[3]], [bbox[0], bbox[3]]
             ]]);
             this.featureLayer.draw();
-        },
-        updateSelectedCard() {
-            const newImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
-            if (newImageId !== store.currentImageId) {
-                store.currentImageId = newImageId;
-            } else {
-                this.updateMapBoundsForSelection();
-            }
-        },
-        updateSelectedPage(newPage, oldPage) {
-            const startIndex = newPage * store.pageSize;
-            const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
-            store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
-            const oldIndex = store.selectedIndex;
-            if (!this.windowResize) {
-                // Only reset the selected index if the user has changed the page
-                // and the page has not been changed because of window resize.
-                store.selectedIndex = (newPage > oldPage) ? 0 : store.pageSize - 1;
-            }
-            this.windowResize = false;
-            if (oldIndex === store.selectedIndex) {
-                // Force the update
-                this.updateSelectedCard();
-            }
-        },
-        updatePageSize() {
-            if (store.mode !== viewMode.Guided) {
-                return;
-            }
-            this.windowResize = true;
-            // compute how many cards to show
-            const el = document.getElementById('filmstrip-cards');
-            const card = el.firstElementChild.clientWidth;
-            const paddingOffset = 20;
-            // update page
-            const currentIndex = store.page * store.pageSize + store.selectedIndex;
-            store.pageSize = Math.max(Math.floor(el.clientWidth / (card + paddingOffset)), 1);
-            const oldPage = store.page;
-            store.page = Math.floor(currentIndex / store.pageSize);
-            store.selectedIndex = currentIndex - (store.pageSize * store.page);
-            store.maxPage = Math.ceil(store.sortedSuperpixelIndices.length / store.pageSize);
-            // Force an update
-            this.updateSelectedPage(store.page, oldPage);
         },
         /**
          * Parse existing label annotations to populate the categories used for labeling.

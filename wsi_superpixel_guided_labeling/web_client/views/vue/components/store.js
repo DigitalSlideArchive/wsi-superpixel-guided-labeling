@@ -46,6 +46,8 @@ const previousCard = () => {
     if (store.selectedIndex === 0) {
         if (store.page !== 0) {
             store.page--;
+            updateSelectedPage();
+            store.selectedIndex = store.pageSize - 1;
         }
     } else {
         store.selectedIndex--;
@@ -56,10 +58,18 @@ const nextCard = () => {
     if (store.selectedIndex === store.pageSize - 1) {
         if (store.page < store.maxPage) {
             store.page++;
+            updateSelectedPage();
+            store.selectedIndex = 0;
         }
     } else {
         store.selectedIndex++;
     }
+};
+
+const updateSelectedPage = () => {
+    const startIndex = store.page * store.pageSize;
+    const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
+    store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
 };
 
 /**
@@ -119,5 +129,6 @@ export {
     nextCard,
     previousCard,
     assignHotkey,
-    updatePixelmapLayerStyle
+    updatePixelmapLayerStyle,
+    updateSelectedPage
 };

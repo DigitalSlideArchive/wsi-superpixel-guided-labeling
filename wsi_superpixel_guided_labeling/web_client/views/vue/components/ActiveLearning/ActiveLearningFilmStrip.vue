@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
-import { store } from '../store.js';
+import { store, updateSelectedPage } from '../store.js';
 
 export default {
     components: {
@@ -35,20 +35,32 @@ export default {
     },
     watch: {
         selectedIndex: {
-            handler(idx) {
-                if (this.superpixelsToDisplay.length) {
-                    store.currentImageId = this.superpixelsToDisplay[idx].imageId;
-                }
+            handler() {
+                this.updateSelectedCard();
             },
             immediate: true
+        },
+        page() {
+            this.updateSelectedCard();
         }
+    },
+    mounted() {
+        window.addEventListener('resize', () => { this.$nextTick(() => this.updatePageSize()); });
+        this.$nextTick(() => this.updatePageSize());
+    },
+    destroyed() {
+        window.removeEventListener('resize', () => { this.$nextTick(() => this.updatePageSize()); });
     },
     methods: {
         previousPage() {
             store.page = store.page - 1;
+            updateSelectedPage();
+            store.selectedIndex = store.pageSize - 1;
         },
         nextPage() {
             store.page = store.page + 1;
+            updateSelectedPage();
+            store.selectedIndex = 0;
         },
         agreeAll() {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
@@ -59,6 +71,28 @@ export default {
             _.forEach(this.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = 0;
             });
+        },
+        updatePageSize() {
+            // get element sizes to compute how many cards to show
+            const container = document.getElementById('filmstrip-cards-container');
+            const { width } = container.getBoundingClientRect();
+            // update page size
+            const currentIndex = store.page * store.pageSize + store.selectedIndex;
+            const cardWidth = 140; // Hard-coded in ActiveLearningFilmstripCard
+            const padding = 10;
+            store.pageSize = Math.floor(width / (cardWidth + padding));
+            // update page
+            store.page = Math.floor(currentIndex / store.pageSize);
+            store.maxPage = Math.ceil(store.sortedSuperpixelIndices.length / store.pageSize);
+            // update selected index
+            store.selectedIndex = currentIndex - (store.pageSize * store.page);
+            updateSelectedPage();
+        },
+        updateSelectedCard() {
+            const newImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
+            if (this.superpixelsToDisplay.length && newImageId !== store.currentImageId) {
+                store.currentImageId = this.superpixelsToDisplay[store.selectedIndex].imageId;
+            }
         }
     }
 };
@@ -75,11 +109,12 @@ export default {
       <i class="icon-left-circled h-filmstrip-page-icon" />
     </button>
     <div
-      id="filmstrip-cards"
+      id="filmstrip-cards-container"
       class="h-filmstrip-cards"
     >
       <active-learning-film-strip-card
         v-for="superpixel, index in superpixelsToDisplay"
+        ref="filmstripCards"
         :key="`${superpixel.imageId}_${superpixel.index}`"
         :index="index"
       />
