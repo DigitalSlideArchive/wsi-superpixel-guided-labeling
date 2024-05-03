@@ -22,6 +22,7 @@ const store = Vue.observable({
     zoom: 1,
     center: { x: 1, y: 1 },
     sortedSuperpixelIndices: [],
+    reviewSuperpixel: null,
     /*********
      * UI
      *********/

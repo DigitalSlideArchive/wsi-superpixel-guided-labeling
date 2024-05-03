@@ -87,9 +87,13 @@ export default Vue.extend({
             ) {
                 this.filterBy = [filterDefault];
             }
+        },
+        selectedSuperpixel() {
+            store.reviewSuperpixel = this.selectedSuperpixel;
         }
     },
     mounted() {
+        this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
             resizeHandle.addEventListener('mousedown', () => { this.isResizing = true; });
@@ -610,7 +614,11 @@ export default Vue.extend({
             <active-learning-review-card
               v-for="superpixel, index in value"
               :key="index"
-              :style="[groupBy === 2 ? {'border': 'none'} : {'border-color': categoryColor(superpixel), 'margin': '5px'}]"
+              :class="[
+                groupBy === 2 ? 'grouped' : 'ungrouped',
+                superpixel === selectedSuperpixel && 'selected-superpixel'
+              ]"
+              :style="[groupBy !== 2 && {'border-color': categoryColor(superpixel)}]"
               :superpixel="superpixel"
               :preview-size="parseFloat(previewSize)"
               data-toggle="modal"
@@ -628,7 +636,8 @@ export default Vue.extend({
         <active-learning-review-card
           v-for="superpixel, index in filteredSortedGroupedSuperpixels"
           :key="index"
-          :style="{'border-color': categoryColor(superpixel), 'margin': '5px'}"
+          :class="['ungrouped', superpixel === selectedSuperpixel && 'selected-superpixel']"
+          :style="{'border-color': categoryColor(superpixel)}"
           :superpixel="superpixel"
           :preview-size="parseFloat(previewSize)"
           data-toggle="modal"
@@ -742,5 +751,17 @@ export default Vue.extend({
   padding: 5px;
   display: flex;
   justify-content: space-between;
+}
+
+.grouped {
+  border: none !important;
+}
+
+.ungrouped {
+  margin: 5px;
+}
+
+.selected-superpixel {
+  box-shadow: 0px 0px 5px 1px rgba(255, 255, 0, .5);
 }
 </style>
