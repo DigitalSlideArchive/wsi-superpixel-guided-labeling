@@ -56,6 +56,9 @@ export default Vue.extend({
         },
         superpixelsToDisplay() {
             return store.superpixelsToDisplay;
+        },
+        reviewSuperpixel() {
+            return store.reviewSuperpixel;
         }
     },
     watch: {
@@ -64,6 +67,7 @@ export default Vue.extend({
                 if (newMode === oldMode) {
                     return;
                 }
+                store.reviewSuperpixel = null;
                 if (store.mode === viewMode.Labeling) {
                     if (this.boundingBoxFeature) {
                         this.boundingBoxFeature.visible(false);
@@ -126,6 +130,12 @@ export default Vue.extend({
                 this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
                 this.setupViewer();
             }
+        },
+        reviewSuperpixel(superpixel) {
+            if (_.isNull(superpixel)) {
+                return;
+            }
+            this.updateMapBoundsForSelection(superpixel);
         }
     },
     mounted() {
@@ -240,7 +250,9 @@ export default Vue.extend({
                 return;
             }
             // Center the selected superpixel
-            const superpixel = store.superpixelsToDisplay[store.selectedIndex];
+            if (_.isUndefined(superpixel)) {
+                superpixel = store.superpixelsToDisplay[store.selectedIndex];
+            }
             const bbox = superpixel.bbox;
             const bboxWidth = bbox[2] - bbox[0];
             const bboxHeight = bbox[3] - bbox[1];
@@ -254,6 +266,15 @@ export default Vue.extend({
             // Draw bounding box around selected superpixel
             this.viewerWidget.viewer.zoom(zoom - 1.5);
             this.viewerWidget.viewer.center(center);
+            if (store.mode === viewMode.Review) {
+                // Offset the center to fit in the visible image section
+                const { height } = this.viewerWidget.viewer.bounds();
+                const el = document.getElementById('resizable');
+                const parent = document.getElementById('activeLearningContainer');
+                const offset = Math.abs(0.5 - ((el.offsetTop / parent.clientHeight) / 2));
+                center.y += offset * height;
+                this.viewerWidget.viewer.center(center);
+            }
             this.boundingBoxFeature.data([[
                 [bbox[0], bbox[1]], [bbox[2], bbox[1]], [bbox[2], bbox[3]], [bbox[0], bbox[3]]
             ]]);
