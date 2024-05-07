@@ -21,9 +21,9 @@ import '../../stylesheets/body/learning.styl';
 const yaml = require('js-yaml');
 
 const activeLearningSteps = {
-    SuperpixelSegmentation: 0,
-    InitialLabeling: 1,
-    GuidedLabeling: 2
+    SuperpixelSegmentation: 0, // Nothing has been started yet
+    InitialLabeling: 1, // User can view images and begin labeling as annotations become available
+    GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review
 };
 
 const epochRegex = /epoch (\d+)/i;
@@ -58,7 +58,9 @@ const ActiveLearningView = View.extend({
         // TODO create a plugin-level settings for these
         this.activeLearningJobUrl = 'dsarchive_superpixel_latest/SuperpixelClassification';
         this.activeLearningJobType = 'dsarchive/superpixel:latest#SuperpixelClassification';
+        this.activeLearningStep = -1;
         this.imageItemsById = {};
+        this.availableImages = [];
         this.annotationsByImageId = {};
         this.sortedSuperpixelIndices = [];
         this._isSaving = false;
@@ -182,11 +184,13 @@ const ActiveLearningView = View.extend({
                         this.lastRunJobId = folder.meta.lastRunJobId;
                     }
                 });
-                this.getAnnotations();
             } else {
                 // There is a job running
+                this.activeLearningStep = activeLearningSteps.InitialLabeling;
                 this.waitForJobCompletion(previousJobs[0]._id);
+                this.watchForSuperpixels();
             }
+            this.getAnnotations();
         });
     },
 
@@ -199,10 +203,38 @@ const ActiveLearningView = View.extend({
         } else {
             // Case 2: superpixels/annotations already exist, so we can mount the vue component without
             // retrieving the job XML.
-            this.mountVueComponent();
+            this.vueComponentChanged();
         }
     },
-
+    vueComponentChanged() {
+        if (this.vueApp) {
+            // The app component exists
+            const elId = this.vueApp.$el.id;
+            if (
+                (this.activeLearningStep <= 1 && elId === 'setupContainer') ||
+                (this.activeLearningStep > 1 && elId === 'learningContainer')
+            ) {
+                // We alreay have the correct component mounted, no need to
+                // re-create it. Just update the props.
+                return this.updateVueComponent();
+            }
+        }
+        return this.mountVueComponent();
+    },
+    updateVueComponent() {
+        const exceptions = ['router', 'apiRoot', 'trainingDataFolderId', 'backboneParent'];
+        _.forEach(Object.keys(this.vueApp.$props), (prop) => {
+            if (!exceptions.includes(prop)) {
+                if (prop === 'imageNamesById') {
+                    _.forEach(Object.keys(this.imageItemsById), (imageId) => {
+                        this.vueApp.$props[prop][imageId] = this.imageItemsById[imageId].name;
+                    });
+                } else {
+                    this.vueApp.$props[prop] = this[prop];
+                }
+            }
+        });
+    },
     mountVueComponent() {
         if (this.vueApp) {
             this.vueApp.$destroy();
@@ -246,7 +278,9 @@ const ActiveLearningView = View.extend({
                         imageNamesById,
                         annotationsByImageId: this.annotationsByImageId,
                         activeLearningStep: this.activeLearningStep,
-                        certaintyMetrics: this.certaintyMetrics
+                        certaintyMetrics: this.certaintyMetrics,
+                        availableImages: this.availableImages,
+                        categoryMap: this.categoryMap
                     }
                 });
             }
@@ -281,7 +315,7 @@ const ActiveLearningView = View.extend({
                     this.epoch = Math.max(this.epoch, parseInt(matches[1]));
                 }
             });
-            this.activeLearningStep = Math.min(this.epoch + 1, 2);
+            this.activeLearningStep = Math.max(this.activeLearningStep, this.epoch + 1);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -366,6 +400,8 @@ const ActiveLearningView = View.extend({
                         this.annotationsByImageId[imageId][key] = backboneModel;
                         if (key === 'predictions') {
                             this.computeAverageCertainty(backboneModel);
+                        } else if (!this.availableImages.includes(imageId)) {
+                            this.availableImages.push(imageId);
                         }
                     }));
                 }
@@ -373,7 +409,7 @@ const ActiveLearningView = View.extend({
         });
         $.when(...promises).then(() => {
             this.synchronizeCategories();
-            if (this.activeLearningStep === activeLearningSteps.GuidedLabeling) {
+            if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
             }
             return this.startActiveLearning();
@@ -558,7 +594,7 @@ const ActiveLearningView = View.extend({
                 flattenedSpec.parameters.certainty.values.length
             );
             this.certaintyMetrics = hasCertaintyMetrics ? flattenedSpec.parameters.certainty.values : null;
-            return this.mountVueComponent();
+            return this.vueComponentChanged();
         });
     },
 
@@ -609,7 +645,11 @@ const ActiveLearningView = View.extend({
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
-            data: data
+            data: {
+                jobId: this.lastRunJobId,
+                randominput: false,
+                train: true
+            }
         }).done((job) => {
             this.waitForJobCompletion(job._id, goToNextStep);
         });
@@ -621,8 +661,11 @@ const ActiveLearningView = View.extend({
             url: `slicer_cli_web/${this.activeLearningJobUrl}/run`,
             data
         }).done((response) => {
-            const newJobId = response._id;
-            this.waitForJobCompletion(newJobId, goToNextStep);
+            this.lastRunJobId = response._id;
+            this.waitForJobCompletion(response._id, goToNextStep);
+            if (this.activeLearningStep === activeLearningSteps.InitialLabeling) {
+                this.watchForSuperpixels();
+            }
         });
     },
 
@@ -648,8 +691,11 @@ const ActiveLearningView = View.extend({
             radius,
             girderApiUrl: '',
             girderToken: '',
-            certainty: certaintyMetric
+            certainty: certaintyMetric,
+            train: false
         });
+        this.activeLearningStep = activeLearningSteps.InitialLabeling;
+        this.getAnnotations();
         this.triggerJob(data, true);
     },
 
@@ -679,7 +725,9 @@ const ActiveLearningView = View.extend({
     },
 
     waitForJobCompletion(jobId, goToNextStep) {
-        this.showSpinner();
+        if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+            this.showSpinner();
+        }
         const poll = setInterval(() => {
             // If this view is no longer rendered in the tab, stop
             // polling the server.
@@ -714,6 +762,29 @@ const ActiveLearningView = View.extend({
                             noText: 'Dismiss',
                             confirmCallback: () => { window.open(logUrl, '_blank'); }
                         });
+                    }
+                }
+            });
+        }, 2000);
+    },
+
+    watchForSuperpixels() {
+        const poll = setInterval(() => {
+            restRequest({
+                url: `annotation/folder/${this.trainingDataFolderId}`
+            }).done((annotations) => {
+                const hasSuperpixels = _.some(annotations, (annotation) => {
+                    return epochRegex.exec(annotation.annotation.name);
+                });
+                if (annotations.length > this.availableImages.length && hasSuperpixels) {
+                    this.availableImages = _.pluck(annotations, 'itemId');
+                    this.getAnnotations();
+                    const allSuperpixelsAvailable = _.every(
+                        Object.keys(this.annotationsByImageId), (id) => {
+                            return this.availableImages.includes(id);
+                        });
+                    if (allSuperpixelsAvailable) {
+                        clearInterval(poll);
                     }
                 }
             });

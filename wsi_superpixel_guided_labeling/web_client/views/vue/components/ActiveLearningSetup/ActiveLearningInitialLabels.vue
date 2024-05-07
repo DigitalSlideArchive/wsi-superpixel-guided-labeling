@@ -29,7 +29,7 @@ export default Vue.extend({
         AnnotationOpacityControl,
         ActiveLearningMergeConfirmation
     },
-    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId'],
+    props: ['backboneParent', 'imageNamesById', 'annotationsByImageId', 'availableImages', 'categoryMap'],
     data() {
         return {
             hasLoaded: false,
@@ -48,6 +48,7 @@ export default Vue.extend({
             currentImageId: '',
             superpixelAnnotation: null,
             superpixelElement: null,
+            newImagesAvailable: false,
 
             // data to track the viewer widget/map/layers if needed
             viewerWidget: null,
@@ -153,18 +154,26 @@ export default Vue.extend({
                 return;
             }
             const key = `label_${this.editing}`;
-            console.log('editing: ', key, this.$refs, this.$refs[key]);
             this.$nextTick(() => this.$refs[key][0].focus());
+        },
+        availableImages(newAvail, oldAvail) {
+            const newImage = _.difference(newAvail, oldAvail)[0];
+            if (newImage === this.currentImageId) {
+                // Update image with annotations
+                this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
+                this.setupViewer();
+            }
+            this.newImagesAvailable = true;
         }
     },
     mounted() {
         window.addEventListener('keydown', this.keydownListener);
-        this.currentImageId = _.filter(Object.keys(this.annotationsByImageId),
-            (imageId) => _.has(this.annotationsByImageId[imageId], 'labels'))[0];
+        this.currentImageId = Object.keys(this.imageNamesById)[0];
         this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
         store.annotationsByImageId = this.annotationsByImageId;
         store.backboneParent = this.backboneParent;
         this.setupViewer();
+        this.createCategories();
     },
     destroyed() {
         window.removeEventListener('keydown', this.keydownListener);
@@ -177,9 +186,6 @@ export default Vue.extend({
             this.pixelmapPaintValue = null;
         },
         setupViewer() {
-            if (!this.superpixelAnnotation) {
-                return;
-            }
             restRequest({
                 url: `item/${this.currentImageId}/tiles`
             }).done(() => {
@@ -206,6 +212,9 @@ export default Vue.extend({
             });
         },
         drawPixelmapAnnotation() {
+            if (!this.superpixelAnnotation) {
+                return;
+            }
             this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
         },
         onPixelmapRendered() {
@@ -246,6 +255,11 @@ export default Vue.extend({
          * Parse existing label annotations to populate the categories used for labeling.
          */
         createCategories() {
+            const cats = _.chain([...this.categoryMap.values()])
+                .filter((cat) => cat.label !== 'default')
+                .map((category) => { return { category, indices: {} }; })
+                .value();
+            this.categories = _.uniq([...cats, ...this.categories], (cat) => cat.category.label);
             // TODO handle missing default, default in wrong position
             _.forEach(Object.entries(this.annotationsByImageId), ([imageId, annotations]) => {
                 if (_.has(annotations, 'labels')) {
@@ -431,6 +445,9 @@ export default Vue.extend({
             });
 
             _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
+                if (!_.has(this.annotationsByImageId[imageId], 'labels')) {
+                    return;
+                }
                 const labels = this.annotationsByImageId[imageId].labels;
                 const pixelmapElement = labels.get('annotation').elements[0];
                 pixelmapElement.categories = [...this.allNewCategories];
@@ -508,7 +525,9 @@ export default Vue.extend({
                     }
                 });
                 this.saveAnnotations(true);
-                updatePixelmapLayerStyle([this.overlayLayer]);
+                if (this.overlayLayer) {
+                    updatePixelmapLayerStyle([this.overlayLayer]);
+                }
                 this.updateConfig();
             }
         },
@@ -587,7 +606,10 @@ export default Vue.extend({
           v-else
           class="icon-tags"
         />
-        <div class="btn-group">
+        <div
+          v-if="pixelmapRendered"
+          class="btn-group"
+        >
           <button
             v-if="showLabelingContainer"
             :class="['btn btn-default', !pixelmapPaintBrush && 'active btn-primary']"
@@ -612,7 +634,7 @@ export default Vue.extend({
         v-if="showLabelingContainer"
         class="h-al-setup-categories"
       >
-        <div v-if="pixelmapRendered">
+        <div>
           <div class="h-category-form">
             <div class="h-form-controls">
               <div>
@@ -620,13 +642,15 @@ export default Vue.extend({
                 <select
                   id="currentImage"
                   v-model="currentImageId"
-                  class="h-al-image-select"
+                  :class="['h-al-image-select', newImagesAvailable && 'h-al-image-select-new']"
+                  :style="[!availableImages.includes(currentImageId) && {'font-style': 'italic'}]"
+                  @click="newImagesAvailable = false"
                 >
                   <option
                     v-for="imageId in Object.keys(imageNamesById)"
                     :key="imageId"
                     :value="imageId"
-                    :disabled="!annotationsByImageId[imageId].labels"
+                    :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
                   >
                     {{ imageNamesById[imageId] }}
                   </option>
@@ -792,6 +816,7 @@ export default Vue.extend({
       :style="{'width': '350px', 'right': '20px'}"
       :fill-color="currentCategoryFillColor"
       :overlay-layers="[overlayLayer]"
+      :disabled="!overlayLayer"
     />
     <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
       <mouse-and-keyboard-controls
@@ -871,6 +896,10 @@ h4 {
 .h-al-image-select {
     width: 100%;
     padding: 5px 10px;
+}
+
+.h-al-image-select-new {
+    box-shadow: 0px 0px 5px 1px rgba(0, 127, 0, 0.5);
 }
 
 .h-setup-categories-information {
