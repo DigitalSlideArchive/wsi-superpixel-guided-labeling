@@ -22,11 +22,14 @@ export default Vue.extend({
         selectedCategory() {
             return this.superpixelDecision.selectedCategory;
         },
+        imageId() {
+            return this.superpixelDecision.imageId;
+        },
         labelAnnotation() {
-            return store.annotationsByImageId[this.superpixelDecision.imageId].labels;
+            return store.annotationsByImageId[this.imageId].labels;
         },
         predictionAnnotation() {
-            return store.annotationsByImageId[this.superpixelDecision.imageId].predictions;
+            return store.annotationsByImageId[this.imageId].predictions;
         },
         lastCategorySelected() {
             return store.lastCategorySelected;
@@ -51,7 +54,7 @@ export default Vue.extend({
             return _.filter(categories, (c) => !['default'].includes(c.label));
         },
         wsiRegionUrl() {
-            const imageId = this.superpixelDecision.imageId;
+            const imageId = this.imageId;
             const bbox = this.superpixelDecision.bbox;
             const regionWidth = bbox[2] - bbox[0];
             const regionHeight = bbox[3] - bbox[1];
@@ -93,8 +96,19 @@ export default Vue.extend({
         selectedCategory() {
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
-            values[this.superpixelDecision.index] = this.superpixelDecision.selectedCategory;
+            const index = this.superpixelDecision.index;
+            const oldValue = values[index];
+            const newValue = this.superpixelDecision.selectedCategory;
+            values[this.superpixelDecision.index] = newValue;
             element.values = values;
+            // As long as the old or new category is not the "default" (unlabeled)
+            // we need to updated the category that the index is now associated with.
+            if (oldValue !== 0) {
+                store.categoriesAndIndices[oldValue - 1].indices[this.imageId].delete(index);
+            }
+            if (newValue !== 0) {
+                store.categoriesAndIndices[newValue - 1].indices[this.imageId].add(index);
+            }
             store.changeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {

@@ -102,7 +102,6 @@ export default Vue.extend({
             this.updateMapBoundsForSelection();
         },
         changeLog: {
-            // TODO: Use the changelog more often instead of saving all label annotations every time
             handler() {
                 if (!store.changeLog.length) {
                     return;
@@ -170,7 +169,9 @@ export default Vue.extend({
             });
             this.viewerWidget.on('g:drawOverlayAnnotation', (element, layer) => {
                 if (element.type === 'pixelmap') {
-                    if (element.categories.length === store.categories.length) {
+                    const elementCategories = _.pluck(element.categories, 'label');
+                    const categories = _.pluck(store.categories, 'label');
+                    if (_.isEqual(elementCategories, categories)) {
                         store.labelsOverlayLayer = layer;
                         this.superpixelElement = element;
                         this.onPixelmapRendered();

@@ -416,12 +416,8 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateCategoriesAndData(pixelmapElement, isPrediction) {
-        let categories = [...this.categoryMap.values()];
-        if (isPrediction) {
-            // We exclude the default (first) category for predictions
-            categories = _.rest(categories);
-        }
+    updateCategoriesAndData(pixelmapElement) {
+        const categories = [...this.categoryMap.values()];
 
         // Map old data values to category id
         const dataValuesToCategoryId = new Map();
@@ -464,20 +460,12 @@ const ActiveLearningView = View.extend({
                 const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
                 this.getAnnotationCategories(labelPixelmapElement);
             }
-            if (this.annotationsByImageId[imageId].predictions) {
-                const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
-                this.getAnnotationCategories(predictionPixelmapElement);
-            }
         });
         // Update pixelmap data for the dataset
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             if (this.annotationsByImageId[imageId].labels) {
                 const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
-                this.updateCategoriesAndData(labelPixelmapElement, false);
-            }
-            if (this.annotationsByImageId[imageId].predictions) {
-                const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
-                this.updateCategoriesAndData(predictionPixelmapElement, true);
+                this.updateCategoriesAndData(labelPixelmapElement);
             }
         });
         this.saveAnnotations(Object.keys(this.annotationsByImageId));

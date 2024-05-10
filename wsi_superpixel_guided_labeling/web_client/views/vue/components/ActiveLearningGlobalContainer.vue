@@ -101,19 +101,13 @@ export default Vue.extend({
             // Keep the save annotations in sync with the local state
             if (store.currentCategoryFormValid) {
                 _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
-                    _.forEach(['labels', 'predictions'], (key) => {
-                        if (_.has(annotations, key)) {
-                            const superpixelElement = annotations[key].get('annotation').elements[0];
-                            if (superpixelElement) {
-                                let updatedCategories = JSON.parse(JSON.stringify(store.categories));
-                                if (key === 'predictions') {
-                                    // We don't include the default (first) category for predictions
-                                    updatedCategories = _.rest(updatedCategories);
-                                }
-                                superpixelElement.categories = updatedCategories;
-                            }
+                    if (_.has(annotations, 'labels')) {
+                        const superpixelElement = annotations.labels.get('annotation').elements[0];
+                        if (superpixelElement) {
+                            const updatedCategories = JSON.parse(JSON.stringify(store.categories));
+                            superpixelElement.categories = updatedCategories;
                         }
-                    });
+                    }
                 });
                 this.saveAnnotations(true);
                 updatePixelmapLayerStyle();
