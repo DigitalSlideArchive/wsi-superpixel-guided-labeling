@@ -28,6 +28,9 @@ export default {
         },
         categoryIndex() {
             return store.categoryIndex;
+        },
+        noOverlay() {
+            return _.isNull(store.labelsOverlayLayer);
         }
     },
     watch: {
@@ -85,7 +88,7 @@ export default {
       min="0"
       max="1"
       step="0.01"
-      :disabled="disabled"
+      :disabled="noOverlay"
     >
   </div>
 </template>

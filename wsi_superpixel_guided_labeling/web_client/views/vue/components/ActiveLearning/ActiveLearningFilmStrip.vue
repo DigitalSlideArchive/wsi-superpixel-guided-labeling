@@ -26,8 +26,8 @@ export default {
             return store.page;
         },
         slideName() {
-            if (this.superpixelsToDisplay.length) {
-                const id = this.superpixelsToDisplay[this.selectedIndex].imageId;
+            if (store.superpixelsToDisplay.length) {
+                const id = store.superpixelsToDisplay[this.selectedIndex].imageId;
                 return store.backboneParent.imageItemsById[id].name;
             }
             return '';
@@ -63,12 +63,12 @@ export default {
             store.selectedIndex = 0;
         },
         agreeAll() {
-            _.forEach(this.superpixelsToDisplay, (superpixel) => {
+            _.forEach(store.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = superpixel.prediction;
             });
         },
         resetAll() {
-            _.forEach(this.superpixelsToDisplay, (superpixel) => {
+            _.forEach(store.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = 0;
             });
         },
@@ -89,9 +89,12 @@ export default {
             updateSelectedPage();
         },
         updateSelectedCard() {
+            if (!store.superpixelsToDisplay.length) {
+                return;
+            }
             const newImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
-            if (this.superpixelsToDisplay.length && newImageId !== store.currentImageId) {
-                store.currentImageId = this.superpixelsToDisplay[store.selectedIndex].imageId;
+            if (store.superpixelsToDisplay.length && newImageId !== store.currentImageId) {
+                store.currentImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
             }
         }
     }

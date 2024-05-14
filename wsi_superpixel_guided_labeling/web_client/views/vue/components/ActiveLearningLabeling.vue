@@ -149,6 +149,9 @@ export default Vue.extend({
             if (this.editingLabel !== -1) {
                 // Keep prediction names in sync with label name changes
                 _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
+                    if (!_.has(annotations, 'predictions')) {
+                        return;
+                    }
                     const pixelmapElement = annotations.predictions.get('annotation').elements[0];
                     _.forEach(pixelmapElement.categories, (prediction) => {
                         if (prediction.label === oldLabel) {
@@ -167,6 +170,9 @@ export default Vue.extend({
             // Keep prediction colors in sync with label color changes
             _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
                 const pixelmapElement = annotations.predictions.get('annotation').elements[0];
+                if (!_.has(annotations, 'predictions')) {
+                    return;
+                }
                 _.forEach(pixelmapElement.categories, (prediction) => {
                     if (prediction.label === this.currentCategoryLabel) {
                         prediction.fillColor = newColor;
@@ -182,13 +188,7 @@ export default Vue.extend({
             this.currentCategoryLabel = store.categoriesAndIndices[store.categoryIndex].category.label;
             this.currentCategoryFillColor = store.categoriesAndIndices[store.categoryIndex].category.fillColor;
         },
-        availableImages(newAvail, oldAvail) {
-            const newImage = _.difference(newAvail, oldAvail)[0];
-            if (newImage === store.currentImageId) {
-                // Update image with annotations
-                this.superpixelAnnotation = this.annotationsByImageId[this.currentImageId].labels;
-                this.setupViewer();
-            }
+        availableImages() {
             this.newImagesAvailable = true;
         },
         selectedImageId(newImageId) {
@@ -311,7 +311,7 @@ export default Vue.extend({
             // We need to determine if any of the deleted categories have predictions associated with them.
             // If they do this will automatically trigger retraining so the user needs to be warned.
             let hasPredictions = false;
-            _.forEach(Object.values(this.annotationsByImageId), (annotation) => {
+            _.forEach(Object.values(store.annotationsByImageId), (annotation) => {
                 if (!_.has(annotation, 'predictions')) {
                     return;
                 }
@@ -494,7 +494,6 @@ export default Vue.extend({
             v-for="imageId in Object.keys(imageNamesById)"
             :key="imageId"
             :value="imageId"
-            :disabled="!annotationsByImageId[imageId] || !annotationsByImageId[imageId].labels"
             :style="[!availableImages.includes(imageId) ? {'font-style': 'italic'} : {'font-style': 'normal'}]"
           >
             {{ imageNamesById[imageId] }}

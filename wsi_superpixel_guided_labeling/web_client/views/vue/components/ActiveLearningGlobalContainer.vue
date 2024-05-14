@@ -55,6 +55,12 @@ export default Vue.extend({
         },
         activeLearningLabeling() {
             return this.$refs.activeLearningLabeling;
+        },
+        activeLearningStep() {
+            return store.activeLearningStep;
+        },
+        sortedSuperpixelIndices() {
+            return store.sortedSuperpixelIndices;
         }
     },
     watch: {
@@ -63,6 +69,11 @@ export default Vue.extend({
                 store.mode = Math.min(step, 2);
             },
             immediate: true
+        },
+        sortedSuperpixelIndices() {
+            const startIndex = 0;
+            const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
+            store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
         }
     },
     mounted() {
@@ -76,11 +87,11 @@ export default Vue.extend({
         store.selectedIndex = 0;
         store.activeLearningStep = this.activeLearningStep;
         store.pageSize = this.pageSize;
-        const startIndex = 0;
-        const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
-        store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
         store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];
+        store.categoriesAndIndices = _.map(_.rest(store.categories), (category) => {
+            return { category, indices: new Set() };
+        });
         store.currentImageId = Object.keys(this.imageNamesById)[0];
 
         // We don't want to mount child components until the store has been updated
@@ -120,7 +131,6 @@ export default Vue.extend({
 
 <template>
   <div
-    id="learningContainer"
     class="h-active-learning-container"
     :class="[activeLearningStep > activeLearningSteps.InitialLabeling ? 'guided' : 'setup']"
   >
@@ -133,6 +143,7 @@ export default Vue.extend({
       <!-- Image Viewer -->
       <active-learning-slide-viewer
         ref="activeLearningSlideViewer"
+        :available-images="availableImages"
         @synchronize="synchronizeCategories"
         @save-annotations="saveAnnotations"
       />
@@ -140,6 +151,7 @@ export default Vue.extend({
       <active-learning-labeling
         ref="activeLearningLabeling"
         :image-names-by-id="imageNamesById"
+        :available-images="availableImages"
         @synchronize="synchronizeCategories"
         @combine="combineCategories"
       />
