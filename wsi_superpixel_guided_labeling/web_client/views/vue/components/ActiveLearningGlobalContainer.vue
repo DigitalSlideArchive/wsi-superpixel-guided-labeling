@@ -12,7 +12,7 @@ import MouseAndKeyboardControls from './MouseAndKeyboardControls.vue';
 import ActiveLearningSlideViewer from './ActiveLearningSlideViewer.vue';
 
 import { viewMode, activeLearningSteps } from './constants';
-import { store, updatePixelmapLayerStyle } from './store.js';
+import { store, updatePixelmapLayerStyle, updateSelectedPage } from './store.js';
 
 export default Vue.extend({
     components: {
@@ -51,6 +51,9 @@ export default Vue.extend({
         activeLearningSteps() {
             return activeLearningSteps;
         },
+        activeLearningStep() {
+            return store.activeLearningStep;
+        },
         activeLearningSlideViewer() {
             return this.$refs.activeLearningSlideViewer;
         },
@@ -74,9 +77,7 @@ export default Vue.extend({
             immediate: true
         },
         sortedSuperpixelIndices() {
-            const startIndex = 0;
-            const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
-            store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
+            updateSelectedPage()
         }
     },
     mounted() {
@@ -91,7 +92,6 @@ export default Vue.extend({
         store.pageSize = this.pageSize;
         store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];
-        store.currentImageId = Object.keys(this.imageNamesById)[0];
 
         // We don't want to mount child components until the store has been updated
         this.storeReady = true;

@@ -245,7 +245,7 @@ export default Vue.extend({
             this.updateActionModifiers();
             this.$emit('synchronize');
         },
-        updateMapBoundsForSelection() {
+        updateMapBoundsForSelection(superpixel) {
             if (!this.viewerWidget || !this.viewerWidget.viewer || !store.superpixelsToDisplay.length) {
                 return;
             }
