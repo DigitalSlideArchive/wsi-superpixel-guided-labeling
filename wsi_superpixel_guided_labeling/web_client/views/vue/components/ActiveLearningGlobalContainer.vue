@@ -12,7 +12,7 @@ import MouseAndKeyboardControls from './MouseAndKeyboardControls.vue';
 import ActiveLearningSlideViewer from './ActiveLearningSlideViewer.vue';
 
 import { viewMode, activeLearningSteps } from './constants';
-import { store, updatePixelmapLayerStyle } from './store.js';
+import { store, updatePixelmapLayerStyle, updateSelectedPage } from './store.js';
 
 export default Vue.extend({
     components: {
@@ -51,6 +51,9 @@ export default Vue.extend({
         activeLearningSteps() {
             return activeLearningSteps;
         },
+        activeLearningStep() {
+            return store.activeLearningStep;
+        },
         activeLearningSlideViewer() {
             return this.$refs.activeLearningSlideViewer;
         },
@@ -81,6 +84,7 @@ export default Vue.extend({
             const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
             store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
             store.maxPage = store.sortedSuperpixelIndices.length / store.pageSize;
+            updateSelectedPage();
         },
         mode() {
             if (store.mode === viewMode.Review) {

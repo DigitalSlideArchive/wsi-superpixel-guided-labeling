@@ -1,13 +1,15 @@
 <script>
 import Vue from 'vue';
+import _ from 'underscore';
 
 import { store } from '../store';
 
 export default Vue.extend({
-    props: ['superpixel', 'previewSize'],
+    props: ['superpixel', 'previewSize', 'cardDetails'],
     data() {
         return {
-            override: false
+            override: false,
+            selected: []
         };
     },
     computed: {
@@ -63,24 +65,108 @@ export default Vue.extend({
                 default:
                     return '';
             }
+        },
+        categories() {
+            return _.rest(this.superpixel.labelCategories);
+        },
+        agree() {
+            const predicted = this.superpixel.predictionCategories[this.superpixel.prediction];
+            const selected = this.superpixel.labelCategories[this.superpixel.selectedCategory];
+            return selected.label === predicted.label;
         }
     }
 });
 </script>
 
 <template>
-  <div :class="['h-superpixel-card', previewSizeClass]">
-    <button class="h-superpixel-region-button">
-      <img
-        :src="wsiRegionUrl"
-        loading="lazy"
+  <div
+    class="h-superpixel-card"
+    :class="['h-superpixel-card', cardDetails.length > 0 && 'h-superpixel-card-detailed']"
+  >
+    <div class="card-controls">
+      <!-- <div
+        v-if="superpixel.review.reviewed"
+        class="flag"
       >
-      <img
-        class="h-superpixel-region"
-        :src="superpixelRegionUrl"
-        loading="lazy"
+        <i
+          class="icon-user"
+          :style="{'color': 'white'}"
+        />
+      </div> -->
+      <button :class="['h-superpixel-region-button', previewSizeClass]">
+        <img
+          :src="wsiRegionUrl"
+          loading="lazy"
+        >
+        <img
+          class="h-superpixel-region"
+          :src="superpixelRegionUrl"
+          loading="lazy"
+        >
+      </button>
+      <input
+        v-show="selectingSuperpixels"
+        v-model="selected"
+        type="checkbox"
+        class="select-checkbox"
       >
-    </button>
+    </div>
+    <select
+      v-if="cardDetails.includes('selectedCategory')"
+      class="categories-selector"
+    >
+      <option
+        v-for="(category, index) in categories"
+        :key="index"
+        :value="index + 1"
+        :selected="superpixel.selectedCategory === index + 1"
+      >
+        {{ category.label }}
+      </option>
+    </select>
+    <div
+      v-if="cardDetails.includes('confidence')"
+      class="text-region"
+    >
+      <span class="text-region-label">Confidence</span>
+      <span class="dotted-line-connector" />
+      <span
+        data-toggle="tooltip"
+        :title="superpixel.confidence"
+        class="text-region-value"
+      >
+        {{ superpixel.confidence.toPrecision(4) }}
+      </span>
+    </div>
+    <div
+      v-if="cardDetails.includes('certainty')"
+      class="text-region"
+    >
+      <span class="text-region-label">Certainty</span>
+      <span class="dotted-line-connector" />
+      <span
+        data-toggle="tooltip"
+        :title="superpixel.certainty"
+        class="text-region-value"
+      >
+        {{ superpixel.certainty.toPrecision(4) }}
+      </span>
+    </div>
+    <div
+      v-if="cardDetails.includes('prediction')"
+      class="prediction"
+      :style="[{'background-color': superpixel.predictionCategories[superpixel.prediction].fillColor}]"
+    >
+      <i
+        v-if="agree"
+        class="icon-ok"
+      />
+      <i
+        v-else
+        class="icon-cancel"
+      />
+      <span>{{ superpixel.predictionCategories[superpixel.prediction].label }}</span>
+    </div>
   </div>
 </template>
 
@@ -91,7 +177,15 @@ export default Vue.extend({
     background-color: white;
     border-style: solid;
     justify-content: center;
-    box-sizing: content-box
+    box-sizing: content-box;
+    border-width: 2px;
+    margin-bottom: 3px;
+}
+
+.h-superpixel-card-detailed {
+    width: 150px;
+    padding: 5px;
+    margin-bottom: 5px;
 }
 
 .h-superpixel-region-button {
@@ -99,6 +193,9 @@ export default Vue.extend({
     background-color: transparent;
     border: none;
     width: min-content;
+    text-align: left;
+    margin: auto;
+    margin-bottom: 5px;
 }
 
 .h-superpixel-region {
@@ -126,5 +223,64 @@ export default Vue.extend({
 .full-size {
     height: 100px;
     width: 100px;
+}
+
+.text-region {
+    display: flex;
+    justify-content: space-between;
+}
+
+.text-region-label::after {
+    content: " ";
+    flex: 1;
+    border-bottom: 1px dotted #000;
+}
+
+.text-region-value {
+    max-width: 40%;
+    text-wrap: nowrap;
+}
+
+.categories-selector {
+    width: 100%;
+    border-radius: 3px;
+    border-color: #888;
+    background-color: #fff;
+}
+
+.prediction {
+    display: flex;
+    justify-content: center;
+    border-radius: 3px;
+}
+
+.select-checkbox {
+    float: right;
+    width: 25px;
+}
+
+.flag {
+    background-color: #337ab7;
+    padding: 3px 3px 20px;
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
+    border-radius: 2px;
+    float: left;
+    width: 25px;
+    position: relative;
+    top: -2px;
+}
+
+.card-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.dotted-line-connector {
+  width: 100%;
+  position: relative;
+  bottom: -1.4rem;
+  height: 0;
+  border-bottom: 1px dotted rgba(1, 1, 1, 0.5);
 }
 </style>

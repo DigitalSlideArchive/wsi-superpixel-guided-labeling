@@ -26,7 +26,6 @@ const store = Vue.observable({
     /*********
      * UI
      *********/
-    activeLearningStep: -1,
     selectedIndex: 0,
     page: 0,
     maxPage: 1,
@@ -72,6 +71,8 @@ const updateSelectedPage = () => {
     const startIndex = store.page * store.pageSize;
     const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
     store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
+    store.currentImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
+    store.maxPage = store.sortedSuperpixelIndices.length / store.pageSize;
 };
 
 /**

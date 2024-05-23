@@ -47,3 +47,19 @@ export const activeLearningSteps = {
     InitialLabeling: 1, // User can view images and begin labeling as annotations become available
     GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review
 };
+
+export const groupByOptions = {
+    0: '(None)',
+    1: 'Slide',
+    2: 'Class',
+    3: 'Agree/Disagree'
+};
+
+export const sortByOptions = {
+    0: '(None)',
+    1: 'Slide',
+    2: 'Class',
+    3: 'Agree/Disagree',
+    4: 'Confidence',
+    5: 'Certainty'
+};

@@ -5,8 +5,7 @@ import _ from 'underscore';
 import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
-
-const filterDefault = '-----';
+import { groupByOptions, sortByOptions } from '../constants';
 
 export default Vue.extend({
     components: {
@@ -17,7 +16,7 @@ export default Vue.extend({
         return {
             groupBy: 0,
             sortBy: 0,
-            filterBy: [filterDefault],
+            filterBy: [],
             previewSize: 0.5,
             viewerWidget: null,
             selectedSuperpixel: null,
@@ -28,10 +27,17 @@ export default Vue.extend({
             viewPanelCollapsed: false,
             bulkPanelCollapsed: false,
             overviewPanelCollapsed: false,
-            isResizing: false
+            isResizing: false,
+            dataSelectMenu: false
         };
     },
     computed: {
+        groupByOptions() {
+            return groupByOptions;
+        },
+        sortByOptions() {
+            return sortByOptions;
+        },
         backboneParent() {
             return store.backboneParent;
         },
@@ -76,24 +82,19 @@ export default Vue.extend({
         filteredSortedGroupedSuperpixels() {
             let data = this.filterSuperpixels(this.superpixelsForReview);
             data = this.sortSuperpixels(data);
+            if (this.cardDetails.length > 1) {
+                return this.groupSuperpixels(data);
+            }
             return this.groupSuperpixels(data);
         }
     },
     watch: {
-        filterBy() {
-            if (
-                (this.filterBy.includes(filterDefault) && this.filterBy.length > 1) ||
-                this.filterBy.length === 0
-            ) {
-                this.filterBy = [filterDefault];
-            }
-        },
         selectedSuperpixel() {
             store.reviewSuperpixel = this.selectedSuperpixel;
         }
     },
     mounted() {
-        this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels[0];
+        this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
             resizeHandle.addEventListener('mousedown', () => { this.isResizing = true; });
@@ -120,7 +121,9 @@ export default Vue.extend({
                     break;
                 case 3:
                     sorted = _.sortBy(sorted, (superpixel) => {
-                        return superpixel.selectedCategory === superpixel.prediction;
+                        const selected = superpixel.labelCategories[superpixel.selectedCategory];
+                        const predicted = superpixel.predictionCategories[superpixel.prediction];
+                        return selected.label === predicted.label;
                     });
                     break;
                 case 4:
@@ -144,14 +147,18 @@ export default Vue.extend({
             if (this.filterBy.includes('agree')) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, prediction } = superpixel;
-                    return selectedCategory === prediction;
+                    const selection = superpixel.labelCategories[selectedCategory].label;
+                    const predicted = superpixel.predictionCategories[prediction].label;
+                    return selection === predicted;
                 }));
             }
             // Filter by selections that disagree with the prediction
             if (this.filterBy.includes('disagree')) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, prediction } = superpixel;
-                    return selectedCategory !== prediction;
+                    const selection = superpixel.labelCategories[selectedCategory].label;
+                    const predicted = superpixel.predictionCategories[prediction].label;
+                    return selection !== predicted;
                 }));
             }
             // Filter by selected slide(s)
@@ -170,8 +177,8 @@ export default Vue.extend({
             });
             if (_.some(labels, (label) => this.filterBy.includes(label))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const { selectedCategory, predictionCategories } = superpixel;
-                    const label = predictionCategories[selectedCategory].label;
+                    const { selectedCategory, labelCategories } = superpixel;
+                    const label = labelCategories[selectedCategory].label;
                     return this.filterBy.includes(label);
                 }));
             }
@@ -185,22 +192,21 @@ export default Vue.extend({
                     });
                 case 2:
                     return _.groupBy(data, (superpixel) => {
-                        return this.categories[superpixel.selectedCategory].label;
+                        return store.categories[superpixel.selectedCategory].label;
                     });
                 case 3:
                     return _.groupBy(data, (superpixel) => {
                         const { selectedCategory, prediction } = superpixel;
-                        return selectedCategory === prediction ? 'Agree' : 'Disagree';
+                        const selection = superpixel.labelCategories[selectedCategory].label;
+                        const predicted = superpixel.predictionCategories[prediction].label;
+                        return selection === predicted ? 'Agree' : 'Disagree';
                     });
                 default:
-                    return data;
+                    return { data };
             }
         },
-        filterAndSort(data) {
-            return this.sortSuperpixels(this.filterSuperpixels(data));
-        },
         categoryColor(superpixel) {
-            return this.categories[superpixel.selectedCategory].fillColor;
+            return store.categories[superpixel.selectedCategory].fillColor;
         },
         triggerRetrain() {
             this.backboneParent.retrain();
@@ -213,6 +219,11 @@ export default Vue.extend({
             const bounds = container.getBoundingClientRect();
             const resizableContainer = document.getElementById('resizable');
             resizableContainer.style.height = `${bounds.height - event.clientY}px`;
+        },
+        handleMenuSelection(event) {
+            if (event.ctrlKey || event.shiftKey) {
+                event.stopImmediatePropagation();
+            }
         }
     }
 });
@@ -247,23 +258,29 @@ export default Vue.extend({
           class="panel-body collapse in"
           :style="[selectedSuperpixel && {'padding-bottom': '0px'}]"
         >
+          <label for="summaryTable">Summary</label>
           <table
             v-if="selectedSuperpixel"
+            id="summaryTable"
             class="table table-striped"
           >
-            <label for="summaryTable">Summary</label>
-            <tbody id="summaryTable">
+            <tbody>
               <tr>
                 <td>Slide</td>
-                <td>{{ imageItemsById[selectedSuperpixel.imageId].name }}</td>
+                <td
+                  data-toggle="tooltip"
+                  :title="imageItemsById[selectedSuperpixel.imageId].name"
+                >
+                  {{ imageItemsById[selectedSuperpixel.imageId].name }}
+                </td>
               </tr>
               <tr>
-                <td>Prediction</td>
+                <td>Predicted</td>
                 <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.prediction].label }}</td>
               </tr>
               <tr>
-                <td>Selection</td>
-                <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.selectedCategory].label }}</td>
+                <td>Selected</td>
+                <td>{{ selectedSuperpixel.labelCategories[selectedSuperpixel.selectedCategory].label }}</td>
               </tr>
               <tr>
                 <td>Certainty</td>
@@ -327,52 +344,70 @@ export default Vue.extend({
         >
           <div>
             <label for="groupby">Group By</label>
-            <select
+            <div
               id="groupby"
-              v-model="groupBy"
-              class="form-control input-sm"
+              class="dropdown"
             >
-              <option :value="0">
-                -----
-              </option>
-              <option :value="1">
-                Slide
-              </option>
-              <option :value="2">
-                Class
-              </option>
-              <option :value="3">
-                Agree/Disagree
-              </option>
-            </select>
+              <button
+                class="btn btn-block btn-default dropdown-toggle drop-down-button"
+                type="button"
+                data-toggle="dropdown"
+              >
+                {{ groupByOptions[groupBy] }}
+                <span class="caret" />
+              </button>
+              <ul class="dropdown-menu">
+                <li
+                  v-for="[key, value] in Object.entries(groupByOptions)"
+                  :key="key"
+                >
+                  <div class="radio">
+                    <label class="options">
+                      <input
+                        v-model="groupBy"
+                        type="radio"
+                        :value="parseInt(key)"
+                        class="hidden-radio"
+                      >
+                      {{ value }}
+                    </label>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
           <div>
             <label for="sortby">Sort By</label>
-            <div class="sort-by-selector">
-              <select
-                id="sortby"
-                v-model="sortBy"
-                class="form-control input-sm"
+            <div
+              id="sortby"
+              class="dropdown sort-by-selector"
+            >
+              <button
+                class="btn btn-block btn-default dropdown-toggle drop-down-button"
+                type="button"
+                data-toggle="dropdown"
               >
-                <option :value="0">
-                  -----
-                </option>
-                <option :value="1">
-                  Slide
-                </option>
-                <option :value="2">
-                  Class
-                </option>
-                <option :value="3">
-                  Agree/Disagree
-                </option>
-                <option :value="4">
-                  Confidence
-                </option>
-                <option :value="5">
-                  Certainty
-                </option>
-              </select>
+                {{ sortByOptions[sortBy] }}
+                <span class="caret" />
+              </button>
+              <ul class="dropdown-menu">
+                <li
+                  v-for="[key, value] in Object.entries(sortByOptions)"
+                  :key="key"
+                >
+                  <div class="radio">
+                    <label class="options">
+                      <input
+                        v-model="sortBy"
+                        type="radio"
+                        :value="parseInt(key)"
+                        class="hidden-radio"
+                      >
+                      {{ value }}
+                    </label>
+                  </div>
+                </li>
+              </ul>
               <button @click="sortAscending = !sortAscending">
                 <i
                   v-if="sortAscending"
@@ -385,8 +420,13 @@ export default Vue.extend({
               </button>
             </div>
           </div>
-          <div class="selector-group">
+          <div>
             <label for="filterby">Filter By</label>
+            <i
+              class="icon-help-circled text-info"
+              data-toggle="tooltip"
+              title="Use ctrl+left-click to de-select an item."
+            />
             <div id="filterby">
               <button
                 class="btn btn-default dropdown-toggle drop-down-button"
@@ -396,20 +436,18 @@ export default Vue.extend({
                 <span
                   class="filter-text"
                   data-toggle="tooltip"
-                  :title="filterBy.join(',')"
+                  :title="filterBy.join(',') || '(None)'"
                 >
-                  {{ filterBy.join(',') }}
+                  {{ filterBy.join(',') || '(None)' }}
                 </span>
                 <span class="caret" />
               </button>
               <select
                 v-model="filterBy"
-                class="dropdown-menu form-control input-sm"
+                class="dropdown-menu dropdown-menu-block form-control input-sm"
                 multiple
+                @click="handleMenuSelection"
               >
-                <option value="-----">
-                  -----
-                </option>
                 <optgroup
                   v-for="label in Object.keys(filterOptions)"
                   :key="label"
@@ -469,53 +507,48 @@ export default Vue.extend({
             </datalist>
           </div>
           <div>
-            <div class="dropdown">
-              <button
-                class="btn btn-primary dropdown-toggle btn-block"
-                type="button"
-                data-toggle="dropdown"
-              >
+            <div
+              class="btn btn-primary btn-block"
+              @click="dataSelectMenu = !dataSelectMenu"
+            >
+              <span class="multiselect-dropdown-label">
                 Superpixel Data
                 <span class="caret" />
-              </button>
-              <ul class="dropdown-menu dropdown-menu-block">
-                <li class="checkbox">
-                  <label><input
-                    v-model="cardDetails"
-                    type="checkbox"
-                    :value="0"
-                  >Class Name</label>
-                </li>
-                <li class="checkbox">
-                  <label><input
-                    v-model="cardDetails"
-                    type="checkbox"
-                    :value="1"
-                  >Prediction</label>
-                </li>
-                <li class="checkbox">
-                  <label><input
-                    v-model="cardDetails"
-                    type="checkbox"
-                    :value="2"
-                  >Selection</label>
-                </li>
-                <li class="checkbox">
-                  <label><input
-                    v-model="cardDetails"
-                    type="checkbox"
-                    :value="3"
-                  >Confidence</label>
-                </li>
-                <li class="checkbox">
-                  <label><input
-                    v-model="cardDetails"
-                    type="checkbox"
-                    :value="4"
-                  >Certainty</label>
-                </li>
-              </ul>
+              </span>
             </div>
+            <ul
+              class="multiselect-dropdown-items"
+              :style="[dataSelectMenu ? {'display': 'flex'} : {'display': 'none'}]"
+            >
+              <li>
+                <input
+                  v-model="cardDetails"
+                  type="checkbox"
+                  value="selectedCategory"
+                >Class Name
+              </li>
+              <li>
+                <input
+                  v-model="cardDetails"
+                  type="checkbox"
+                  value="confidence"
+                >Confidence
+              </li>
+              <li>
+                <input
+                  v-model="cardDetails"
+                  type="checkbox"
+                  value="certainty"
+                >Certainty
+              </li>
+              <li>
+                <input
+                  v-model="cardDetails"
+                  type="checkbox"
+                  value="prediction"
+                >Prediction
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -621,6 +654,7 @@ export default Vue.extend({
               :style="[groupBy !== 2 && {'border-color': categoryColor(superpixel)}]"
               :superpixel="superpixel"
               :preview-size="parseFloat(previewSize)"
+              :card-details="cardDetails"
               data-toggle="modal"
               data-target="#context"
               @click.native="selectedSuperpixel = superpixel"
@@ -640,6 +674,7 @@ export default Vue.extend({
           :style="{'border-color': categoryColor(superpixel)}"
           :superpixel="superpixel"
           :preview-size="parseFloat(previewSize)"
+          :card-details="cardDetails"
           data-toggle="modal"
           data-target="#context"
           @click.native="selectedSuperpixel = superpixel"
@@ -670,9 +705,14 @@ export default Vue.extend({
   overflow-y: scroll;
 }
 
-.dropdown-menu-block {
+.dropdown-menu {
   width: 100%;
+}
+
+.dropdown-menu-block {
   padding-left: 10px;
+  top: auto;
+  min-height: 150px;
 }
 
 .panel-content-cards {
@@ -733,7 +773,7 @@ export default Vue.extend({
 .resize-handle {
   height: 10px;
   width: 100%;
-  background: #ccc;
+  background: #d9edf7;
   position: absolute;
   top: -5px;
   left: 0;
@@ -743,7 +783,7 @@ export default Vue.extend({
 }
 
 .resize-handle:hover {
-  animation: fade-in 0.5s linear;
+  animation: fade-in 0.3s linear;
   opacity: 1;
 }
 
@@ -753,15 +793,64 @@ export default Vue.extend({
   justify-content: space-between;
 }
 
+.multiselect-dropdown-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.multiselect-dropdown-items {
+  padding: 5px;
+  border: 1px solid #ccc;
+  position: absolute;
+  background: white;
+  color: black;
+  flex-direction: column;
+  align-items: flex-start;
+  left: 20px;
+  width: 90%;
+  z-index: 1;
+}
+
+.multiselect-dropdown-items li {
+  list-style: none;
+}
+
 .grouped {
   border: none !important;
 }
 
 .ungrouped {
-  margin: 5px;
+  margin: 1px;
 }
 
 .selected-superpixel {
-  box-shadow: 0px 0px 5px 1px rgba(255, 255, 0, .5);
+  box-shadow: 0 0 5px 2px rgb(255 255 0);
+}
+
+.options {
+  cursor: pointer;
+}
+
+.hidden-radio {
+  display: none;
+}
+
+#summaryTable {
+  table-layout: fixed;
+}
+
+#summaryTable td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#summaryTable td:first-child {
+  width: 25%;
+}
+
+.text-info {
+  opacity: 50%;
 }
 </style>
