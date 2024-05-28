@@ -25,6 +25,7 @@ const store = Vue.observable({
     /*********
      * UI
      *********/
+    activeLearningStep: -1,
     selectedIndex: 0,
     page: 0,
     maxPage: 1,
