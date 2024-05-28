@@ -38,7 +38,7 @@ const store = Vue.observable({
     pixelmapPaintBrush: false,
     currentImageId: '',
     categoryIndex: 0,
-    activeLearningStep: activeLearningSteps.SuperpixelSegmentation,
+    activeLearningStep: activeLearningSteps.InitialState,
     selectedLabels: new Map()
 });
 

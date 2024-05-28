@@ -42,6 +42,7 @@ export const viewMode = {
 export const boundaryColor = 'rgba(0, 0, 0, 1)';
 
 export const activeLearningSteps = {
+    InitialState: -1, // Nothing has been started yet
     SuperpixelSegmentation: 0, // Nothing has been started yet
     InitialLabeling: 1, // User can view images and begin labeling as annotations become available
     GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review

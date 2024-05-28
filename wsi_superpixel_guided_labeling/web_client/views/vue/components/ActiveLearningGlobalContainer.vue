@@ -27,7 +27,6 @@ export default Vue.extend({
         'backboneParent',
         'imageNamesById',
         'annotationsByImageId',
-        'activeLearningStep',
         'certaintyMetrics',
         'apiRoot',
         'currentAverageCertainty',
@@ -85,7 +84,6 @@ export default Vue.extend({
         store.page = 0;
         store.predictions = false;
         store.selectedIndex = 0;
-        store.activeLearningStep = this.activeLearningStep;
         store.pageSize = this.pageSize;
         store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];

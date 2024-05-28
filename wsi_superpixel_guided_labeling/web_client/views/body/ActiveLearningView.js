@@ -53,7 +53,6 @@ const ActiveLearningView = View.extend({
         // TODO create a plugin-level settings for these
         this.activeLearningJobUrl = 'dsarchive_superpixel_latest/SuperpixelClassification';
         this.activeLearningJobType = 'dsarchive/superpixel:latest#SuperpixelClassification';
-        this.activeLearningStep = -1;
         this.imageItemsById = {};
         this.availableImages = [];
         this.annotationsByImageId = {};
@@ -191,7 +190,7 @@ const ActiveLearningView = View.extend({
                 });
             } else {
                 // There is a job running
-                this.activeLearningStep = activeLearningSteps.InitialLabeling;
+                store.activeLearningStep = activeLearningSteps.InitialLabeling;
                 this.waitForJobCompletion(previousJobs[0]._id);
                 this.watchForSuperpixels();
             }
@@ -200,7 +199,7 @@ const ActiveLearningView = View.extend({
     },
 
     startActiveLearning() {
-        if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
+        if (store.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
             // Case 1: no superpixel segmentation or feature generation have been done for this
             // folder. We need to get the job XML definition to help populate the form that will
             // be used to tune the first run of the classification job.
@@ -258,7 +257,6 @@ const ActiveLearningView = View.extend({
                     backboneParent: this,
                     imageNamesById,
                     annotationsByImageId: this.annotationsByImageId,
-                    activeLearningStep: this.activeLearningStep,
                     certaintyMetrics: this.certaintyMetrics,
                     apiRoot: getApiRoot(),
                     currentAverageCertainty: this.currentAverageCertainty,
@@ -296,7 +294,7 @@ const ActiveLearningView = View.extend({
                     this.epoch = Math.max(this.epoch, parseInt(matches[1]));
                 }
             });
-            this.activeLearningStep = Math.max(this.activeLearningStep, this.epoch + 1);
+            store.activeLearningStep = Math.max(store.activeLearningStep, this.epoch + 1);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -390,7 +388,7 @@ const ActiveLearningView = View.extend({
         });
         $.when(...promises).then(() => {
             this.synchronizeCategories();
-            if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+            if (store.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
             }
             return this.startActiveLearning();
@@ -657,7 +655,7 @@ const ActiveLearningView = View.extend({
         }).done((response) => {
             this.lastRunJobId = response._id;
             this.waitForJobCompletion(response._id, goToNextStep);
-            if (this.activeLearningStep === activeLearningSteps.InitialLabeling) {
+            if (store.activeLearningStep === activeLearningSteps.InitialLabeling) {
                 this.watchForSuperpixels();
             }
         });
@@ -688,7 +686,7 @@ const ActiveLearningView = View.extend({
             certainty: certaintyMetric,
             train: false
         });
-        this.activeLearningStep = activeLearningSteps.InitialLabeling;
+        store.activeLearningStep = activeLearningSteps.InitialLabeling;
         this.getAnnotations();
         this.triggerJob(data, true);
     },
