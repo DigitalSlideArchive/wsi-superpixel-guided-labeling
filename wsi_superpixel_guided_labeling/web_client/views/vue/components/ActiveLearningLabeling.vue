@@ -169,10 +169,10 @@ export default Vue.extend({
             store.categoriesAndIndices[store.categoryIndex].category.fillColor = this.currentCategoryFillColor;
             // Keep prediction colors in sync with label color changes
             _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
-                const pixelmapElement = annotations.predictions.get('annotation').elements[0];
                 if (!_.has(annotations, 'predictions')) {
                     return;
                 }
+                const pixelmapElement = annotations.predictions.get('annotation').elements[0];
                 _.forEach(pixelmapElement.categories, (prediction) => {
                     if (prediction.label === this.currentCategoryLabel) {
                         prediction.fillColor = newColor;

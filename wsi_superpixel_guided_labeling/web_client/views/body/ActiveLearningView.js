@@ -411,7 +411,7 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateCategoriesAndData(pixelmapElement) {
+    updateCategoriesAndData(pixelmapElement, imageId) {
         const categories = [...this.categoryMap.values()];
 
         // Map old data values to category id
@@ -429,7 +429,13 @@ const ActiveLearningView = View.extend({
         // Replace data
         _.forEach(pixelmapElement.values, (value, index) => {
             const category = dataValuesToCategoryId.get(value);
-            pixelmapElement.values[index] = categoryIdToNewDataValue.get(category);
+            const newValue = categoryIdToNewDataValue.get(category);
+            pixelmapElement.values[index] = newValue;
+            if (newValue !== 0) {
+                // Offset the index since we do not need to track the indices
+                // associated with the "default" (unlabeled) category
+                store.categoriesAndIndices[newValue - 1].indices[imageId].add(index);
+            }
         });
 
         // Replace categories
@@ -456,11 +462,17 @@ const ActiveLearningView = View.extend({
                 this.getAnnotationCategories(labelPixelmapElement);
             }
         });
+        store.categoriesAndIndices = _.map(_.rest([...this.categoryMap.values()]), (category) => {
+            return { category, indices: {} };
+        });
         // Update pixelmap data for the dataset
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             if (this.annotationsByImageId[imageId].labels) {
                 const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
-                this.updateCategoriesAndData(labelPixelmapElement);
+                store.categoriesAndIndices = _.forEach(store.categoriesAndIndices, (data) => {
+                    data.indices[imageId] = new Set();
+                });
+                this.updateCategoriesAndData(labelPixelmapElement, imageId);
             }
         });
         this.saveAnnotations(Object.keys(this.annotationsByImageId));

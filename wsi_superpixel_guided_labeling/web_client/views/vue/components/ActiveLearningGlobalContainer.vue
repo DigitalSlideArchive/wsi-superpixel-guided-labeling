@@ -89,9 +89,6 @@ export default Vue.extend({
         store.pageSize = this.pageSize;
         store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];
-        store.categoriesAndIndices = _.map(_.rest(store.categories), (category) => {
-            return { category, indices: new Set() };
-        });
         store.currentImageId = Object.keys(this.imageNamesById)[0];
 
         // We don't want to mount child components until the store has been updated
