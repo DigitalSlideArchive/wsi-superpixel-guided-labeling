@@ -28,7 +28,8 @@ export default Vue.extend({
             bulkPanelCollapsed: false,
             overviewPanelCollapsed: false,
             isResizing: false,
-            dataSelectMenu: false
+            dataSelectMenu: false,
+            sliceValue: 1
         };
     },
     computed: {
@@ -94,6 +95,24 @@ export default Vue.extend({
         }
     },
     mounted() {
+        // Support infinite scrolling
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const target = entry.target;
+                    this.sliceValue += 10;
+                    // Stop watching the current superpixel chip and start watching the new last chip
+                    observer.unobserve(target);
+                    observer.observe(document.querySelector('.panel-content-cards').lastChild);
+                }
+            });
+        }, {
+            root: document.getElementById('chipsContainer'),
+            rootMargin: '0px',
+            threshold: 0.1
+        });
+        observer.observe(document.querySelector('.h-superpixel-card'));
+
         this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
@@ -645,7 +664,7 @@ export default Vue.extend({
           <hr>
           <div class="panel-content-cards">
             <active-learning-review-card
-              v-for="superpixel, index in value"
+              v-for="superpixel, index in value.slice(0, sliceValue)"
               :key="index"
               :class="[
                 groupBy === 2 ? 'grouped' : 'ungrouped',
@@ -668,7 +687,7 @@ export default Vue.extend({
         class="panel-content-cards"
       >
         <active-learning-review-card
-          v-for="superpixel, index in filteredSortedGroupedSuperpixels"
+          v-for="superpixel, index in filteredSortedGroupedSuperpixels.slice(0, sliceValue)"
           :key="index"
           :class="['ungrouped', superpixel === selectedSuperpixel && 'selected-superpixel']"
           :style="{'border-color': categoryColor(superpixel)}"
@@ -822,6 +841,7 @@ export default Vue.extend({
 
 .ungrouped {
   margin: 1px;
+  border-style: solid;
 }
 
 .selected-superpixel {
