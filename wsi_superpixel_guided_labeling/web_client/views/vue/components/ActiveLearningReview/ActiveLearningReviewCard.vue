@@ -5,7 +5,7 @@ import _ from 'underscore';
 import { store } from '../store';
 
 export default Vue.extend({
-    props: ['superpixel', 'previewSize', 'cardDetails'],
+    props: ['superpixel', 'previewSize', 'cardDetails', 'selectingSuperpixels'],
     data() {
         return {
             override: false,
@@ -73,26 +73,40 @@ export default Vue.extend({
             const predicted = this.superpixel.predictionCategories[this.superpixel.prediction];
             const selected = this.superpixel.labelCategories[this.superpixel.selectedCategory];
             return selected.label === predicted.label;
+        },
+        reviews() {
+            const labels = store.annotationsByImageId[this.superpixel.imageId].labels;
+            return labels.get('annotation').elements[0].user.reviews;
+        },
+        reviewers() {
+            const labels = store.annotationsByImageId[this.superpixel.imageId].labels;
+            return labels.get('annotation').elements[0].user.reviewers;
+        },
+        reviewed() {
+            return !_.isNull(this.reviews[this.superpixel.index]);
+        },
+        reviewerCategorySelection: {
+            get() {
+                if (!this.reviewed) {
+                    return this.superpixel.selectedCategory;
+                }
+                return this.reviews[this.superpixel.index];
+            },
+            set(newCategory) {
+                this.reviews[this.superpixel.index] = newCategory;
+                this.reviewers[this.superpixel.index] = { reviewer: store.currentUser, date: new Date().toDateString() };
+                store.reviewedSuperpixels += _.isNull(newCategory) ? -1 : 1;
+                store.backboneParent.saveAnnotations([this.superpixel.imageId]);
+                this.$emit('isReviewed', this.superpixel);
+            }
         }
     }
 });
 </script>
 
 <template>
-  <div
-    class="h-superpixel-card"
-    :class="['h-superpixel-card', cardDetails.length > 0 && 'h-superpixel-card-detailed']"
-  >
+  <div>
     <div class="card-controls">
-      <!-- <div
-        v-if="superpixel.review.reviewed"
-        class="flag"
-      >
-        <i
-          class="icon-user"
-          :style="{'color': 'white'}"
-        />
-      </div> -->
       <button :class="['h-superpixel-region-button', previewSizeClass]">
         <img
           :src="wsiRegionUrl"
@@ -104,17 +118,15 @@ export default Vue.extend({
           loading="lazy"
         >
       </button>
-      <input
-        v-show="selectingSuperpixels"
-        v-model="selected"
-        type="checkbox"
-        class="select-checkbox"
-      >
     </div>
     <select
       v-if="cardDetails.includes('selectedCategory')"
+      v-model="reviewerCategorySelection"
       class="categories-selector"
     >
+      <option :value="null">
+        Clear Review
+      </option>
       <option
         v-for="(category, index) in categories"
         :key="index"
@@ -171,23 +183,6 @@ export default Vue.extend({
 </template>
 
 <style scoped>
-.h-superpixel-card {
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    border-style: solid;
-    justify-content: center;
-    box-sizing: content-box;
-    border-width: 2px;
-    margin-bottom: 3px;
-}
-
-.h-superpixel-card-detailed {
-    width: 150px;
-    padding: 5px;
-    margin-bottom: 5px;
-}
-
 .h-superpixel-region-button {
     padding: 0;
     background-color: transparent;
@@ -252,22 +247,6 @@ export default Vue.extend({
     display: flex;
     justify-content: center;
     border-radius: 3px;
-}
-
-.select-checkbox {
-    float: right;
-    width: 25px;
-}
-
-.flag {
-    background-color: #337ab7;
-    padding: 3px 3px 20px;
-    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
-    border-radius: 2px;
-    float: left;
-    width: 25px;
-    position: relative;
-    top: -2px;
 }
 
 .card-controls {

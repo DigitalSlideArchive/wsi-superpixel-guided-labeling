@@ -77,7 +77,7 @@ export default Vue.extend({
             immediate: true
         },
         sortedSuperpixelIndices() {
-            updateSelectedPage()
+            updateSelectedPage();
         }
     },
     mounted() {

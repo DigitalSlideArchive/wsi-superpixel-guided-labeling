@@ -4,6 +4,7 @@ import _ from 'underscore';
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
 import { store, updateSelectedPage } from '../store.js';
+import { viewMode } from '../constants';
 
 export default {
     components: {
@@ -73,6 +74,9 @@ export default {
             });
         },
         updatePageSize() {
+            if (store.mode !== viewMode.Guided) {
+                return;
+            }
             // get element sizes to compute how many cards to show
             const container = document.getElementById('filmstrip-cards-container');
             const { width } = container.getBoundingClientRect();

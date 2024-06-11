@@ -63,6 +63,7 @@ const ActiveLearningView = View.extend({
         this.histomicsUIConfig = {};
 
         this.mountToolbarComponent();
+        this.getCurrentUser();
         this.getHistomicsYamlConfig();
     },
 
@@ -376,6 +377,15 @@ const ActiveLearningView = View.extend({
                 if (annotationId) {
                     const backboneModel = new AnnotationModel({ _id: annotationId });
                     promises.push(backboneModel.fetch().done(() => {
+                        if (key === 'labels') {
+                            const annotation = backboneModel.get('annotation');
+                            const userData = annotation.elements[0].user;
+                            if (!_.has(userData, 'reviews')) {
+                                const size = annotation.elements[0].values.length;
+                                userData.reviews = [...Array(size)].fill(null);
+                                userData.reviewers = [...Array(size)].fill({});
+                            }
+                        }
                         this.annotationsByImageId[imageId][key] = backboneModel;
                         if (key === 'predictions') {
                             this.computeAverageCertainty(backboneModel);
@@ -509,7 +519,8 @@ const ActiveLearningView = View.extend({
                     prediction: pixelmapValues[index],
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
-                    selectedCategory: labelValues[index]
+                    selectedCategory: labelValues[index],
+                    reviewCategory: labels.elements[0].user.reviews[index]
                 };
                 this.superpixelPredictionsData.push(prediction);
             });
@@ -782,6 +793,17 @@ const ActiveLearningView = View.extend({
                 }
             });
         }, 2000);
+    },
+
+    /**
+     * Get the currently logged in user.
+     */
+    getCurrentUser() {
+        restRequest({
+            url: 'user/me'
+        }).then((user) => {
+            store.currentUser = `${user.firstName} ${user.lastName}`;
+        });
     }
 });
 
