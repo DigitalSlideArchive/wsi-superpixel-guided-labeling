@@ -77,7 +77,7 @@ export default Vue.extend({
             immediate: true
         },
         sortedSuperpixelIndices() {
-            updateSelectedPage()
+            updateSelectedPage();
         }
     },
     mounted() {
@@ -92,6 +92,11 @@ export default Vue.extend({
         store.pageSize = this.pageSize;
         store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];
+        store.reviewedSuperpixels = _.reduce(Object.values(store.annotationsByImageId),
+            (acc, annotation) => {
+                const user = annotation.labels.get('annotation').elements[0].user;
+                return acc += _.size(_.compact(user.reviews));
+            }, 0);
 
         // We don't want to mount child components until the store has been updated
         this.storeReady = true;
