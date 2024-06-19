@@ -31,3 +31,35 @@ export const schemeTableau10 = [
     '#9c755f',
     '#bab0ab'
 ];
+
+export const viewMode = {
+    Setup: 0,
+    Labeling: 1,
+    Guided: 2,
+    Review: 3
+};
+
+export const boundaryColor = 'rgba(0, 0, 0, 1)';
+
+export const activeLearningSteps = {
+    InitialState: -1, // Nothing has been started yet
+    SuperpixelSegmentation: 0, // Nothing has been started yet
+    InitialLabeling: 1, // User can view images and begin labeling as annotations become available
+    GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review
+};
+
+export const groupByOptions = {
+    0: '(None)',
+    1: 'Slide',
+    2: 'Class',
+    3: 'Agree/Disagree'
+};
+
+export const sortByOptions = {
+    0: '(None)',
+    1: 'Slide',
+    2: 'Class',
+    3: 'Agree/Disagree',
+    4: 'Confidence',
+    5: 'Certainty'
+};

@@ -1,47 +1,41 @@
 <script>
 import Vue from 'vue';
 
+import { store } from './store';
+import { viewMode } from './constants';
+
 export default Vue.extend({
-    props: ['activeLearningSetup', 'pixelmapPaintBrush'],
     data() {
         return {
-            showControls: true
+            showInfoContainer: true
         };
+    },
+    computed: {
+        labeling() {
+            return store.mode === viewMode.Labeling;
+        },
+        pixelmapPaintBrush() {
+            return store.pixelmapPaintBrush;
+        }
     },
     mounted() {
         // Default to hidden when we are not in the setup step
-        this.showControls = this.activeLearningSetup;
+        this.showInfoContainer = this.labeling;
     }
 });
 </script>
 
 <template>
-  <div :class="{'h-controls-container': activeLearningSetup}">
+  <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
     <div
-      v-if="!activeLearningSetup"
-      class="h-controls-header"
+      v-if="showInfoContainer"
+      class="col-sm-10"
     >
-      <h5>Mouse and Keyboard Controls</h5>
-      <button
-        class="h-controls-toggle"
-        @click="showControls = !showControls"
-      >
-        <i
-          v-if="showControls"
-          class="icon-up-open"
-        />
-        <i
-          v-else
-          class="icon-down-open"
-        />
-      </button>
-    </div>
-    <div v-if="showControls">
-      <h6 v-if="activeLearningSetup">
+      <h6 v-if="labeling">
         Annotations
       </h6>
       <ul
-        v-if="activeLearningSetup"
+        v-if="labeling"
         class="h-controls"
       >
         <li>Left-click: Label/unlabel single superpixel</li>
@@ -66,7 +60,7 @@ export default Vue.extend({
         <li v-if="!pixelmapPaintBrush">
           Single touch drag
         </li>
-        <li v-if="activeLearningSetup">
+        <li v-if="labeling">
           Arrow keys / Shift-arrow keys
         </li>
       </ul>
@@ -75,7 +69,7 @@ export default Vue.extend({
         <li>Right-drag</li>
         <li>Mouse wheel</li>
         <li>Multi-touch spread or contract</li>
-        <li v-if="activeLearningSetup">
+        <li v-if="labeling">
           Plus, minus / Shift-plus, shift-minus
         </li>
       </ul>
@@ -84,15 +78,62 @@ export default Vue.extend({
         <li>Left-ctrl-drag</li>
         <li>Ctrl-mouse wheel</li>
         <li>Multi-touch rotate</li>
-        <li v-if="activeLearningSetup">
+        <li v-if="labeling">
           &lt;, &gt; (also . or ,) rotate the image a small amount. If shift is held down, &lt; and &gt; rotate the image 90 degrees.
         </li>
       </ul>
     </div>
+    <i
+      class="icon-info-circled"
+      :class="[showInfoContainer && 'col-sm-1']"
+    />
+    <button
+      class="h-collapse-button"
+      :class="[showInfoContainer && 'col-sm-1']"
+      @click="showInfoContainer = !showInfoContainer"
+    >
+      <i
+        v-if="showInfoContainer"
+        class="icon-angle-double-right"
+        data-toggle="tooltip"
+        title="Hide info panel"
+      />
+      <i
+        v-else
+        class="icon-angle-double-left"
+        data-toggle="tooltip"
+        title="Show info panel"
+      />
+    </button>
   </div>
 </template>
 
 <style scoped>
+.h-setup-categories-information {
+    z-index: 100;
+    position: absolute;
+    top: 45px;
+    right: 20px;
+    width: 350px;
+    display: flex;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+    padding: 5px;
+}
+
+.h-collapsed {
+    max-width: fit-content;
+    height: auto;
+}
+
+.h-collapse-button {
+    border: none;
+    background-color: transparent;
+    width: fit-content;
+    height: fit-content;
+}
+
 .h-controls-container {
   margin-right: 15px;
 }

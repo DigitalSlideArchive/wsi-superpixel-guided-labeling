@@ -21,7 +21,7 @@ export default {
 </script>
 
 <template>
-  <div>
+  <div class="h-stats-icon-tooltip">
     <div :class="{ 'h-al-stats-card': true, 'h-al-no-display': !showStatsCard }">
       Avg. Certainty this epoch: {{ averageCertainty }}
     </div>
@@ -34,6 +34,12 @@ export default {
 </template>
 
 <style scoped>
+.h-stats-icon-tooltip {
+    position: absolute;
+    bottom: 200px;
+    right: 35px;
+}
+
 .h-al-stats-anchor {
     position: inherit;
     float: right;
@@ -46,8 +52,7 @@ export default {
     border-radius: 1px;
     background: white;
     padding: 2px;
-    right: 40px;
-    top: -9px;
+    right: 0px;
     z-index: 100;
 }
 
