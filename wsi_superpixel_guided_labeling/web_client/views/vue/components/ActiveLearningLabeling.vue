@@ -347,7 +347,7 @@ export default Vue.extend({
             this.$emit('synchronize');
         },
         keydownListener(event) {
-            if (event.target.type === 'text') {
+            if (event.target.type === 'text' && event.target.id !== 'category-hotkey') {
                 // User is typing, not using a hot key selector
                 return;
             }
