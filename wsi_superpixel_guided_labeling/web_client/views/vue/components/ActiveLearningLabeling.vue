@@ -711,22 +711,21 @@ export default Vue.extend({
         v-if="!currentCategoryFormValid || !currentLabelsValid"
         class="h-error-messages"
       >
-        <p class="form-validation-error">
-          Please fix all errors to continue
-        </p>
         <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
           <li
             v-for="error in currentFormErrors"
             :key="error"
-            class="form-validation-error"
+            class="form-validation-error text-primary"
           >
+            <span><i class="icon-attention" /></span>
             {{ error }}
           </li>
           <li
             v-for="error in currentLabelingErrors"
             :key="error"
-            class="form-validation-error"
+            class="form-validation-error text-primary"
           >
+            <span><i class="icon-attention" /></span>
             {{ error }}
           </li>
         </ul>
@@ -861,7 +860,7 @@ tr:hover .editing-icons {
 }
 
 .form-validation-error {
-    color: red;
+    list-style: none;
 }
 
 .h-table-button {
