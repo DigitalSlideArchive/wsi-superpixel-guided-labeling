@@ -241,6 +241,10 @@ export default Vue.extend({
             }
             // Center the selected superpixel
             const superpixel = store.superpixelsToDisplay[store.selectedIndex];
+            if (store.currentImageId !== superpixel.imageId) {
+                store.currentImageId = superpixel.imageId;
+                return;
+            }
             const bbox = superpixel.bbox;
             const bboxWidth = bbox[2] - bbox[0];
             const bboxHeight = bbox[3] - bbox[1];
