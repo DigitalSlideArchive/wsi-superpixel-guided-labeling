@@ -73,6 +73,7 @@ export default Vue.extend({
             const startIndex = 0;
             const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
             store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
+            store.maxPage = store.sortedSuperpixelIndices.length / store.pageSize;
         }
     },
     mounted() {
@@ -85,7 +86,6 @@ export default Vue.extend({
         store.predictions = false;
         store.selectedIndex = 0;
         store.pageSize = this.pageSize;
-        store.maxPage = store.sortedSuperpixelIndices.length / this.pageSize;
         store.categories = [...this.categoryMap.values()];
         store.currentImageId = Object.keys(this.imageNamesById)[0];
 
