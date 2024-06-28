@@ -17,7 +17,6 @@ export default Vue.extend({
             currentImageMetadata: {},
 
             // keep track of the current image and annotation to edit
-            superpixelAnnotation: null,
             superpixelElement: null,
             map: null,
 
@@ -85,7 +84,6 @@ export default Vue.extend({
             }
         },
         currentImageId() {
-            this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
             this.setupViewer();
         },
         pixelmapPaintBrush() {
@@ -123,14 +121,12 @@ export default Vue.extend({
             const newImage = _.difference(newAvail, oldAvail)[0];
             if (newImage === store.currentImageId) {
                 // Update image with annotations
-                this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
                 this.setupViewer();
             }
         }
     },
     mounted() {
         if (store.currentImageId) {
-            this.superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
             this.setupViewer();
             this.createCategories();
         }
@@ -212,10 +208,11 @@ export default Vue.extend({
             });
         },
         drawPixelmapAnnotation() {
-            if (!this.superpixelAnnotation) {
+            const superpixelAnnotation = store.annotationsByImageId[store.currentImageId].labels;
+            if (!superpixelAnnotation) {
                 return;
             }
-            this.viewerWidget.drawAnnotation(this.superpixelAnnotation);
+            this.viewerWidget.drawAnnotation(superpixelAnnotation);
             if (store.predictions) {
                 const predictionsAnnotation = store.annotationsByImageId[store.currentImageId].predictions;
                 this.viewerWidget.drawAnnotation(predictionsAnnotation);
@@ -405,8 +402,8 @@ export default Vue.extend({
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);
         },
         saveNewPixelmapData(boundaries, data) {
-            const annotation = this.superpixelAnnotation.get('annotation');
-            const superpixelElement = annotation.elements[0];
+            const annotation = store.annotationsByImageId[store.currentImageId];
+            const superpixelElement = annotation.labels.get('annotation').elements[0];
             if (boundaries) {
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
