@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
-import { store } from '../store.js';
+import { store, updateSelectedPage } from '../store.js';
 
 export default {
     components: {
@@ -16,9 +16,6 @@ export default {
         };
     },
     computed: {
-        apiRoot() {
-            return store.apiRoot;
-        },
         selectedIndex() {
             return store.selectedIndex;
         },
@@ -28,39 +25,77 @@ export default {
         page() {
             return store.page;
         },
-        backboneParent() {
-            return store.backboneParent;
-        },
         slideName() {
-            if (this.superpixelsToDisplay.length) {
-                const id = this.superpixelsToDisplay[this.selectedIndex].imageId;
-                return this.backboneParent.imageItemsById[id].name;
+            if (store.superpixelsToDisplay.length) {
+                const id = store.superpixelsToDisplay[this.selectedIndex].imageId;
+                return store.backboneParent.imageItemsById[id].name;
             }
             return '';
         }
     },
+    watch: {
+        selectedIndex: {
+            handler() {
+                this.updateSelectedCard();
+            },
+            immediate: true
+        },
+        page() {
+            this.updateSelectedCard();
+        }
+    },
+    mounted() {
+        window.addEventListener('resize', () => { this.$nextTick(() => this.updatePageSize()); });
+        this.$nextTick(() => this.updatePageSize());
+    },
+    destroyed() {
+        window.removeEventListener('resize', () => { this.$nextTick(() => this.updatePageSize()); });
+    },
     methods: {
         previousPage() {
             store.page = store.page - 1;
+            updateSelectedPage();
+            store.selectedIndex = store.pageSize - 1;
         },
         nextPage() {
             store.page = store.page + 1;
-        },
-        togglePredictions() {
-            store.predictions = !store.predictions;
+            updateSelectedPage();
+            store.selectedIndex = 0;
         },
         agreeAll() {
-            _.forEach(this.superpixelsToDisplay, (superpixel) => {
+            _.forEach(store.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = superpixel.prediction;
             });
         },
         resetAll() {
-            _.forEach(this.superpixelsToDisplay, (superpixel) => {
+            _.forEach(store.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = 0;
             });
         },
-        triggerRetrain() {
-            this.backboneParent.retrain();
+        updatePageSize() {
+            // get element sizes to compute how many cards to show
+            const container = document.getElementById('filmstrip-cards-container');
+            const { width } = container.getBoundingClientRect();
+            // update page size
+            const currentIndex = store.page * store.pageSize + store.selectedIndex;
+            const cardWidth = 140; // Hard-coded in ActiveLearningFilmstripCard
+            const padding = 10;
+            store.pageSize = Math.floor(width / (cardWidth + padding));
+            // update page
+            store.page = Math.floor(currentIndex / store.pageSize);
+            store.maxPage = Math.ceil(store.sortedSuperpixelIndices.length / store.pageSize);
+            // update selected index
+            store.selectedIndex = currentIndex - (store.pageSize * store.page);
+            updateSelectedPage();
+        },
+        updateSelectedCard() {
+            if (!store.superpixelsToDisplay.length) {
+                return;
+            }
+            const newImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
+            if (store.superpixelsToDisplay.length && newImageId !== store.currentImageId) {
+                store.currentImageId = store.superpixelsToDisplay[store.selectedIndex].imageId;
+            }
         }
     }
 };
@@ -68,9 +103,6 @@ export default {
 
 <template>
   <div class="h-filmstrip">
-    <div class="h-slide-name">
-      <span> Current Slide: {{ slideName }}</span>
-    </div>
     <!-- previous button -->
     <button
       class="h-filmstrip-page-btn h-filmstrip-page-btn--prev btn"
@@ -80,11 +112,12 @@ export default {
       <i class="icon-left-circled h-filmstrip-page-icon" />
     </button>
     <div
-      id="filmstrip-cards"
+      id="filmstrip-cards-container"
       class="h-filmstrip-cards"
     >
       <active-learning-film-strip-card
         v-for="superpixel, index in superpixelsToDisplay"
+        ref="filmstripCards"
         :key="`${superpixel.imageId}_${superpixel.index}`"
         :index="index"
       />
@@ -99,29 +132,16 @@ export default {
     <div class="h-filmstrip-workflow-btns">
       <active-learning-stats />
       <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
-        title="Show or hide the most recent predictions"
-        @click="togglePredictions"
-      >
-        Show/hide predictions
-      </button>
-      <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
+        class="h-filmstrip-workflow-btn btn btn-primary btn-block"
         @click="resetAll"
       >
         Reset All
       </button>
       <button
-        class="h-filmstrip-workflow-btn btn btn-primary"
+        class="h-filmstrip-workflow-btn btn btn-primary btn-block"
         @click="agreeAll"
       >
         Agree to All
-      </button>
-      <button
-        class="h-filmstrip-workflow-btn btn btn-success"
-        @click="triggerRetrain"
-      >
-        Retrain
       </button>
     </div>
   </div>
@@ -140,13 +160,6 @@ export default {
     padding-bottom: 10px;
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 50;
-}
-
-.h-slide-name {
-    position: absolute;
-    top: 8px;
-    color: white;
-    left: 15px;
 }
 
 .h-filmstrip-cards {
@@ -173,8 +186,6 @@ export default {
 .h-filmstrip-workflow-btns {
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
-    height: 150px;
 }
 
 .h-filmstrip-workflow-btn {

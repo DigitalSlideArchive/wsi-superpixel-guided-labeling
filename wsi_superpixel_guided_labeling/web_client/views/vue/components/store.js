@@ -2,31 +2,52 @@ import Vue from 'vue';
 
 import _ from 'underscore';
 
-import { hotkeys as hotkeysConsts } from './ActiveLearning/constants';
+import { hotkeys as hotkeysConsts, activeLearningSteps } from './constants';
+import { rgbStringToArray } from './utils';
 
 const store = Vue.observable({
-    selectedIndex: 0,
-    page: 0,
-    maxPage: 1,
-    pageSize: 8,
+    /*********
+     * DATA
+     *********/
     apiRoot: '',
-    loading: false, // limit how quickly one can switch between images
     superpixelsToDisplay: [],
     changeLog: [],
     annotationsByImageId: {},
     backboneParent: null,
+    categories: [],
+    categoriesAndIndices: [],
+    hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
+    labelsOverlayLayer: null,
+    predictionsOverlayLayer: null,
+    zoom: 1,
+    center: { x: 1, y: 1 },
+    sortedSuperpixelIndices: [],
+    /*********
+     * UI
+     *********/
+    selectedIndex: 0,
+    page: 0,
+    maxPage: 1,
+    pageSize: 8,
     predictions: false,
     currentAverageCertainty: 0,
-    categories: [],
     lastCategorySelected: null,
-    hotkeys: new Map(_.map(hotkeysConsts, (k, i) => [k, i])),
-    strokeOpacity: 1.0
+    strokeOpacity: 1.0,
+    mode: 0,
+    currentCategoryFormValid: true,
+    pixelmapPaintBrush: false,
+    currentImageId: '',
+    categoryIndex: 0,
+    activeLearningStep: activeLearningSteps.InitialState,
+    selectedLabels: new Map()
 });
 
 const previousCard = () => {
     if (store.selectedIndex === 0) {
         if (store.page !== 0) {
             store.page--;
+            updateSelectedPage();
+            store.selectedIndex = store.pageSize - 1;
         }
     } else {
         store.selectedIndex--;
@@ -37,12 +58,26 @@ const nextCard = () => {
     if (store.selectedIndex === store.pageSize - 1) {
         if (store.page < store.maxPage) {
             store.page++;
+            updateSelectedPage();
+            store.selectedIndex = 0;
         }
     } else {
         store.selectedIndex++;
     }
 };
 
+const updateSelectedPage = () => {
+    const startIndex = store.page * store.pageSize;
+    const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
+    store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
+};
+
+/**
+ * Assign a hotkey to a category
+ *
+ * @param {string} oldkey The old hotkey value
+ * @param {string} newKey The new hotkey value
+ */
 const assignHotkey = (oldkey, newKey) => {
     // Check for duplicate key bindings
     const oldVal = store.hotkeys.get(newKey);
@@ -59,19 +94,17 @@ const assignHotkey = (oldkey, newKey) => {
  * Ensure that the label and prediction annotations are drawn correctly by
  * keeping the geojs layer up to date with the most recent category list
  */
+const updatePixelmapLayerStyle = () => {
+    _.forEach([store.labelsOverlayLayer, store.predictionsOverlayLayer], (overlayLayer, idx) => {
+        if (_.isNull(overlayLayer)) return;
 
-const rgbStringToArray = (rgbStr) => {
-    return rgbStr.match(/\d+(?:\.\d+)?/g).map(Number);
-};
-
-const updatePixelmapLayerStyle = (overlayLayers) => {
-    if (!overlayLayers.length) {
-        return;
-    }
-
-    _.forEach(overlayLayers, (overlayLayer) => {
         _.forEach(overlayLayer.features(), (feature) => {
             feature.style('color', (d, i) => {
+                if (idx === 1) {
+                    // For the predictions overlay we need to account
+                    // for the excluded "default" category
+                    d += 1;
+                }
                 if (d < 0 || d >= store.categories.length) {
                     console.warn(`No category found at index ${d} in the category map.`);
                     return 'rgba(0, 0, 0, 0)';
@@ -96,5 +129,6 @@ export {
     nextCard,
     previousCard,
     assignHotkey,
-    updatePixelmapLayerStyle
+    updatePixelmapLayerStyle,
+    updateSelectedPage
 };

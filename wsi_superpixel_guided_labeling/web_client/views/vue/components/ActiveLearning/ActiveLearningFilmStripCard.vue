@@ -11,7 +11,10 @@ export default Vue.extend({
             return store.superpixelsToDisplay[this.index];
         },
         agreeChoice() {
-            return this.superpixelDecision.selectedCategory === this.superpixelDecision.prediction;
+            return this.labelCategory.label === this.predictedCategory.label;
+        },
+        labelCategory() {
+            return this.superpixelDecision.labelCategories[this.superpixelDecision.selectedCategory];
         },
         predictedCategory() {
             return this.superpixelDecision.predictionCategories[this.superpixelDecision.prediction];
@@ -19,23 +22,20 @@ export default Vue.extend({
         selectedCategory() {
             return this.superpixelDecision.selectedCategory;
         },
+        imageId() {
+            return this.superpixelDecision.imageId;
+        },
         labelAnnotation() {
-            return store.annotationsByImageId[this.superpixelDecision.imageId].labels;
+            return store.annotationsByImageId[this.imageId].labels;
         },
         predictionAnnotation() {
-            return store.annotationsByImageId[this.superpixelDecision.imageId].predictions;
-        },
-        apiRoot() {
-            return store.apiRoot;
-        },
-        selectedIndex() {
-            return store.selectedIndex;
+            return store.annotationsByImageId[this.imageId].predictions;
         },
         lastCategorySelected() {
             return store.lastCategorySelected;
         },
         isSelected() {
-            return this.selectedIndex === this.index;
+            return store.selectedIndex === this.index;
         },
         headerStyle() {
             return {
@@ -54,7 +54,7 @@ export default Vue.extend({
             return _.filter(categories, (c) => !['default'].includes(c.label));
         },
         wsiRegionUrl() {
-            const imageId = this.superpixelDecision.imageId;
+            const imageId = this.imageId;
             const bbox = this.superpixelDecision.bbox;
             const regionWidth = bbox[2] - bbox[0];
             const regionHeight = bbox[3] - bbox[1];
@@ -62,7 +62,7 @@ export default Vue.extend({
             const thumbnailWidth = Math.floor(125 * regionWidth / scaleFactor);
             const thumbnailHeight = Math.floor(125 * regionHeight / scaleFactor);
             const params = `?left=${bbox[0]}&top=${bbox[1]}&right=${bbox[2]}&bottom=${bbox[3]}&width=${thumbnailWidth}&height=${thumbnailHeight}`;
-            return `${this.apiRoot}/item/${imageId}/tiles/region${params}`;
+            return `${store.apiRoot}/item/${imageId}/tiles/region${params}`;
         },
         superpixelRegionUrl() {
             const imageId = this.superpixelDecision.superpixelImageId;
@@ -89,15 +89,26 @@ export default Vue.extend({
                 bands: []
             });
             const functionParam = `&style=${encodeURIComponent(functionJson)}`;
-            return `${this.apiRoot}/item/${imageId}/tiles/region${params}${functionParam}`;
+            return `${store.apiRoot}/item/${imageId}/tiles/region${params}${functionParam}`;
         }
     },
     watch: {
         selectedCategory() {
             const element = this.labelAnnotation.get('annotation').elements[0];
             const values = JSON.parse(JSON.stringify(element.values));
-            values[this.superpixelDecision.index] = this.superpixelDecision.selectedCategory;
+            const index = this.superpixelDecision.index;
+            const oldValue = values[index];
+            const newValue = this.superpixelDecision.selectedCategory;
+            values[this.superpixelDecision.index] = newValue;
             element.values = values;
+            // As long as the old or new category is not the "default" (unlabeled)
+            // we need to updated the category that the index is now associated with.
+            if (oldValue !== 0) {
+                store.categoriesAndIndices[oldValue - 1].indices[this.imageId].delete(index);
+            }
+            if (newValue !== 0) {
+                store.categoriesAndIndices[newValue - 1].indices[this.imageId].add(index);
+            }
             store.changeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {

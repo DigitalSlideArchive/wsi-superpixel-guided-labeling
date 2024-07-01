@@ -12,19 +12,14 @@ import JobStatus from '@girder/jobs/JobStatus.js';
 import { parse } from '@girder/slicer_cli_web/parser';
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
-import ActiveLearningContainer from '../vue/components/ActiveLearning/ActiveLearningContainer.vue';
-import ActiveLearningSetupContainer from '../vue/components/ActiveLearningSetup/ActiveLearningSetupContainer.vue';
+import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGlobalContainer.vue';
+import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
+import { activeLearningSteps } from '../vue/components/constants.js';
 
 import '../../stylesheets/body/learning.styl';
 
 const yaml = require('js-yaml');
-
-const activeLearningSteps = {
-    SuperpixelSegmentation: 0, // Nothing has been started yet
-    InitialLabeling: 1, // User can view images and begin labeling as annotations become available
-    GuidedLabeling: 2 // Initial labeling is complete, predicitions are available for review
-};
 
 const epochRegex = /epoch (\d+)/i;
 
@@ -58,18 +53,25 @@ const ActiveLearningView = View.extend({
         // TODO create a plugin-level settings for these
         this.activeLearningJobUrl = 'dsarchive_superpixel_latest/SuperpixelClassification';
         this.activeLearningJobType = 'dsarchive/superpixel:latest#SuperpixelClassification';
-        this.activeLearningStep = -1;
         this.imageItemsById = {};
         this.availableImages = [];
         this.annotationsByImageId = {};
-        this.sortedSuperpixelIndices = [];
         this._isSaving = false;
         this._saveAnnotationsForIds = new Set();
         // Use a map to preserve insertion order
         this.categoryMap = new Map();
         this.histomicsUIConfig = {};
 
+        this.mountToolbarComponent();
         this.getHistomicsYamlConfig();
+    },
+
+    mountToolbarComponent() {
+        if (this.vueAppToolbar) {
+            this.vueAppToolbar.$destroy();
+        }
+        const el = document.getElementById('active-learning-toolbar');
+        this.vueAppToolbar = new ActiveLearningToolBar({ el });
     },
 
     getHistomicsYamlConfig() {
@@ -114,6 +116,7 @@ const ActiveLearningView = View.extend({
 
     updateHistomicsYamlConfig() {
         const groups = new Map();
+        this.categoryMap.clear(); // Keep the internal categoryMap in sync with changes
         _.forEach(store.categories, (category, index) => {
             const key = _.find([...store.hotkeys], ([, v]) => v === index)[0];
             groups.set(category.label, {
@@ -122,6 +125,7 @@ const ActiveLearningView = View.extend({
                 lineColor: category.strokeColor || 'rgba(0,0,0,1)',
                 hotKey: `${key}`
             });
+            this.categoryMap.set(category.label, category);
         });
         this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
 
@@ -186,7 +190,7 @@ const ActiveLearningView = View.extend({
                 });
             } else {
                 // There is a job running
-                this.activeLearningStep = activeLearningSteps.InitialLabeling;
+                store.activeLearningStep = activeLearningSteps.InitialLabeling;
                 this.waitForJobCompletion(previousJobs[0]._id);
                 this.watchForSuperpixels();
             }
@@ -195,7 +199,7 @@ const ActiveLearningView = View.extend({
     },
 
     startActiveLearning() {
-        if (this.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
+        if (store.activeLearningStep === activeLearningSteps.SuperpixelSegmentation) {
             // Case 1: no superpixel segmentation or feature generation have been done for this
             // folder. We need to get the job XML definition to help populate the form that will
             // be used to tune the first run of the classification job.
@@ -206,21 +210,15 @@ const ActiveLearningView = View.extend({
             this.vueComponentChanged();
         }
     },
+
     vueComponentChanged() {
         if (this.vueApp) {
-            // The app component exists
-            const elId = this.vueApp.$el.id;
-            if (
-                (this.activeLearningStep <= 1 && elId === 'setupContainer') ||
-                (this.activeLearningStep > 1 && elId === 'learningContainer')
-            ) {
-                // We alreay have the correct component mounted, no need to
-                // re-create it. Just update the props.
-                return this.updateVueComponent();
-            }
+            // We have alreay mounted the component, no need to re-create it. Just update the props.
+            return this.updateVueComponent();
         }
         return this.mountVueComponent();
     },
+
     updateVueComponent() {
         const exceptions = ['router', 'apiRoot', 'trainingDataFolderId', 'backboneParent'];
         _.forEach(Object.keys(this.vueApp.$props), (prop) => {
@@ -248,43 +246,24 @@ const ActiveLearningView = View.extend({
             url: geojsUrl,
             dataType: 'script',
             cache: true
-        }).done((resp) => {
-            // We will want to refactor the vue components so we only have one container.
-            let vm;
-            if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
-                vm = new ActiveLearningContainer({
-                    el,
-                    propsData: {
-                        router,
-                        trainingDataFolderId: this.trainingDataFolderId,
-                        annotationsByImageId: this.annotationsByImageId,
-                        annotationBaseName: this.annotationBaseName,
-                        sortedSuperpixelIndices: this.sortedSuperpixelIndices,
-                        apiRoot: getApiRoot(),
-                        backboneParent: this,
-                        currentAverageCertainty: this.currentAverageCertainty,
-                        categoryMap: this.categoryMap
-                    }
-                });
-            } else {
-                const imageNamesById = {};
-                _.forEach(Object.keys(this.imageItemsById), (imageId) => {
-                    imageNamesById[imageId] = this.imageItemsById[imageId].name;
-                });
-                vm = new ActiveLearningSetupContainer({
-                    el,
-                    propsData: {
-                        backboneParent: this,
-                        imageNamesById,
-                        annotationsByImageId: this.annotationsByImageId,
-                        activeLearningStep: this.activeLearningStep,
-                        certaintyMetrics: this.certaintyMetrics,
-                        availableImages: this.availableImages,
-                        categoryMap: this.categoryMap
-                    }
-                });
-            }
-            this.vueApp = vm;
+        }).done(() => {
+            const imageNamesById = {};
+            _.forEach(Object.keys(this.imageItemsById), (imageId) => {
+                imageNamesById[imageId] = this.imageItemsById[imageId].name;
+            });
+            this.vueApp = new ActiveLearningGlobalContainer({
+                el,
+                propsData: {
+                    backboneParent: this,
+                    imageNamesById,
+                    annotationsByImageId: this.annotationsByImageId,
+                    certaintyMetrics: this.certaintyMetrics,
+                    apiRoot: getApiRoot(),
+                    currentAverageCertainty: this.currentAverageCertainty,
+                    availableImages: this.availableImages,
+                    categoryMap: this.categoryMap
+                }
+            });
         });
     },
 
@@ -315,7 +294,7 @@ const ActiveLearningView = View.extend({
                     this.epoch = Math.max(this.epoch, parseInt(matches[1]));
                 }
             });
-            this.activeLearningStep = Math.max(this.activeLearningStep, this.epoch + 1);
+            store.activeLearningStep = Math.max(store.activeLearningStep, this.epoch + 1);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -409,7 +388,7 @@ const ActiveLearningView = View.extend({
         });
         $.when(...promises).then(() => {
             this.synchronizeCategories();
-            if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+            if (store.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
                 this.getSortedSuperpixelIndices();
             }
             return this.startActiveLearning();
@@ -430,24 +409,35 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateCategoriesAndData(pixelmapElement) {
+    updateCategoriesAndData(pixelmapElement, imageId) {
+        const categories = [...this.categoryMap.values()];
+
         // Map old data values to category id
         const dataValuesToCategoryId = new Map();
         _.forEach(pixelmapElement.categories, (category, index) => {
             dataValuesToCategoryId.set(index, category.label);
         });
+
         // Map category id to new data values
         const categoryIdToNewDataValue = new Map();
-        _.forEach([...this.categoryMap.values()], (category, index) => {
+        _.forEach(categories, (category, index) => {
             categoryIdToNewDataValue.set(category.label, index);
         });
+
         // Replace data
         _.forEach(pixelmapElement.values, (value, index) => {
             const category = dataValuesToCategoryId.get(value);
-            pixelmapElement.values[index] = categoryIdToNewDataValue.get(category);
+            const newValue = categoryIdToNewDataValue.get(category);
+            pixelmapElement.values[index] = newValue;
+            if (newValue !== 0) {
+                // Offset the index since we do not need to track the indices
+                // associated with the "default" (unlabeled) category
+                store.categoriesAndIndices[newValue - 1].indices[imageId].add(index);
+            }
         });
+
         // Replace categories
-        pixelmapElement.categories = [...this.categoryMap.values()];
+        pixelmapElement.categories = categories;
     },
 
     /**
@@ -469,24 +459,21 @@ const ActiveLearningView = View.extend({
                 const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
                 this.getAnnotationCategories(labelPixelmapElement);
             }
-            if (this.annotationsByImageId[imageId].predictions) {
-                const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
-                this.getAnnotationCategories(predictionPixelmapElement);
-            }
+        });
+        store.categoriesAndIndices = _.map(_.rest([...this.categoryMap.values()]), (category) => {
+            return { category, indices: {} };
         });
         // Update pixelmap data for the dataset
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             if (this.annotationsByImageId[imageId].labels) {
                 const labelPixelmapElement = this.annotationsByImageId[imageId].labels.get('annotation').elements[0];
-                this.updateCategoriesAndData(labelPixelmapElement);
-            }
-            if (this.annotationsByImageId[imageId].predictions) {
-                const predictionPixelmapElement = this.annotationsByImageId[imageId].predictions.get('annotation').elements[0];
-                this.updateCategoriesAndData(predictionPixelmapElement);
+                store.categoriesAndIndices = _.forEach(store.categoriesAndIndices, (data) => {
+                    data.indices[imageId] = new Set();
+                });
+                this.updateCategoriesAndData(labelPixelmapElement, imageId);
             }
         });
-        this.saveLabelAnnotations(Object.keys(this.annotationsByImageId));
-        // TODO Also save prediction annotations - they might have changed
+        this.saveAnnotations(Object.keys(this.annotationsByImageId));
     },
 
     /**
@@ -527,7 +514,7 @@ const ActiveLearningView = View.extend({
                 superpixelPredictionsData.push(prediction);
             });
         });
-        this.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
+        store.sortedSuperpixelIndices = _.sortBy(superpixelPredictionsData, 'certainty');
     },
 
     getJobXmlUrl() {
@@ -605,12 +592,12 @@ const ActiveLearningView = View.extend({
      ****************************************************************/
 
     /**
-     * Save the label annotations that are queued to be saved.
+     * Save the annotations that are queued to be saved.
      * Prevent multiple save requests from being sent to the server
      * simultaneously.
      * @param {string[]} imageIds
      */
-    saveLabelAnnotations(imageIds) {
+    saveAnnotations(imageIds) {
         _.forEach(imageIds, (id) => {
             this._saveAnnotationsForIds.add(id);
         });
@@ -626,12 +613,17 @@ const ActiveLearningView = View.extend({
                 const promise = labelAnnotation.save();
                 promises.push(promise);
             }
+            const predictionAnnotation = this.annotationsByImageId[imageId].predictions;
+            if (predictionAnnotation) {
+                const promise = predictionAnnotation.save();
+                promises.push(promise);
+            }
         });
         this._saveAnnotationsForIds = new Set();
         $.when(...promises).then(() => {
             this._isSaving = false;
             if (this._saveAnnotationsForIds.size > 0) {
-                this.saveLabelAnnotations([]);
+                this.saveAnnotations([]);
             }
             return true;
         });
@@ -663,7 +655,7 @@ const ActiveLearningView = View.extend({
         }).done((response) => {
             this.lastRunJobId = response._id;
             this.waitForJobCompletion(response._id, goToNextStep);
-            if (this.activeLearningStep === activeLearningSteps.InitialLabeling) {
+            if (store.activeLearningStep === activeLearningSteps.InitialLabeling) {
                 this.watchForSuperpixels();
             }
         });
@@ -694,7 +686,7 @@ const ActiveLearningView = View.extend({
             certainty: certaintyMetric,
             train: false
         });
-        this.activeLearningStep = activeLearningSteps.InitialLabeling;
+        store.activeLearningStep = activeLearningSteps.InitialLabeling;
         this.getAnnotations();
         this.triggerJob(data, true);
     },
@@ -725,7 +717,7 @@ const ActiveLearningView = View.extend({
     },
 
     waitForJobCompletion(jobId, goToNextStep) {
-        if (this.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+        if (store.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
             this.showSpinner();
         }
         const poll = setInterval(() => {
@@ -769,6 +761,7 @@ const ActiveLearningView = View.extend({
     },
 
     watchForSuperpixels() {
+        this.hideSpinner();
         const poll = setInterval(() => {
             restRequest({
                 url: `annotation/folder/${this.trainingDataFolderId}`

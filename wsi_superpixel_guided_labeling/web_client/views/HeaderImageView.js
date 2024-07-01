@@ -8,5 +8,6 @@ wrap(HeaderImageView, 'render', function (render) {
         this.$el.find('.h-open-annotated-image').remove();
         this.$el.find('.h-open-image').remove();
         this.$el.find('.h-links').remove();
+        this.parentView.$el.find('.navbar-collapse').prepend(`<div id="active-learning-toolbar"/>`);
     }
 });
