@@ -159,7 +159,7 @@ export default {
     padding-top: 35px;
     padding-bottom: 10px;
     background-color: rgba(0, 0, 0, 0.6);
-    z-index: 50;
+    z-index: 100;
 }
 
 .h-filmstrip-cards {
