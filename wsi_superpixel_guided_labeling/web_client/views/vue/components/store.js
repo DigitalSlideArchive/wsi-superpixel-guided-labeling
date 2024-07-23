@@ -41,7 +41,12 @@ const store = Vue.observable({
     categoryIndex: 0,
     activeLearningStep: activeLearningSteps.InitialState,
     selectedLabels: new Map(),
-    selectedReviewSuperpixels: []
+    selectedReviewSuperpixels: [],
+    groupBy: 0,
+    sortBy: 0,
+    filterBy: [],
+    previewSize: 0.5,
+    cardDetails: []
 });
 
 const previousCard = () => {

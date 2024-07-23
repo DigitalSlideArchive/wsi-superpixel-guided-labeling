@@ -14,14 +14,9 @@ export default Vue.extend({
     },
     data() {
         return {
-            groupBy: 0,
-            sortBy: 0,
-            filterBy: [],
-            previewSize: 0.5,
             viewerWidget: null,
             selectedSuperpixel: null,
             sortAscending: true,
-            cardDetails: [],
             categoriesPanelCollapsed: false,
             filtersPanelCollapsed: false,
             viewPanelCollapsed: false,
@@ -97,6 +92,26 @@ export default Vue.extend({
             let data = this.filterSuperpixels(this.superpixelsForReview);
             data = this.sortSuperpixels(data);
             return this.groupSuperpixels(data);
+        },
+        groupBy: {
+            get() { return store.groupBy; },
+            set(value) { store.groupBy = value; }
+        },
+        sortBy: {
+            get() { return store.sortBy; },
+            set(value) { store.sortBy = value; }
+        },
+        filterBy: {
+            get() { return store.filterBy; },
+            set(value) { store.filterBy = value; }
+        },
+        previewSize: {
+            get() { return store.previewSize; },
+            set(value) { store.previewSize = value; }
+        },
+        cardDetails: {
+            get() { return store.cardDetails; },
+            set(value) { store.cardDetails = value; }
         }
     },
     watch: {
@@ -146,7 +161,7 @@ export default Vue.extend({
     },
     methods: {
         sortSuperpixels(sorted) {
-            switch (this.sortBy) {
+            switch (store.sortBy) {
                 case 1:
                     sorted = _.sortBy(sorted, (superpixel) => {
                         return this.imageItemsById[superpixel.imageId].name;
@@ -180,7 +195,7 @@ export default Vue.extend({
         filterSuperpixels(data) {
             const results = [];
             // Filter by selections that agree with the prediction
-            if (this.filterBy.includes('agree')) {
+            if (store.filterBy.includes('agree')) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, prediction } = superpixel;
                     const selection = superpixel.labelCategories[selectedCategory].label;
@@ -189,7 +204,7 @@ export default Vue.extend({
                 }));
             }
             // Filter by selections that disagree with the prediction
-            if (this.filterBy.includes('disagree')) {
+            if (store.filterBy.includes('disagree')) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, prediction } = superpixel;
                     const selection = superpixel.labelCategories[selectedCategory].label;
@@ -199,10 +214,10 @@ export default Vue.extend({
             }
             // Filter by selected slide(s)
             const slideNames = _.pluck(this.imageItemsById, 'name');
-            if (_.some(slideNames, (name) => this.filterBy.includes(name))) {
+            if (_.some(slideNames, (name) => store.filterBy.includes(name))) {
                 results.push(_.filter(data, (superpixel) => {
                     const name = this.imageItemsById[superpixel.imageId].name;
-                    return this.filterBy.includes(name);
+                    return store.filterBy.includes(name);
                 }));
             }
             // Filter by selected category(ies)
@@ -211,17 +226,17 @@ export default Vue.extend({
                     return category.label;
                 }
             });
-            if (_.some(labels, (label) => this.filterBy.includes(label))) {
+            if (_.some(labels, (label) => store.filterBy.includes(label))) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
-                    return this.filterBy.includes(label);
+                    return store.filterBy.includes(label);
                 }));
             }
             return results.length ? _.intersection(...results) : data;
         },
         groupSuperpixels(data) {
-            switch (this.groupBy) {
+            switch (store.groupBy) {
                 case 1:
                     return _.groupBy(data, (superpixel) => {
                         return this.imageItemsById[superpixel.imageId].name;
@@ -486,7 +501,10 @@ export default Vue.extend({
               data-toggle="tooltip"
               title="Use ctrl+left-click to de-select an item."
             />
-            <div id="filterby">
+            <div
+              id="filterby"
+              :style="{'position': 'relative'}"
+            >
               <button
                 class="btn btn-default dropdown-toggle drop-down-button"
                 type="button"
@@ -635,16 +653,14 @@ export default Vue.extend({
           <div class="bulk-buttons">
             <button
               type="button"
-              class="btn btn-primary btn-block"
+              class="btn btn-primary btn-group-three"
               @click="selectingSuperpixels = !selectingSuperpixels"
             >
               Bulk Review
             </button>
-          </div>
-          <div class="bulk-buttons">
             <button
               type="button"
-              class="btn btn-success btn-group-two"
+              class="btn btn-success btn-group-three"
               :disabled="!selectingSuperpixels"
               @click="selectAll"
             >
@@ -652,7 +668,7 @@ export default Vue.extend({
             </button>
             <button
               type="button"
-              class="btn btn-warning btn-group-two"
+              class="btn btn-warning btn-group-three"
               :disabled="!selectingSuperpixels"
               @click="selectedReviewSuperpixels = []"
             >
@@ -662,19 +678,12 @@ export default Vue.extend({
           <div class="bulk-buttons">
             <button
               type="button"
-              class="btn btn-danger btn-group-three"
-              :disabled="selectedReviewSuperpixels.length < 1"
-            >
-              Reject
-            </button>
-            <button
-              type="button"
-              class="btn btn-success btn-group-three"
+              class="btn btn-success btn-group-two"
               :disabled="selectedReviewSuperpixels.length < 1"
             >
               Approve
             </button>
-            <div class="dropdown btn-group-three">
+            <div class="dropdown btn-group-two">
               <button
                 class="btn btn-primary dropdown-toggle btn-block"
                 :style="{'text-wrap': 'pretty'}"
