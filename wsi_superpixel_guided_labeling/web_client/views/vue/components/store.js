@@ -40,7 +40,8 @@ const store = Vue.observable({
     currentImageId: '',
     categoryIndex: 0,
     activeLearningStep: activeLearningSteps.InitialState,
-    selectedLabels: new Map()
+    selectedLabels: new Map(),
+    selectedReviewSuperpixels: []
 });
 
 const previousCard = () => {

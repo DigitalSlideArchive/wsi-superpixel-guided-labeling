@@ -29,7 +29,9 @@ export default Vue.extend({
             overviewPanelCollapsed: false,
             isResizing: false,
             dataSelectMenu: false,
-            sliceValue: 1
+            sliceValue: 1,
+            selectingSuperpixels: false,
+            summaryTable: true
         };
     },
     computed: {
@@ -59,6 +61,17 @@ export default Vue.extend({
         categories() {
             return store.categories;
         },
+        predictionCategoryLabels() {
+            return _.rest(_.pluck(store.categories, 'label'));
+        },
+        selectedReviewSuperpixels: {
+            get() {
+                return store.selectedReviewSuperpixels;
+            },
+            set(selections) {
+                store.selectedReviewSuperpixels = selections;
+            }
+        },
         filterOptions() {
             const categories = _.pluck(_.filter(this.categories,
                 (cat) => cat.label !== 'default'), 'label');
@@ -83,15 +96,19 @@ export default Vue.extend({
         filteredSortedGroupedSuperpixels() {
             let data = this.filterSuperpixels(this.superpixelsForReview);
             data = this.sortSuperpixels(data);
-            if (this.cardDetails.length > 1) {
-                return this.groupSuperpixels(data);
-            }
             return this.groupSuperpixels(data);
         }
     },
     watch: {
         selectedSuperpixel() {
             store.reviewSuperpixel = this.selectedSuperpixel;
+        },
+        filteredSortedGroupedSuperpixels(data) {
+            const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
+            if (!filteredContainsSelected) {
+                // If the selected superpixel has been filtered out fall back to the first available
+                this.selectedSuperpixel = _.values(data)[0][0];
+            }
         }
     },
     mounted() {
@@ -243,6 +260,9 @@ export default Vue.extend({
             if (event.ctrlKey || event.shiftKey) {
                 event.stopImmediatePropagation();
             }
+        },
+        selectAll() {
+            this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
         }
     }
 });
@@ -277,40 +297,60 @@ export default Vue.extend({
           class="panel-body collapse in"
           :style="[selectedSuperpixel && {'padding-bottom': '0px'}]"
         >
-          <label for="summaryTable">Summary</label>
-          <table
-            v-if="selectedSuperpixel"
-            id="summaryTable"
-            class="table table-striped"
-          >
-            <tbody>
-              <tr>
-                <td>Slide</td>
-                <td
-                  data-toggle="tooltip"
-                  :title="imageItemsById[selectedSuperpixel.imageId].name"
-                >
-                  {{ imageItemsById[selectedSuperpixel.imageId].name }}
-                </td>
-              </tr>
-              <tr>
-                <td>Predicted</td>
-                <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.prediction].label }}</td>
-              </tr>
-              <tr>
-                <td>Selected</td>
-                <td>{{ selectedSuperpixel.labelCategories[selectedSuperpixel.selectedCategory].label }}</td>
-              </tr>
-              <tr>
-                <td>Certainty</td>
-                <td>{{ selectedSuperpixel.certainty }}</td>
-              </tr>
-              <tr>
-                <td>Confidence</td>
-                <td>{{ selectedSuperpixel.confidence }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div v-if="selectedSuperpixel">
+            <div
+              class="panel-heading collapsible"
+              @click="summaryTable = !summaryTable"
+            >
+              <label for="summaryTable">Summary</label>
+              <i
+                v-if="summaryTable"
+                class="icon-angle-down"
+              />
+              <i
+                v-else
+                class="icon-angle-up"
+              />
+            </div>
+            <table
+              v-if="summaryTable"
+              id="summaryTable"
+              class="table table-striped"
+            >
+              <tbody>
+                <tr>
+                  <td>Slide</td>
+                  <td
+                    data-toggle="tooltip"
+                    :title="imageItemsById[selectedSuperpixel.imageId].name"
+                  >
+                    {{ imageItemsById[selectedSuperpixel.imageId].name }}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Predicted</td>
+                  <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.prediction].label }}</td>
+                </tr>
+                <tr>
+                  <td>Selected</td>
+                  <td>{{ selectedSuperpixel.labelCategories[selectedSuperpixel.selectedCategory].label }}</td>
+                </tr>
+                <tr>
+                  <td>Certainty</td>
+                  <td>{{ selectedSuperpixel.certainty }}</td>
+                </tr>
+                <tr>
+                  <td>Confidence</td>
+                  <td>{{ selectedSuperpixel.confidence }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div
+              class="panel-heading collapsible"
+            >
+              <label>Review History</label>
+            </div>
+          </div>
           <div v-else>
             <h5>No superpixel selected</h5>
           </div>
@@ -596,41 +636,84 @@ export default Vue.extend({
             <button
               type="button"
               class="btn btn-primary btn-block"
+              @click="selectingSuperpixels = !selectingSuperpixels"
             >
-              Select Superpixels
+              Bulk Review
             </button>
           </div>
           <div class="bulk-buttons">
             <button
               type="button"
-              class="btn btn-danger btn-half-block"
-              disabled
+              class="btn btn-success btn-group-two"
+              :disabled="!selectingSuperpixels"
+              @click="selectAll"
             >
-              Reject Selected
+              Select All
             </button>
             <button
               type="button"
-              class="btn btn-success btn-half-block"
-              disabled
+              class="btn btn-warning btn-group-two"
+              :disabled="!selectingSuperpixels"
+              @click="selectedReviewSuperpixels = []"
             >
-              Approve Selected
+              Clear Selections
             </button>
           </div>
-          <div>
-            <div class="dropdown">
+          <div class="bulk-buttons">
+            <button
+              type="button"
+              class="btn btn-danger btn-group-three"
+              :disabled="selectedReviewSuperpixels.length < 1"
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              class="btn btn-success btn-group-three"
+              :disabled="selectedReviewSuperpixels.length < 1"
+            >
+              Approve
+            </button>
+            <div class="dropdown btn-group-three">
               <button
                 class="btn btn-primary dropdown-toggle btn-block"
+                :style="{'text-wrap': 'pretty'}"
                 type="button"
                 data-toggle="dropdown"
-                disabled
+                :disabled="selectedReviewSuperpixels.length < 1"
               >
                 Change Class
                 <span class="caret" />
               </button>
-              <ul class="dropdown-menu dropdown-menu-block">
-                <li><a href="#">background</a></li>
-                <li><a href="#">tissue</a></li>
-                <li><a href="#">marker</a></li>
+              <ul
+                class="dropdown-menu"
+                :style="{'min-width': 'auto'}"
+              >
+                <li>
+                  <div class="radio">
+                    <label class="options">
+                      <input
+                        type="radio"
+                        class="hidden-radio"
+                      >
+                      Clear Review
+                    </label>
+                  </div>
+                </li>
+                <li
+                  v-for="category, index in predictionCategoryLabels"
+                  :key="index"
+                >
+                  <div class="radio">
+                    <label class="options">
+                      <input
+                        type="radio"
+                        class="hidden-radio"
+                      >
+                      {{ category }}
+                    </label>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>
@@ -641,15 +724,13 @@ export default Vue.extend({
       id="chipsContainer"
       class="col-sm-9 chips-container"
     >
-      <div
-        v-if="groupBy !== 0"
-        id="superpixelChips"
-      >
+      <div id="superpixelChips">
         <div
           v-for="[key, value] in Object.entries(filteredSortedGroupedSuperpixels)"
           :key="key"
         >
           <h4
+            v-if="groupBy !== 0"
             :class="[groupBy === 2 && 'group-header']"
             :style="[{'margin-left': '5px'}]"
           >
@@ -661,43 +742,49 @@ export default Vue.extend({
               :style="{'background-color': categoryColor(value[0])}"
             />
           </h4>
-          <hr>
+          <hr v-if="groupBy !== 0">
           <div class="panel-content-cards">
-            <active-learning-review-card
+            <div
               v-for="superpixel, index in value.slice(0, sliceValue)"
               :key="index"
               :class="[
+                'h-superpixel-card',
                 groupBy === 2 ? 'grouped' : 'ungrouped',
-                superpixel === selectedSuperpixel && 'selected-superpixel'
+                superpixel === selectedSuperpixel && 'selected-superpixel',
+                cardDetails.length > 0 && 'h-superpixel-card-detailed'
               ]"
               :style="[groupBy !== 2 && {'border-color': categoryColor(superpixel)}]"
-              :superpixel="superpixel"
-              :preview-size="parseFloat(previewSize)"
-              :card-details="cardDetails"
-              data-toggle="modal"
-              data-target="#context"
-              @click.native="selectedSuperpixel = superpixel"
-            />
+            >
+              <active-learning-review-card
+                :style="{'position': 'relative'}"
+                :superpixel="superpixel"
+                :preview-size="parseFloat(previewSize)"
+                :card-details="cardDetails"
+                data-toggle="modal"
+                data-target="#context"
+                @click.native="selectedSuperpixel = superpixel"
+              />
+              <div
+                v-if="!!superpixel.reviewCategory"
+                class="flag chip-overlay"
+                :style="{'left': '-2px'}"
+              >
+                <i
+                  class="icon-user"
+                  :style="{'color': 'white'}"
+                />
+              </div>
+              <input
+                v-show="selectingSuperpixels"
+                v-model="selectedReviewSuperpixels"
+                type="checkbox"
+                class="chip-overlay"
+                :style="{'right': '0px'}"
+                :value="superpixel"
+              >
+            </div>
           </div>
         </div>
-      </div>
-      <div
-        v-else
-        id="superpixelChips"
-        class="panel-content-cards"
-      >
-        <active-learning-review-card
-          v-for="superpixel, index in filteredSortedGroupedSuperpixels.slice(0, sliceValue)"
-          :key="index"
-          :class="['ungrouped', superpixel === selectedSuperpixel && 'selected-superpixel']"
-          :style="{'border-color': categoryColor(superpixel)}"
-          :superpixel="superpixel"
-          :preview-size="parseFloat(previewSize)"
-          :card-details="cardDetails"
-          data-toggle="modal"
-          data-target="#context"
-          @click.native="selectedSuperpixel = superpixel"
-        />
       </div>
     </div>
   </div>
@@ -776,8 +863,12 @@ export default Vue.extend({
   justify-content: space-between;
 }
 
-.btn-half-block {
-  width: 49%;
+.btn-group-two {
+  width: 49.5%;
+}
+
+.btn-group-three {
+  width: 33%;
 }
 
 .preview-size-selector {
@@ -850,6 +941,20 @@ export default Vue.extend({
 
 .options {
   cursor: pointer;
+  width: 100%;
+}
+
+.radio {
+  margin-top: auto;
+  margin-bottom: auto;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.radio:hover {
+  color: #333;
+  background-color: #e6e6e6;
+  border-color: #adadad;
 }
 
 .hidden-radio {
@@ -860,17 +965,51 @@ export default Vue.extend({
   table-layout: fixed;
 }
 
-#summaryTable td {
+#summaryTable td:nth-child(2) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 #summaryTable td:first-child {
-  width: 25%;
+  width: 100px;
 }
 
 .text-info {
   opacity: 50%;
+}
+
+.chip-overlay {
+  position: absolute;
+  z-index: 100;
+  top: -4px;
+}
+
+.flag {
+    background-color: #337ab7;
+    padding: 3px 3px 20px;
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
+    border-radius: 2px;
+    float: left;
+    width: 25px;
+    top: -2px;
+}
+
+.h-superpixel-card {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-style: solid;
+    justify-content: center;
+    box-sizing: content-box;
+    border-width: 2px;
+    margin-bottom: 3px;
+    position: relative;
+}
+
+.h-superpixel-card-detailed {
+    width: 150px;
+    padding: 5px;
+    margin-bottom: 5px;
 }
 </style>

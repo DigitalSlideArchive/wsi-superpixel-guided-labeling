@@ -79,20 +79,8 @@ export default Vue.extend({
 </script>
 
 <template>
-  <div
-    class="h-superpixel-card"
-    :class="['h-superpixel-card', cardDetails.length > 0 && 'h-superpixel-card-detailed']"
-  >
+  <div>
     <div class="card-controls">
-      <!-- <div
-        v-if="superpixel.review.reviewed"
-        class="flag"
-      >
-        <i
-          class="icon-user"
-          :style="{'color': 'white'}"
-        />
-      </div> -->
       <button :class="['h-superpixel-region-button', previewSizeClass]">
         <img
           :src="wsiRegionUrl"
@@ -104,26 +92,27 @@ export default Vue.extend({
           loading="lazy"
         >
       </button>
-      <input
-        v-show="selectingSuperpixels"
-        v-model="selected"
-        type="checkbox"
-        class="select-checkbox"
-      >
     </div>
-    <select
+    <div
       v-if="cardDetails.includes('selectedCategory')"
-      class="categories-selector"
+      :style="{'display': 'flex', 'flex-direction': 'column'}"
     >
-      <option
-        v-for="(category, index) in categories"
-        :key="index"
-        :value="index + 1"
-        :selected="superpixel.selectedCategory === index + 1"
+      <select
+        class="categories-selector"
       >
-        {{ category.label }}
-      </option>
-    </select>
+        <option :value="null" :disabled="!superpixel.reviewCategory">
+          {{ !superpixel.reviewCategory ? '' : 'Clear Review' }}
+        </option>
+        <option
+          v-for="(category, index) in categories"
+          :key="index"
+          :value="index + 1"
+          :selected="superpixel.selectedCategory === index + 1"
+        >
+          {{ category.label }}
+        </option>
+      </select>
+    </div>
     <div
       v-if="cardDetails.includes('confidence')"
       class="text-region"
@@ -171,23 +160,6 @@ export default Vue.extend({
 </template>
 
 <style scoped>
-.h-superpixel-card {
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    border-style: solid;
-    justify-content: center;
-    box-sizing: content-box;
-    border-width: 2px;
-    margin-bottom: 3px;
-}
-
-.h-superpixel-card-detailed {
-    width: 150px;
-    padding: 5px;
-    margin-bottom: 5px;
-}
-
 .h-superpixel-region-button {
     padding: 0;
     background-color: transparent;
@@ -252,22 +224,6 @@ export default Vue.extend({
     display: flex;
     justify-content: center;
     border-radius: 3px;
-}
-
-.select-checkbox {
-    float: right;
-    width: 25px;
-}
-
-.flag {
-    background-color: #337ab7;
-    padding: 3px 3px 20px;
-    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
-    border-radius: 2px;
-    float: left;
-    width: 25px;
-    position: relative;
-    top: -2px;
 }
 
 .card-controls {

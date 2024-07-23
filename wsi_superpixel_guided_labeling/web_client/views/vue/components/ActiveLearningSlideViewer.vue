@@ -132,6 +132,7 @@ export default Vue.extend({
             if (_.isNull(superpixel)) {
                 return;
             }
+            store.currentImageId = superpixel.imageId;
             this.updateMapBoundsForSelection();
         }
     },
@@ -183,7 +184,7 @@ export default Vue.extend({
                 this.viewerWidget.viewer.clampBoundsX(false);
                 this.viewerWidget.viewer.clampBoundsY(false);
 
-                if (store.mode === viewMode.Guided) {
+                if (store.mode !== viewMode.Labeling) {
                     this.updateMapBoundsForSelection();
                 }
                 this.drawPixelmapAnnotation();
