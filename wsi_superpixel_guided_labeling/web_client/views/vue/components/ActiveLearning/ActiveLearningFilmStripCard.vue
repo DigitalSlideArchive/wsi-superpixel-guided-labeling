@@ -207,6 +207,7 @@ export default Vue.extend({
     border-radius: 5px;
     width: 140px;
     min-height: 165px;
+    padding: 5px;
 }
 
 .h-superpixel-card--selected {

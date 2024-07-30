@@ -5,13 +5,14 @@ import _ from 'underscore';
 import ActiveLearningInitialSuperpixels from './ActiveLearningSetup/ActiveLearningInitialSuperpixels.vue';
 import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
 import ActiveLearningFilmStrip from './ActiveLearning/ActiveLearningFilmStrip.vue';
+import ActiveLearningReviewContainer from './ActiveLearningReview/ActiveLearningReviewContainer.vue';
 import ActiveLearningLabeling from './ActiveLearningLabeling.vue';
 import AnnotationOpacityControl from './AnnotationOpacityControl.vue';
 import MouseAndKeyboardControls from './MouseAndKeyboardControls.vue';
 import ActiveLearningSlideViewer from './ActiveLearningSlideViewer.vue';
 
 import { viewMode, activeLearningSteps } from './constants';
-import { store, updatePixelmapLayerStyle } from './store.js';
+import { store, updatePixelmapLayerStyle, updateSelectedPage } from './store.js';
 
 export default Vue.extend({
     components: {
@@ -21,7 +22,8 @@ export default Vue.extend({
         AnnotationOpacityControl,
         MouseAndKeyboardControls,
         ActiveLearningMergeConfirmation,
-        ActiveLearningSlideViewer
+        ActiveLearningSlideViewer,
+        ActiveLearningReviewContainer
     },
     props: [
         'backboneParent',
@@ -49,14 +51,22 @@ export default Vue.extend({
         activeLearningSteps() {
             return activeLearningSteps;
         },
+        activeLearningStep() {
+            return store.activeLearningStep;
+        },
         activeLearningSlideViewer() {
             return this.$refs.activeLearningSlideViewer;
         },
         activeLearningLabeling() {
             return this.$refs.activeLearningLabeling;
         },
-        activeLearningStep() {
-            return store.activeLearningStep;
+        selectedImageId: {
+            get() {
+                return store.currentImageId;
+            },
+            set(newImageId) {
+                store.currentImageId = newImageId;
+            }
         },
         sortedSuperpixelIndices() {
             return store.sortedSuperpixelIndices;
@@ -74,6 +84,12 @@ export default Vue.extend({
             const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
             store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
             store.maxPage = store.sortedSuperpixelIndices.length / store.pageSize;
+            updateSelectedPage();
+        },
+        mode() {
+            if (store.mode === viewMode.Review) {
+                store.backboneParent.getSortedSuperpixelIndices();
+            }
         }
     },
     mounted() {
@@ -126,6 +142,7 @@ export default Vue.extend({
 
 <template>
   <div
+    id="activeLearningContainer"
     class="h-active-learning-container"
     :class="[activeLearningStep > activeLearningSteps.InitialLabeling ? 'guided' : 'setup']"
   >
@@ -142,22 +159,58 @@ export default Vue.extend({
         @synchronize="synchronizeCategories"
         @save-annotations="saveAnnotations"
       />
+      <!-- Current Slide Name -->
+      <div class="h-category-form slide-name-container">
+        <div class="h-form-controls">
+          <label
+            for="currentImage"
+            :style="[{'margin-right': '5px'}]"
+          >
+            Image
+          </label>
+          <select
+            v-if="mode === viewMode.Labeling"
+            id="currentImage"
+            v-model="selectedImageId"
+            class="h-al-image-select"
+            data-toggle="tooltip"
+            :title="imageNamesById[selectedImageId]"
+          >
+            <option
+              v-for="imageId in Object.keys(imageNamesById)"
+              :key="imageId"
+              :value="imageId"
+            >
+              {{ imageNamesById[imageId] }}
+            </option>
+          </select>
+          <div
+            v-else
+            class="slide-name"
+            data-toggle="tooltip"
+            :title="imageNamesById[selectedImageId]"
+          >
+            {{ imageNamesById[selectedImageId] }}
+          </div>
+        </div>
+      </div>
       <!-- Labels Panel -->
       <active-learning-labeling
+        v-if="mode !== viewMode.Review"
         ref="activeLearningLabeling"
-        :image-names-by-id="imageNamesById"
-        :available-images="availableImages"
         @synchronize="synchronizeCategories"
         @combine="combineCategories"
       />
       <!-- Merge Confirmation Dialog -->
       <active-learning-merge-confirmation @merge="mergeCategory" />
       <!-- Information Panel -->
-      <mouse-and-keyboard-controls />
+      <mouse-and-keyboard-controls v-if="mode !== viewMode.Review" />
       <!-- Opacity Slider -->
       <annotation-opacity-control v-if="mode !== viewMode.Review" />
       <!-- Prediction Chips -->
       <active-learning-film-strip v-if="mode === viewMode.Guided" />
+      <!-- Review View -->
+      <active-learning-review-container v-if="mode === viewMode.Review" />
     </div>
   </div>
 </template>
@@ -176,4 +229,38 @@ export default Vue.extend({
 .guided {
     height: calc(100vh - 52px);
 }
+
+.h-category-form {
+   display: flex;
+   flex-direction: column;
+}
+
+.slide-name-container {
+    z-index: 100;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 400px;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0,0,0,.5);
+    padding: 5px;
+    background-color: #fff;
+}
+
+.h-form-controls {
+    display: flex;
+    align-items: baseline;
+}
+
+.h-al-image-select {
+    width: 100%;
+    padding: 5px 10px;
+}
+
+.slide-name {
+    text-overflow: ellipsis;
+    text-wrap: nowrap;
+    overflow: hidden;
+}
+
 </style>

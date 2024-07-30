@@ -56,7 +56,7 @@ export default Vue.extend({
       <button
         class="btn btn-default"
         :class="[mode === viewMode.Review && 'btn-primary']"
-        :disabled="true"
+        :disabled="activeLearningStep < activeLearningSteps.GuidedLabeling"
         data-toggle="tooltip"
         title="Review Mode"
         @click="changeMode(viewMode.Review)"
