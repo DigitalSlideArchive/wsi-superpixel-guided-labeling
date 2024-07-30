@@ -85,11 +85,15 @@ export default Vue.extend({
         <img
           :src="wsiRegionUrl"
           loading="lazy"
+          :height="previewSize*100"
+          :width="previewSize*100"
         >
         <img
           class="h-superpixel-region"
           :src="superpixelRegionUrl"
           loading="lazy"
+          :height="previewSize*100"
+          :width="previewSize*100"
         >
       </button>
     </div>
