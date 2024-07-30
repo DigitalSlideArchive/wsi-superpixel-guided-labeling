@@ -486,10 +486,14 @@ export default Vue.extend({
                 <i
                   v-if="sortAscending"
                   class="icon-sort-alt-up"
+                  data-toggle="tooltip"
+                  title="Sort descending"
                 />
                 <i
                   v-else
                   class="icon-sort-alt-down"
+                  data-toggle="tooltip"
+                  title="Sort ascending"
                 />
               </button>
             </div>
@@ -504,11 +508,13 @@ export default Vue.extend({
             <div
               id="filterby"
               :style="{'position': 'relative'}"
+              class="dropdown sort-by-selector"
             >
               <button
                 class="btn btn-default dropdown-toggle drop-down-button"
                 type="button"
                 data-toggle="dropdown"
+                :style="{'width': 'calc(100% - 36px)'}"
               >
                 <span
                   class="filter-text"
@@ -539,6 +545,16 @@ export default Vue.extend({
                   </option>
                 </optgroup>
               </select>
+              <button
+                @click="filterBy = []"
+                :style="{'width': '36px'}"
+              >
+                <i
+                  class="icon-ccw"
+                  data-toggle="tooltip"
+                  title="Clear all filters"
+                />
+              </button>
             </div>
           </div>
         </div>
@@ -826,7 +842,6 @@ export default Vue.extend({
 
 .dropdown-menu-block {
   padding-left: 10px;
-  top: auto;
   min-height: 150px;
 }
 
