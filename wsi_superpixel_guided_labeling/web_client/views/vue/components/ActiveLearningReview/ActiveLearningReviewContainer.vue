@@ -90,8 +90,8 @@ export default Vue.extend({
         },
         filteredSortedGroupedSuperpixels() {
             let data = this.filterSuperpixels(this.superpixelsForReview);
-            data = this.sortSuperpixels(data);
-            return this.groupSuperpixels(data);
+            data = this.groupSuperpixels(data);
+            return _.mapObject(data, (value, key) => this.sortSuperpixels(value));
         },
         groupBy: {
             get() { return store.groupBy; },
