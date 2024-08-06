@@ -457,8 +457,12 @@ export default Vue.extend({
                   :key="key"
                 >
                   <div class="radio">
-                    <label class="options">
+                    <label
+                      :for="key"
+                      class="options"
+                    >
                       <input
+                        :id="key"
                         v-model="groupBy"
                         type="radio"
                         :value="parseInt(key)"
@@ -491,8 +495,12 @@ export default Vue.extend({
                   :key="key"
                 >
                   <div class="radio">
-                    <label class="options">
+                    <label
+                      :for="key"
+                      class="options"
+                    >
                       <input
+                        :id="key"
                         v-model="sortBy"
                         type="radio"
                         :value="parseInt(key)"
@@ -636,31 +644,51 @@ export default Vue.extend({
             >
               <li>
                 <input
+                  id="className"
                   v-model="cardDetails"
                   type="checkbox"
                   value="selectedCategory"
-                >Class Name
+                >
+                <label
+                  for="className"
+                  class="checkboxLabel"
+                >Class Name</label>
               </li>
               <li>
                 <input
+                  id="confidence"
                   v-model="cardDetails"
                   type="checkbox"
                   value="confidence"
-                >Confidence
+                >
+                <label
+                  for="confidence"
+                  class="checkboxLabel"
+                >Confidence</label>
               </li>
               <li>
                 <input
+                  id="certainty"
                   v-model="cardDetails"
                   type="checkbox"
                   value="certainty"
-                >Certainty
+                >
+                <label
+                  for="certainty"
+                  class="checkboxLabel"
+                >Certainty</label>
               </li>
               <li>
                 <input
+                  id="prediction"
                   v-model="cardDetails"
                   type="checkbox"
                   value="prediction"
-                >Prediction
+                >
+                <label
+                  for="prediction"
+                  class="checkboxLabel"
+                >Prediction</label>
               </li>
             </ul>
           </div>
@@ -1058,5 +1086,10 @@ export default Vue.extend({
     width: 150px;
     padding: 5px;
     margin-bottom: 5px;
+}
+
+.checkboxLabel {
+  font-weight: normal;
+  vertical-align: middle;
 }
 </style>
