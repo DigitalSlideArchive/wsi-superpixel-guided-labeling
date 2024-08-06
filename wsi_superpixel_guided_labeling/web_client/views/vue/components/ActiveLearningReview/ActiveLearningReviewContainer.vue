@@ -145,6 +145,24 @@ export default Vue.extend({
         });
         observer.observe(document.querySelector('.h-superpixel-card'));
 
+        // Make sure menus are always visible when opened
+        const menuObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                const parent = entry.target.closest('.dropdown-dropup');
+                if (parent) {
+                    if (entry.isIntersecting) {
+                        const hidden = entry.rootBounds.bottom < entry.boundingClientRect.bottom;
+                        hidden ? parent.classList.add('dropup') : parent.classList.add('dropdown');
+                    } else {
+                        parent.classList.remove('dropdown', 'dropup');
+                    }
+                }
+            });
+        });
+        _.forEach(document.getElementsByClassName('dropdown-menu'), (element) => {
+            menuObserver.observe(element);
+        });
+
         this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
@@ -289,7 +307,10 @@ export default Vue.extend({
     class="v-row review-container"
   >
     <div class="resize-handle" />
-    <div class="col-sm-3 settings-panel">
+    <div
+      id="settingsPanel"
+      class="col-sm-3 settings-panel"
+    >
       <div class="panel panel-info">
         <div
           class="panel-heading collapsible"
@@ -420,7 +441,7 @@ export default Vue.extend({
             <label for="groupby">Group By</label>
             <div
               id="groupby"
-              class="dropdown"
+              class="dropdown-dropup"
             >
               <button
                 class="btn btn-block btn-default dropdown-toggle drop-down-button"
@@ -454,7 +475,7 @@ export default Vue.extend({
             <label for="sortby">Sort By</label>
             <div
               id="sortby"
-              class="dropdown sort-by-selector"
+              class="dropdown-dropup sort-by-selector"
             >
               <button
                 class="btn btn-block btn-default dropdown-toggle drop-down-button"
@@ -508,7 +529,7 @@ export default Vue.extend({
             <div
               id="filterby"
               :style="{'position': 'relative'}"
-              class="dropdown sort-by-selector"
+              class="dropdown-dropup sort-by-selector"
             >
               <button
                 class="btn btn-default dropdown-toggle drop-down-button"
@@ -699,7 +720,7 @@ export default Vue.extend({
             >
               Approve
             </button>
-            <div class="dropdown btn-group-two">
+            <div class="dropdown-dropup btn-group-two">
               <button
                 class="btn btn-primary dropdown-toggle btn-block"
                 :style="{'text-wrap': 'pretty'}"
@@ -838,6 +859,7 @@ export default Vue.extend({
 
 .dropdown-menu {
   width: 100%;
+  top: auto;
 }
 
 .dropdown-menu-block {
