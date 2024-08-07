@@ -26,7 +26,9 @@ export default Vue.extend({
             dataSelectMenu: false,
             sliceValue: 1,
             selectingSuperpixels: false,
-            summaryTable: true
+            summaryTable: true,
+            scrollObserver: null,
+            observedSuperpixel: null
         };
     },
     computed: {
@@ -90,8 +92,16 @@ export default Vue.extend({
         },
         filteredSortedGroupedSuperpixels() {
             let data = this.filterSuperpixels(this.superpixelsForReview);
-            data = this.sortSuperpixels(data);
-            return this.groupSuperpixels(data);
+            data = this.groupSuperpixels(data);
+            return _.mapObject(data, (value, key) => this.sortSuperpixels(value));
+        },
+        trimmedSuperpixels() {
+            let sv = this.sliceValue;
+            return _.mapObject(this.filteredSortedGroupedSuperpixels, (value, _key) => {
+                const trimmed = value.slice(0, sv);
+                sv -= trimmed.length;
+                return trimmed;
+            });
         },
         groupBy: {
             get() { return store.groupBy; },
@@ -119,23 +129,24 @@ export default Vue.extend({
             store.reviewSuperpixel = this.selectedSuperpixel;
         },
         filteredSortedGroupedSuperpixels(data) {
+            if (!_.isNull(this.observedSuperpixel)) {
+                this.scrollObserver.unobserve(this.observedSuperpixel);
+            }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
             if (!filteredContainsSelected) {
                 // If the selected superpixel has been filtered out fall back to the first available
                 this.selectedSuperpixel = _.values(data)[0][0];
             }
+            this.$nextTick(() => this.updateObserved());
         }
     },
     mounted() {
         // Support infinite scrolling
-        const observer = new IntersectionObserver((entries, observer) => {
+        this.scrollObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    const target = entry.target;
                     this.sliceValue += 10;
-                    // Stop watching the current superpixel chip and start watching the new last chip
-                    observer.unobserve(target);
-                    observer.observe(document.querySelector('.panel-content-cards').lastChild);
+                    this.$nextTick(() => this.updateObserved());
                 }
             });
         }, {
@@ -143,7 +154,25 @@ export default Vue.extend({
             rootMargin: '0px',
             threshold: 0.1
         });
-        observer.observe(document.querySelector('.h-superpixel-card'));
+        this.scrollObserver.observe(document.querySelector('.h-superpixel-card'));
+
+        // Make sure menus are always visible when opened
+        const menuObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                const parent = entry.target.closest('.dropdown-dropup');
+                if (parent) {
+                    if (entry.isIntersecting) {
+                        const hidden = entry.rootBounds.bottom < entry.boundingClientRect.bottom;
+                        hidden ? parent.classList.add('dropup') : parent.classList.add('dropdown');
+                    } else {
+                        parent.classList.remove('dropdown', 'dropup');
+                    }
+                }
+            });
+        });
+        _.forEach(document.getElementsByClassName('dropdown-menu'), (element) => {
+            menuObserver.observe(element);
+        });
 
         this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
@@ -278,6 +307,13 @@ export default Vue.extend({
         },
         selectAll() {
             this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
+        },
+        updateObserved() {
+            if (!_.isNull(this.observedSuperpixel)) {
+                this.scrollObserver.unobserve(this.observedSuperpixel);
+            }
+            this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
+            this.scrollObserver.observe(this.observedSuperpixel);
         }
     }
 });
@@ -289,7 +325,10 @@ export default Vue.extend({
     class="v-row review-container"
   >
     <div class="resize-handle" />
-    <div class="col-sm-3 settings-panel">
+    <div
+      id="settingsPanel"
+      class="col-sm-3 settings-panel"
+    >
       <div class="panel panel-info">
         <div
           class="panel-heading collapsible"
@@ -420,7 +459,7 @@ export default Vue.extend({
             <label for="groupby">Group By</label>
             <div
               id="groupby"
-              class="dropdown"
+              class="dropdown-dropup"
             >
               <button
                 class="btn btn-block btn-default dropdown-toggle drop-down-button"
@@ -436,8 +475,12 @@ export default Vue.extend({
                   :key="key"
                 >
                   <div class="radio">
-                    <label class="options">
+                    <label
+                      :for="key"
+                      class="options"
+                    >
                       <input
+                        :id="key"
                         v-model="groupBy"
                         type="radio"
                         :value="parseInt(key)"
@@ -454,7 +497,7 @@ export default Vue.extend({
             <label for="sortby">Sort By</label>
             <div
               id="sortby"
-              class="dropdown sort-by-selector"
+              class="dropdown-dropup sort-by-selector"
             >
               <button
                 class="btn btn-block btn-default dropdown-toggle drop-down-button"
@@ -470,8 +513,12 @@ export default Vue.extend({
                   :key="key"
                 >
                   <div class="radio">
-                    <label class="options">
+                    <label
+                      :for="key"
+                      class="options"
+                    >
                       <input
+                        :id="key"
                         v-model="sortBy"
                         type="radio"
                         :value="parseInt(key)"
@@ -486,10 +533,14 @@ export default Vue.extend({
                 <i
                   v-if="sortAscending"
                   class="icon-sort-alt-up"
+                  data-toggle="tooltip"
+                  title="Sort descending"
                 />
                 <i
                   v-else
                   class="icon-sort-alt-down"
+                  data-toggle="tooltip"
+                  title="Sort ascending"
                 />
               </button>
             </div>
@@ -504,11 +555,13 @@ export default Vue.extend({
             <div
               id="filterby"
               :style="{'position': 'relative'}"
+              class="dropdown-dropup sort-by-selector"
             >
               <button
                 class="btn btn-default dropdown-toggle drop-down-button"
                 type="button"
                 data-toggle="dropdown"
+                :style="{'width': 'calc(100% - 36px)'}"
               >
                 <span
                   class="filter-text"
@@ -539,6 +592,16 @@ export default Vue.extend({
                   </option>
                 </optgroup>
               </select>
+              <button
+                :style="{'width': '36px'}"
+                @click="filterBy = []"
+              >
+                <i
+                  class="icon-ccw"
+                  data-toggle="tooltip"
+                  title="Clear all filters"
+                />
+              </button>
             </div>
           </div>
         </div>
@@ -599,31 +662,51 @@ export default Vue.extend({
             >
               <li>
                 <input
+                  id="className"
                   v-model="cardDetails"
                   type="checkbox"
                   value="selectedCategory"
-                >Class Name
+                >
+                <label
+                  for="className"
+                  class="checkboxLabel"
+                >Class Name</label>
               </li>
               <li>
                 <input
+                  id="confidence"
                   v-model="cardDetails"
                   type="checkbox"
                   value="confidence"
-                >Confidence
+                >
+                <label
+                  for="confidence"
+                  class="checkboxLabel"
+                >Confidence</label>
               </li>
               <li>
                 <input
+                  id="certainty"
                   v-model="cardDetails"
                   type="checkbox"
                   value="certainty"
-                >Certainty
+                >
+                <label
+                  for="certainty"
+                  class="checkboxLabel"
+                >Certainty</label>
               </li>
               <li>
                 <input
+                  id="prediction"
                   v-model="cardDetails"
                   type="checkbox"
                   value="prediction"
-                >Prediction
+                >
+                <label
+                  for="prediction"
+                  class="checkboxLabel"
+                >Prediction</label>
               </li>
             </ul>
           </div>
@@ -683,7 +766,7 @@ export default Vue.extend({
             >
               Approve
             </button>
-            <div class="dropdown btn-group-two">
+            <div class="dropdown-dropup btn-group-two">
               <button
                 class="btn btn-primary dropdown-toggle btn-block"
                 :style="{'text-wrap': 'pretty'}"
@@ -735,7 +818,7 @@ export default Vue.extend({
     >
       <div id="superpixelChips">
         <div
-          v-for="[key, value] in Object.entries(filteredSortedGroupedSuperpixels)"
+          v-for="[key, value] in Object.entries(trimmedSuperpixels)"
           :key="key"
         >
           <h4
@@ -743,7 +826,7 @@ export default Vue.extend({
             :class="[groupBy === 2 && 'group-header']"
             :style="[{'margin-left': '5px'}]"
           >
-            {{ key }} ({{ value.length }})
+            {{ key }} ({{ filteredSortedGroupedSuperpixels[key].length }})
             <i
               v-if="groupBy === 2"
               class="icon-blank"
@@ -754,7 +837,7 @@ export default Vue.extend({
           <hr v-if="groupBy !== 0">
           <div class="panel-content-cards">
             <div
-              v-for="superpixel, index in value.slice(0, sliceValue)"
+              v-for="superpixel, index in value"
               :key="index"
               :class="[
                 'h-superpixel-card',
@@ -822,11 +905,12 @@ export default Vue.extend({
 
 .dropdown-menu {
   width: 100%;
+  top: none;
 }
 
 .dropdown-menu-block {
   padding-left: 10px;
-  top: auto;
+  top: none;
   min-height: 150px;
 }
 
@@ -995,30 +1079,35 @@ export default Vue.extend({
 }
 
 .flag {
-    background-color: #337ab7;
-    padding: 3px 3px 20px;
-    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
-    border-radius: 2px;
-    float: left;
-    width: 25px;
-    top: -2px;
+  background-color: #337ab7;
+  padding: 3px 3px 20px;
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
+  border-radius: 2px;
+  float: left;
+  width: 25px;
+  top: -2px;
 }
 
 .h-superpixel-card {
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    border-style: solid;
-    justify-content: center;
-    box-sizing: content-box;
-    border-width: 2px;
-    margin-bottom: 3px;
-    position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-style: solid;
+  justify-content: center;
+  box-sizing: content-box;
+  border-width: 2px;
+  margin-bottom: 3px;
+  position: relative;
 }
 
 .h-superpixel-card-detailed {
-    width: 150px;
-    padding: 5px;
-    margin-bottom: 5px;
+  width: 150px;
+  padding: 5px;
+  margin-bottom: 5px;
+}
+
+.checkboxLabel {
+  font-weight: normal;
+  vertical-align: middle;
 }
 </style>

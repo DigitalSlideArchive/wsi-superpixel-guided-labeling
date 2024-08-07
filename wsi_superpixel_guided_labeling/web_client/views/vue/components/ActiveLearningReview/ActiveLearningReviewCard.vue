@@ -84,12 +84,14 @@ export default Vue.extend({
       <button :class="['h-superpixel-region-button', previewSizeClass]">
         <img
           :src="wsiRegionUrl"
-          loading="lazy"
+          :height="previewSize*100"
+          :width="previewSize*100"
         >
         <img
           class="h-superpixel-region"
           :src="superpixelRegionUrl"
-          loading="lazy"
+          :height="previewSize*100"
+          :width="previewSize*100"
         >
       </button>
     </div>
@@ -100,7 +102,10 @@ export default Vue.extend({
       <select
         class="categories-selector"
       >
-        <option :value="null" :disabled="!superpixel.reviewCategory">
+        <option
+          :value="null"
+          :disabled="!superpixel.reviewCategory"
+        >
           {{ !superpixel.reviewCategory ? '' : 'Clear Review' }}
         </option>
         <option
