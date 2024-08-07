@@ -63,6 +63,7 @@ const ActiveLearningView = View.extend({
         this.histomicsUIConfig = {};
 
         this.mountToolbarComponent();
+        this.getCurrentUser();
         this.getHistomicsYamlConfig();
     },
 
@@ -377,10 +378,18 @@ const ActiveLearningView = View.extend({
                     const backboneModel = new AnnotationModel({ _id: annotationId });
                     promises.push(backboneModel.fetch().done(() => {
                         this.annotationsByImageId[imageId][key] = backboneModel;
-                        if (key === 'predictions') {
+                        if (key === 'labels') {
+                            const annotation = backboneModel.get('annotation');
+                            if (!_.has(annotation.attributes, 'reviews')) {
+                                annotation.attributes.reviews = {};
+                                this.saveAnnotationReviews(imageId);
+                            }
+                            if (!this.availableImages.includes(imageId)) {
+                                this.availableImages.push(imageId);
+                            }
+                        } else {
+                            // These are predictions
                             this.computeAverageCertainty(backboneModel);
-                        } else if (!this.availableImages.includes(imageId)) {
-                            this.availableImages.push(imageId);
                         }
                     }));
                 }
@@ -509,7 +518,8 @@ const ActiveLearningView = View.extend({
                     prediction: pixelmapValues[index],
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
-                    selectedCategory: labelValues[index]
+                    selectedCategory: labelValues[index],
+                    reviewCategory: labels.attributes.reviews[index]
                 };
                 this.superpixelPredictionsData.push(prediction);
             });
@@ -780,6 +790,36 @@ const ActiveLearningView = View.extend({
                 }
             });
         }, 2000);
+    },
+
+    /**
+     * Update the annotation metadata
+     */
+    saveAnnotationReviews(imageId) {
+        const annotation = this.annotationsByImageId[imageId].labels;
+        const reviews = annotation.get('annotation').attributes.reviews;
+        restRequest({
+            type: 'PUT',
+            url: `annotation/${annotation.id}/metadata`,
+            data: JSON.stringify(reviews),
+            contentType: 'application/json'
+        }).then(() => {
+            const count = _.reduce(Object.values(store.annotationsByImageId),
+                (acc, ann) => acc + _.size(ann.attributes.reviews));
+            store.reviewedSuperpixels = count;
+        });
+    },
+
+    /**
+     * Get the currently logged in user.
+     */
+    getCurrentUser() {
+        restRequest({
+            url: 'user/me'
+        }).then((user) => {
+            store.currentUser = `${user.firstName} ${user.lastName}`;
+            return store.currentUser;
+        });
     }
 });
 

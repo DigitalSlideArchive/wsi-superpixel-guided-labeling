@@ -23,6 +23,7 @@ const store = Vue.observable({
     center: { x: 1, y: 1 },
     sortedSuperpixelIndices: [],
     reviewSuperpixel: null,
+    currentUser: '',
     /*********
      * UI
      *********/
@@ -46,7 +47,8 @@ const store = Vue.observable({
     sortBy: 0,
     filterBy: [],
     previewSize: 0.5,
-    cardDetails: []
+    cardDetails: [],
+    reviewedSuperpixels: 0
 });
 
 const previousCard = () => {
