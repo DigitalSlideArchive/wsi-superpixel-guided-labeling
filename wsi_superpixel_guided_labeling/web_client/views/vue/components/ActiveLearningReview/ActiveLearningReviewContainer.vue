@@ -26,7 +26,10 @@ export default Vue.extend({
             dataSelectMenu: false,
             sliceValue: 1,
             selectingSuperpixels: false,
-            summaryTable: true
+            summaryTable: true,
+            scrollObserver: null,
+            observedSuperpixel: null,
+            totalSuperpixels: 0
         };
     },
     computed: {
@@ -93,6 +96,14 @@ export default Vue.extend({
             data = this.groupSuperpixels(data);
             return _.mapObject(data, (value, key) => this.sortSuperpixels(value));
         },
+        trimmedSuperpixels() {
+            let sv = this.sliceValue;
+            return _.mapObject(this.filteredSortedGroupedSuperpixels, (value, _key) => {
+                const trimmed = value.slice(0, sv);
+                sv -= trimmed.length;
+                return trimmed;
+            });
+        },
         groupBy: {
             get() { return store.groupBy; },
             set(value) { store.groupBy = value; }
@@ -119,23 +130,25 @@ export default Vue.extend({
             store.reviewSuperpixel = this.selectedSuperpixel;
         },
         filteredSortedGroupedSuperpixels(data) {
+            if (!_.isNull(this.observedSuperpixel)) {
+                this.scrollObserver.unobserve(this.observedSuperpixel);
+            }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
             if (!filteredContainsSelected) {
                 // If the selected superpixel has been filtered out fall back to the first available
                 this.selectedSuperpixel = _.values(data)[0][0];
             }
+            this.$nextTick(() => this.updateObserved());
         }
     },
     mounted() {
         // Support infinite scrolling
-        const observer = new IntersectionObserver((entries, observer) => {
+        this.scrollObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    const target = entry.target;
+                const updateNeeded = !this.observedSuperpixel || this.sliceValue < this.totalSuperpixels;
+                if (entry.isIntersecting && updateNeeded) {
                     this.sliceValue += 10;
-                    // Stop watching the current superpixel chip and start watching the new last chip
-                    observer.unobserve(target);
-                    observer.observe(document.querySelector('.panel-content-cards').lastChild);
+                    this.$nextTick(() => this.updateObserved());
                 }
             });
         }, {
@@ -143,7 +156,7 @@ export default Vue.extend({
             rootMargin: '0px',
             threshold: 0.1
         });
-        observer.observe(document.querySelector('.h-superpixel-card'));
+        this.scrollObserver.observe(document.querySelector('.h-superpixel-card'));
 
         // Make sure menus are always visible when opened
         const menuObserver = new IntersectionObserver((entries, observer) => {
@@ -251,7 +264,9 @@ export default Vue.extend({
                     return store.filterBy.includes(label);
                 }));
             }
-            return results.length ? _.intersection(...results) : data;
+            const filtered = results.length ? _.intersection(...results) : data;
+            this.totalSuperpixels = filtered.length;
+            return filtered;
         },
         groupSuperpixels(data) {
             switch (store.groupBy) {
@@ -274,8 +289,11 @@ export default Vue.extend({
                     return { data };
             }
         },
-        categoryColor(superpixel) {
-            return store.categories[superpixel.selectedCategory].fillColor;
+        catColorByLabel(label) {
+            return _.findWhere(store.categories, { label }).fillColor;
+        },
+        catColorByIndex(index) {
+            return store.categories[index].fillColor;
         },
         triggerRetrain() {
             this.backboneParent.retrain();
@@ -296,6 +314,13 @@ export default Vue.extend({
         },
         selectAll() {
             this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
+        },
+        updateObserved() {
+            if (!_.isNull(this.observedSuperpixel)) {
+                this.scrollObserver.unobserve(this.observedSuperpixel);
+            }
+            this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
+            this.scrollObserver.observe(this.observedSuperpixel);
         }
     }
 });
@@ -808,26 +833,26 @@ export default Vue.extend({
     >
       <div id="superpixelChips">
         <div
-          v-for="[key, value] in Object.entries(filteredSortedGroupedSuperpixels)"
-          :key="key"
+          v-for="[label, value] in Object.entries(trimmedSuperpixels)"
+          :key="label"
         >
           <h4
             v-if="groupBy !== 0"
             :class="[groupBy === 2 && 'group-header']"
             :style="[{'margin-left': '5px'}]"
           >
-            {{ key }} ({{ value.length }})
+            {{ label }} ({{ filteredSortedGroupedSuperpixels[label].length }})
             <i
               v-if="groupBy === 2"
               class="icon-blank"
               :class="[groupBy === 2 && 'group-icon']"
-              :style="{'background-color': categoryColor(value[0])}"
+              :style="{'background-color': catColorByLabel(label)}"
             />
           </h4>
           <hr v-if="groupBy !== 0">
           <div class="panel-content-cards">
             <div
-              v-for="superpixel, index in value.slice(0, sliceValue)"
+              v-for="superpixel, index in value"
               :key="index"
               :class="[
                 'h-superpixel-card',
@@ -835,7 +860,7 @@ export default Vue.extend({
                 superpixel === selectedSuperpixel && 'selected-superpixel',
                 cardDetails.length > 0 && 'h-superpixel-card-detailed'
               ]"
-              :style="[groupBy !== 2 && {'border-color': categoryColor(superpixel)}]"
+              :style="[groupBy !== 2 && {'border-color': catColorByIndex(superpixel.selectedCategory)}]"
             >
               <active-learning-review-card
                 :style="{'position': 'relative'}"
