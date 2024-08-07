@@ -600,8 +600,8 @@ export default Vue.extend({
                 </optgroup>
               </select>
               <button
-                @click="filterBy = []"
                 :style="{'width': '36px'}"
+                @click="filterBy = []"
               >
                 <i
                   class="icon-ccw"
@@ -1093,31 +1093,31 @@ export default Vue.extend({
 }
 
 .flag {
-    background-color: #337ab7;
-    padding: 3px 3px 20px;
-    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
-    border-radius: 2px;
-    float: left;
-    width: 25px;
-    top: -2px;
+  background-color: #337ab7;
+  padding: 3px 3px 20px;
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
+  border-radius: 2px;
+  float: left;
+  width: 25px;
+  top: -2px;
 }
 
 .h-superpixel-card {
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    border-style: solid;
-    justify-content: center;
-    box-sizing: content-box;
-    border-width: 2px;
-    margin-bottom: 3px;
-    position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-style: solid;
+  justify-content: center;
+  box-sizing: content-box;
+  border-width: 2px;
+  margin-bottom: 3px;
+  position: relative;
 }
 
 .h-superpixel-card-detailed {
-    width: 150px;
-    padding: 5px;
-    margin-bottom: 5px;
+  width: 150px;
+  padding: 5px;
+  margin-bottom: 5px;
 }
 
 .checkboxLabel {

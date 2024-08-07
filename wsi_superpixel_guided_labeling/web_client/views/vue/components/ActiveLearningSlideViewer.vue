@@ -248,7 +248,7 @@ export default Vue.extend({
                 return;
             }
             let superpixel = store.superpixelsToDisplay[store.selectedIndex];
-            if (store.mode === viewMode.Review) {
+            if (store.mode === viewMode.Review && store.reviewSuperpixel) {
                 superpixel = store.reviewSuperpixel;
             }
             if (store.currentImageId !== superpixel.imageId) {
