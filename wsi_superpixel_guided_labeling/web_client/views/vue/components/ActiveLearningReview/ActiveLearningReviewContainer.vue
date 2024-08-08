@@ -26,7 +26,9 @@ export default Vue.extend({
             dataSelectMenu: false,
             sliceValue: 1,
             selectingSuperpixels: false,
-            summaryTable: true
+            summaryTable: true,
+            reviewTable: true,
+            reviewInfo: null
         };
     },
     computed: {
@@ -76,7 +78,8 @@ export default Vue.extend({
             return {
                 Slide: slides,
                 Label: categories,
-                Prediction: ['agree', 'disagree']
+                Prediction: ['agree', 'disagree'],
+                Reviewed: ['reviewed', 'no review']
             };
         },
         imageItemsById() {
@@ -117,6 +120,12 @@ export default Vue.extend({
     watch: {
         selectedSuperpixel() {
             store.reviewSuperpixel = this.selectedSuperpixel;
+            if (this.selectedSuperpixel) {
+                const labels = store.annotationsByImageId[this.selectedSuperpixel.imageId].labels;
+                const reviews = labels.get('annotation').attributes.reviews;
+                this.reviewInfo = reviews[this.selectedSuperpixel.index];
+            }
+            this.reviewInfo = {};
         },
         filteredSortedGroupedSuperpixels(data) {
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
@@ -152,6 +161,7 @@ export default Vue.extend({
             document.addEventListener('mousemove', this.mouseMove);
             document.addEventListener('mouseup', () => { this.isResizing = false; });
         });
+        this.backboneParent.getCurrentUser();
     },
     destroyed() {
         const resizeHandle = document.querySelector('.resize-handle');
@@ -233,6 +243,18 @@ export default Vue.extend({
                     return store.filterBy.includes(label);
                 }));
             }
+            // Filter by selections that have been reviewed
+            if (store.filterBy.includes('reviewed')) {
+                results.push(_.filter(data, (superpixel) => {
+                    return !_.isNull(superpixel.reviewCategory);
+                }));
+            }
+            // Filter by selections that have not been reviewed
+            if (store.filterBy.includes('no review')) {
+                results.push(_.filter(data, (superpixel) => {
+                    return _.isNull(superpixel.reviewCategory);
+                }));
+            }
             return results.length ? _.intersection(...results) : data;
         },
         groupSuperpixels(data) {
@@ -275,6 +297,27 @@ export default Vue.extend({
             if (event.ctrlKey || event.shiftKey) {
                 event.stopImmediatePropagation();
             }
+        },
+        applyBulkReview(newValue) {
+            _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
+                const labels = store.annotationsByImageId[superpixel.imageId].labels;
+                const reviews = labels.get('annotation').attributes.reviews;
+                // If no new value is provided user selection is correct
+                const newCategory = _.isUndefined(newValue) ? superpixel.selectedCategory : newValue;
+                if (_.isNull(newCategory)) {
+                    delete reviews[superpixel.index];
+                } else {
+                    reviews[superpixel.index] = {
+                        reviewer: store.currentUser,
+                        date: new Date().toDateString(),
+                        value: newCategory
+                    };
+                }
+                superpixel.reviewCategory = newCategory;
+            });
+            _.forEach(_.keys(store.annotationsByImageId),
+                (imageId) => store.backboneParent.saveAnnotationReviews(imageId));
+            this.selectedReviewSuperpixels = [];
         },
         selectAll() {
             this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
@@ -362,9 +405,45 @@ export default Vue.extend({
             </table>
             <div
               class="panel-heading collapsible"
+              @click="reviewTable = !reviewTable"
             >
-              <label>Review History</label>
+              <label for="reviewTable">Review History</label>
+              <i
+                v-if="reviewTable"
+                class="icon-angle-down"
+              />
+              <i
+                v-else
+                class="icon-angle-up"
+              />
             </div>
+            <table
+              v-if="!!selectedSuperpixel.reviewCategory && reviewTable"
+              id="reviewTable"
+              class="table table-striped"
+            >
+              <tbody>
+                <tr>
+                  <td>Selected</td>
+                  <td>{{ selectedSuperpixel.labelCategories[reviewInfo.value].label }}</td>
+                </tr>
+                <tr>
+                  <td>Reviewer</td>
+                  <td>{{ reviewInfo.reviewer }}</td>
+                </tr>
+                <tr>
+                  <td>Date</td>
+                  <td>{{ reviewInfo.date }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <h6
+              v-if="!selectedSuperpixel.reviewCategory && reviewTable"
+              id="reviewTable"
+              :style="{'text-align': 'center'}"
+            >
+              No review history
+            </h6>
           </div>
           <div v-else>
             <h5>No superpixel selected</h5>
@@ -680,6 +759,7 @@ export default Vue.extend({
               type="button"
               class="btn btn-success btn-group-two"
               :disabled="selectedReviewSuperpixels.length < 1"
+              @click="() => applyBulkReview()"
             >
               Approve
             </button>
@@ -704,6 +784,7 @@ export default Vue.extend({
                       <input
                         type="radio"
                         class="hidden-radio"
+                        @click="() => applyBulkReview(null)"
                       >
                       Clear Review
                     </label>
@@ -718,6 +799,7 @@ export default Vue.extend({
                       <input
                         type="radio"
                         class="hidden-radio"
+                        @click="() => applyBulkReview(index + 1)"
                       >
                       {{ category }}
                     </label>
@@ -769,6 +851,7 @@ export default Vue.extend({
                 :superpixel="superpixel"
                 :preview-size="parseFloat(previewSize)"
                 :card-details="cardDetails"
+                :review-category="superpixel.reviewCategory"
                 data-toggle="modal"
                 data-target="#context"
                 @click.native="selectedSuperpixel = superpixel"
