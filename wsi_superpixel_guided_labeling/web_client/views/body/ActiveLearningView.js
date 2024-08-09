@@ -640,7 +640,20 @@ const ActiveLearningView = View.extend({
         });
     },
 
+    applyReviews() {
+        _.forEach(_.values(this.annotationsByImageId), (values) => {
+            const annotation = values.labels.get('annotation').labels;
+            if (annotation) {
+                _.forEach(Object.items(annotation.attributes.reviews), (v, k) => {
+                    annotation.elements[0].values[k] = v.value;
+                });
+            }
+        });
+    },
+
     retrain(goToNextStep) {
+        // Apply any changes from reviews before retraining
+        this.applyReviews();
         // Make sure that our folder ids are up-to-date
         const data = this.generateClassificationJobData();
         data.jobId = this.lastRunJobId;
