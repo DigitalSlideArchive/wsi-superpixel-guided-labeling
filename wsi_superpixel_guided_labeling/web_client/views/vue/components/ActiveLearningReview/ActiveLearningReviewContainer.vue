@@ -832,6 +832,10 @@ export default Vue.extend({
   min-height: 150px;
 }
 
+.panel {
+  box-shadow: 1px 1px 2px 1px rgba(0, 0, 0, 0.25);
+}
+
 .panel-content-cards {
   display: flex;
   flex-wrap: wrap;
