@@ -27,10 +27,29 @@ export default Vue.extend({
 
 <template>
   <div :class="{'h-setup-categories-information': true, 'h-collapsed': !showInfoContainer}">
-    <div
-      v-if="showInfoContainer"
-      class="col-sm-10"
-    >
+    <div class="h-collapse-button-container">
+      <i
+        class="icon-info-circled"
+      />
+      <button
+        class="h-collapse-button"
+        @click="showInfoContainer = !showInfoContainer"
+      >
+        <i
+          v-if="showInfoContainer"
+          class="icon-angle-double-right"
+          data-toggle="tooltip"
+          title="Hide info panel"
+        />
+        <i
+          v-else
+          class="icon-angle-double-left"
+          data-toggle="tooltip"
+          title="Show info panel"
+        />
+      </button>
+    </div>
+    <div v-if="showInfoContainer">
       <h6 v-if="labeling">
         Annotations
       </h6>
@@ -83,28 +102,6 @@ export default Vue.extend({
         </li>
       </ul>
     </div>
-    <i
-      class="icon-info-circled"
-      :class="[showInfoContainer && 'col-sm-1']"
-    />
-    <button
-      class="h-collapse-button"
-      :class="[showInfoContainer && 'col-sm-1']"
-      @click="showInfoContainer = !showInfoContainer"
-    >
-      <i
-        v-if="showInfoContainer"
-        class="icon-angle-double-right"
-        data-toggle="tooltip"
-        title="Hide info panel"
-      />
-      <i
-        v-else
-        class="icon-angle-double-left"
-        data-toggle="tooltip"
-        title="Show info panel"
-      />
-    </button>
   </div>
 </template>
 
@@ -114,8 +111,9 @@ export default Vue.extend({
     position: absolute;
     top: 45px;
     right: 20px;
-    width: 350px;
+    width: 300px;
     display: flex;
+    flex-direction: column;
     background-color: #fff;
     border-radius: 5px;
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
@@ -134,8 +132,13 @@ export default Vue.extend({
     height: fit-content;
 }
 
+.h-collapse-button-container {
+    display: flex;
+    justify-content: flex-end;
+}
+
 .h-controls-container {
-  margin-right: 15px;
+    margin-right: 15px;
 }
 
 .h-controls-header {
@@ -153,6 +156,6 @@ export default Vue.extend({
 }
 
 h6 {
-  margin-bottom: 0px;
+    margin-bottom: 0px;
 }
 </style>
