@@ -111,7 +111,7 @@ export default Vue.extend({
     position: absolute;
     top: 45px;
     right: 20px;
-    width: 350px;
+    width: 300px;
     display: flex;
     flex-direction: column;
     background-color: #fff;
