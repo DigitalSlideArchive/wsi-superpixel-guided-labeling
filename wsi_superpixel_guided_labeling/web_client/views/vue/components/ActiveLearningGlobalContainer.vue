@@ -155,6 +155,7 @@ export default Vue.extend({
       <!-- Image Viewer -->
       <active-learning-slide-viewer
         ref="activeLearningSlideViewer"
+        class="slide-viewer"
         :available-images="availableImages"
         @synchronize="synchronizeCategories"
         @save-annotations="saveAnnotations"
@@ -222,7 +223,6 @@ export default Vue.extend({
 }
 
 .setup {
-    margin-left: 10px;
     height: 100%;
 }
 
@@ -263,4 +263,8 @@ export default Vue.extend({
     overflow: hidden;
 }
 
+.slide-viewer {
+    position: relative;
+    bottom: 3px;
+}
 </style>

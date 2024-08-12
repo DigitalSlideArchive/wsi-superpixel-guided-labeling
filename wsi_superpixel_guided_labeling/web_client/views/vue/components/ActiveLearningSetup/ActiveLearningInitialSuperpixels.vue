@@ -92,4 +92,8 @@ export default Vue.extend({
 .h-generate-superpixel-btn {
     display: block;
 }
+
+.h-al-setup-superpixels {
+    margin-left: 10px;
+}
 </style>
