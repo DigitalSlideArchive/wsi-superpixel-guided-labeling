@@ -812,6 +812,8 @@ export default Vue.extend({
   display: flex;
   max-height: 95vh;
   min-height: 10vh;
+  box-shadow: 3px 3px 5px 2px rgba(0, 0, 0, .5);
+  border-radius: 5px;
 }
 
 .settings-panel {
