@@ -100,7 +100,10 @@ export default Vue.extend({
       <select
         class="categories-selector"
       >
-        <option :value="null" :disabled="!superpixel.reviewCategory">
+        <option
+          :value="null"
+          :disabled="!superpixel.reviewCategory"
+        >
           {{ !superpixel.reviewCategory ? '' : 'Clear Review' }}
         </option>
         <option
