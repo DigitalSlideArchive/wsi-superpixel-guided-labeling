@@ -46,7 +46,7 @@ const store = Vue.observable({
     selectedReviewSuperpixels: [],
     groupBy: 0,
     sortBy: 0,
-    filterBy: [],
+    filterBy: ['no review'],
     previewSize: 0.5,
     cardDetails: [],
     reviewedSuperpixels: 0

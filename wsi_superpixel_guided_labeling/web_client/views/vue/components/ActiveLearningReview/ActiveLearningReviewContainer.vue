@@ -81,7 +81,7 @@ export default Vue.extend({
                 Slide: slides,
                 Label: categories,
                 Prediction: ['agree', 'disagree'],
-                Reviewed: ['reviewed', 'no review']
+                Reviewed: ['by me', 'by others', 'no review']
             };
         },
         imageItemsById() {
@@ -129,7 +129,7 @@ export default Vue.extend({
     },
     watch: {
         selectedSuperpixel() {
-            store.reviewSuperpixel = this.selectedSuperpixel;
+            store.reviewSuperpixel = this.selectedSuperpixel || null;
         },
         filteredSortedGroupedSuperpixels(data) {
             if (!_.isNull(this.observedSuperpixel)) {
@@ -267,16 +267,22 @@ export default Vue.extend({
                     return store.filterBy.includes(label);
                 }));
             }
-            // Filter by selections that have been reviewed
-            if (store.filterBy.includes('reviewed')) {
+            // Filter by selections that have been reviewed by current user
+            if (store.filterBy.includes('by me')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return !_.isUndefined(superpixel.reviewCategory);
+                    return superpixel.reviewer === store.currentUser;
+                }));
+            }
+            // Filter by selections that have been reviewed by other users
+            if (store.filterBy.includes('by others')) {
+                results.push(_.filter(data, (superpixel) => {
+                    return !!superpixel.reviewer && superpixel.reviewer !== store.currentUser;
                 }));
             }
             // Filter by selections that have not been reviewed
             if (store.filterBy.includes('no review')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return _.isUndefined(superpixel.reviewCategory);
+                    return _.isNull(superpixel.reiviewCategory);
                 }));
             }
             const filtered = results.length ? _.intersection(...results) : data;

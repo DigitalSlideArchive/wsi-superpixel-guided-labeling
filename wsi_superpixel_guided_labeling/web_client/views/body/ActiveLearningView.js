@@ -520,7 +520,8 @@ const ActiveLearningView = View.extend({
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
                     selectedCategory: labelValues[index],
-                    reviewCategory: index in reviews ? reviews[index].value : undefined
+                    reviewCategory: index in reviews ? reviews[index].value : undefined,
+                    reviewer: index in reviews ? reviews[index].reviewer : undefined
                 };
                 this.superpixelPredictionsData.push(prediction);
             });
