@@ -822,8 +822,9 @@ const ActiveLearningView = View.extend({
             contentType: 'application/json'
         }).then(() => {
             store.reviewedSuperpixels = _.reduce(_.values(this.annotationsByImageId), (acc, ann) => {
+                const dt = ann.labels.attributes.created;
                 const attrs = ann.labels.get('annotation').attributes;
-                return acc + _.size(attrs.reviews);
+                return acc + _.size(_.pick(attrs.reviews, (v, k) => v.date < dt));
             }, 0);
             return store.reviewedSuperpixels;
         });
