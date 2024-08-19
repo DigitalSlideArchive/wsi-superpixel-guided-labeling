@@ -552,10 +552,7 @@ export default Vue.extend({
                 </td>
                 <td v-else>
                   {{ hotkeyFromIndex(index + 1) }}
-                  <div
-                    v-if="mode !== viewMode.Review"
-                    class="editing-icons edit-hotkey"
-                  >
+                  <div class="editing-icons edit-hotkey">
                     <button
                       class="btn h-table-button"
                       data-toggle="tooltip"
@@ -594,10 +591,7 @@ export default Vue.extend({
                   :style="[mode === viewMode.Review && {'width': 'auto'}]"
                 >
                   {{ labeledSuperpixelCounts[key].label }}
-                  <div
-                    v-if="mode !== viewMode.Review"
-                    class="editing-icons"
-                  >
+                  <div class="editing-icons">
                     <button
                       class="btn h-table-button"
                       data-toggle="tooltip"
@@ -610,7 +604,6 @@ export default Vue.extend({
                 </td>
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
                 <td
-                  v-if="mode !== viewMode.Review"
                   id="colorPickerInput"
                   @click="(e) => togglePicker(e, index)"
                 >
@@ -622,12 +615,6 @@ export default Vue.extend({
                     :color="labeledSuperpixelCounts[key].fillColor"
                     data-toggle="tooltip"
                     title="Change label color"
-                  />
-                </td>
-                <td v-else>
-                  <i
-                    class="icon-stop"
-                    :style="[{'color': labeledSuperpixelCounts[key].fillColor}]"
                   />
                 </td>
                 <td v-if="mode === viewMode.Labeling">

@@ -158,7 +158,6 @@ export default Vue.extend({
             rootMargin: '0px',
             threshold: 0.1
         });
-        this.scrollObserver.observe(document.querySelector('.h-superpixel-card'));
 
         // Make sure menus are always visible when opened
         const menuObserver = new IntersectionObserver((entries, observer) => {
