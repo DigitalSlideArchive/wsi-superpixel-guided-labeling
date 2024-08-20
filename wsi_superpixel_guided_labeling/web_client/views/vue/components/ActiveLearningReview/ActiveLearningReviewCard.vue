@@ -74,6 +74,14 @@ export default Vue.extend({
             const selected = this.superpixel.labelCategories[this.superpixel.selectedCategory];
             return selected.label === predicted.label;
         }
+    },
+    methods: {
+        formatValue(value) {
+            if (value.toPrecision(4).length > value.toExponential(4).length) {
+                return value.toExponential(4);
+            }
+            return value.toPrecision(4);
+        }
     }
 });
 </script>
@@ -131,7 +139,7 @@ export default Vue.extend({
         :title="superpixel.confidence"
         class="text-region-value"
       >
-        {{ superpixel.confidence.toPrecision(4) }}
+        {{ formatValue(superpixel.confidence) }}
       </span>
     </div>
     <div
@@ -145,7 +153,7 @@ export default Vue.extend({
         :title="superpixel.certainty"
         class="text-region-value"
       >
-        {{ superpixel.certainty.toPrecision(4) }}
+        {{ formatValue(superpixel.certainty) }}
       </span>
     </div>
     <div
@@ -216,7 +224,7 @@ export default Vue.extend({
 }
 
 .text-region-value {
-    max-width: 40%;
+    max-width: 50%;
     text-wrap: nowrap;
 }
 
