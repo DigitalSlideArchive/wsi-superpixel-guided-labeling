@@ -643,6 +643,8 @@ const ActiveLearningView = View.extend({
                 train: true
             }
         }).done((job) => {
+            store.page = 0;
+            store.selectedIndex = 0;
             this.waitForJobCompletion(job._id, goToNextStep);
         });
     },
