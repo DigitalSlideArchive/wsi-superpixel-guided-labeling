@@ -31,6 +31,7 @@ const store = Vue.observable({
     maxPage: 1,
     pageSize: 8,
     predictions: false,
+    labels: true,
     currentAverageCertainty: 0,
     lastCategorySelected: null,
     strokeOpacity: 1.0,
@@ -109,7 +110,7 @@ const updatePixelmapLayerStyle = () => {
 
         _.forEach(overlayLayer.features(), (feature) => {
             feature.style('color', (d, i) => {
-                if (idx === 1) {
+                if (overlayLayer === store.predictionsOverlayLayer) {
                     // For the predictions overlay we need to account
                     // for the excluded "default" category
                     d += 1;
@@ -121,12 +122,16 @@ const updatePixelmapLayerStyle = () => {
                 const category = store.categories[d];
                 // Fade between black border and fill color when opacity is changed
                 const strokeColor = rgbStringToArray(category.strokeColor);
-                const rgba = _.map(rgbStringToArray(category.fillColor), (val, idx) => {
+                const strokeRGBA = _.map(rgbStringToArray(category.fillColor), (val, idx) => {
                     // rgb values are missing alpha, default to opaque (1)
                     const strokeValue = strokeColor[idx] === undefined ? 1 : strokeColor[idx];
                     return (strokeValue - val) * store.strokeOpacity + val;
                 });
-                return (i % 2 === 0) ? category.fillColor : `rgba(${rgba})`;
+                if (i % 2 === 0) {
+                    const fillRGBA = store.labels ? category.fillColor : 'rgba(0, 0, 0, 0)';
+                    return overlayLayer === store.labelsOverlayLayer ? fillRGBA : category.fillColor;
+                }
+                return `rgba(${strokeRGBA})`;
             });
         });
         overlayLayer.draw();

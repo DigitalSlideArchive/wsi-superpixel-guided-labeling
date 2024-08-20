@@ -395,6 +395,9 @@ export default Vue.extend({
         togglePredictions() {
             store.predictions = !store.predictions;
         },
+        toggleLabels() {
+            store.labels = !store.labels;
+        },
         toggleEdit(row, column) {
             this.editingLabel = -1;
             this.editingHotkey = -1;
@@ -698,11 +701,20 @@ export default Vue.extend({
       </div>
       <button
         v-if="showLabelingContainer && activeLearningStep >= activeLearningSteps.GuidedLabeling"
+        :disabled="mode === viewMode.Labeling"
+        class="btn btn-primary btn-block"
+        title="Show or hide labels"
+        @click="toggleLabels"
+      >
+        Toggle Labels Visibility
+      </button>
+      <button
+        v-if="showLabelingContainer && activeLearningStep >= activeLearningSteps.GuidedLabeling"
         class="btn btn-primary btn-block"
         title="Show or hide the most recent predictions"
         @click="togglePredictions"
       >
-        Show/hide predictions
+        Toggle Predictions Visibility
       </button>
       <button
         v-if="showLabelingContainer"

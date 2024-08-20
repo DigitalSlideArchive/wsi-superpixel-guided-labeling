@@ -89,6 +89,8 @@ export default Vue.extend({
         mode() {
             if (store.mode === viewMode.Review) {
                 store.backboneParent.getSortedSuperpixelIndices();
+            } else if (store.mode === viewMode.Labeling) {
+                store.labels = true;
             }
         }
     },
@@ -99,7 +101,6 @@ export default Vue.extend({
         store.backboneParent = this.backboneParent;
         store.currentAverageCertainty = this.currentAverageCertainty;
         store.page = 0;
-        store.predictions = false;
         store.selectedIndex = 0;
         store.pageSize = this.pageSize;
         store.categories = [...this.categoryMap.values()];
