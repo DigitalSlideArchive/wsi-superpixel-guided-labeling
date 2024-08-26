@@ -41,6 +41,9 @@ export default Vue.extend({
         predictions() {
             return store.predictions;
         },
+        labels() {
+            return store.labels;
+        },
         mode() {
             return store.mode;
         },
@@ -100,6 +103,9 @@ export default Vue.extend({
             } else {
                 this.viewerWidget.removeAnnotation(annotation);
             }
+        },
+        labels() {
+            updatePixelmapLayerStyle();
         },
         superpixelsToDisplay() {
             this.updateMapBoundsForSelection();
