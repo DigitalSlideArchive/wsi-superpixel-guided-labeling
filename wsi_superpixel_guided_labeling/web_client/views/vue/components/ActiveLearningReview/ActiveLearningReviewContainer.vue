@@ -132,7 +132,7 @@ export default Vue.extend({
             store.reviewSuperpixel = this.selectedSuperpixel || null;
         },
         filteredSortedGroupedSuperpixels(data) {
-            if (!_.isNull(this.observedSuperpixel)) {
+            if (!!this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
@@ -158,6 +158,7 @@ export default Vue.extend({
             rootMargin: '0px',
             threshold: 0.1
         });
+        this.updateObserved();
 
         // Make sure menus are always visible when opened
         const menuObserver = new IntersectionObserver((entries, observer) => {
@@ -281,7 +282,7 @@ export default Vue.extend({
             // Filter by selections that have not been reviewed
             if (store.filterBy.includes('no review')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return _.isNull(superpixel.reiviewCategory);
+                    return _.isUndefined(superpixel.reviewCategory);
                 }));
             }
             const filtered = results.length ? _.intersection(...results) : data;
@@ -361,11 +362,13 @@ export default Vue.extend({
             this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
         },
         updateObserved() {
-            if (!_.isNull(this.observedSuperpixel)) {
+            if (!!this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
-            this.scrollObserver.observe(this.observedSuperpixel);
+            if (!!this.observedSuperpixel) {
+                this.scrollObserver.observe(this.observedSuperpixel);
+            }
         },
         reviewInfo() {
             if (!this.selectedSuperpixel) {
