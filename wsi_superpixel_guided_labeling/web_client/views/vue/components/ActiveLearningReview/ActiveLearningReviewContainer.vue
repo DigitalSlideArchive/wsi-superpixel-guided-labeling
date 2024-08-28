@@ -132,7 +132,7 @@ export default Vue.extend({
             store.reviewSuperpixel = this.selectedSuperpixel || null;
         },
         filteredSortedGroupedSuperpixels(data) {
-            if (!!this.observedSuperpixel) {
+            if (this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
@@ -363,11 +363,11 @@ export default Vue.extend({
             this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
         },
         updateObserved() {
-            if (!!this.observedSuperpixel) {
+            if (this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
-            if (!!this.observedSuperpixel) {
+            if (this.observedSuperpixel) {
                 this.scrollObserver.observe(this.observedSuperpixel);
             }
         },

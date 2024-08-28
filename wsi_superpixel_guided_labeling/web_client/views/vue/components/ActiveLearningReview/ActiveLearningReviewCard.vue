@@ -100,9 +100,7 @@ export default Vue.extend({
         getReviewInfo() {
             const labels = store.annotationsByImageId[this.superpixel.imageId].labels;
             return labels.get('annotation').attributes.reviews;
-        }
-    },
-    methods: {
+        },
         formatValue(value) {
             if (value.toPrecision(4).length > value.toExponential(4).length) {
                 return value.toExponential(4);
