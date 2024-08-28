@@ -837,7 +837,7 @@ const ActiveLearningView = View.extend({
         restRequest({
             url: 'user/me'
         }).then((user) => {
-            store.currentUser = `${user.firstName} ${user.lastName}`;
+            store.currentUser = user;
             return store.currentUser;
         });
     }

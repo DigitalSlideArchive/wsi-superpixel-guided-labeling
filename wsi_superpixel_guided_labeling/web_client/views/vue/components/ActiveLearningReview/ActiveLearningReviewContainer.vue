@@ -270,19 +270,19 @@ export default Vue.extend({
             // Filter by selections that have been reviewed by current user
             if (store.filterBy.includes('by me')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return superpixel.reviewer === store.currentUser;
+                    return !!superpixel.reviewCategory && superpixel.reviewer._id === store.currentUser._id;
                 }));
             }
             // Filter by selections that have been reviewed by other users
             if (store.filterBy.includes('by others')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return !!superpixel.reviewer && superpixel.reviewer !== store.currentUser;
+                    return !!superpixel.reviewCategory && superpixel.reviewer._id !== store.currentUser._id;
                 }));
             }
             // Filter by selections that have not been reviewed
             if (store.filterBy.includes('no review')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return _.isUndefined(superpixel.reviewCategory);
+                    return !superpixel.reviewCategory;
                 }));
             }
             const filtered = results.length ? _.intersection(...results) : data;
@@ -348,6 +348,7 @@ export default Vue.extend({
                 };
             }
             superpixel.reviewCategory = newCategory;
+            superpixel.reviewer = store.currentUser;
         },
         applyBulkReview(newValue) {
             _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
@@ -488,7 +489,7 @@ export default Vue.extend({
                 </tr>
                 <tr>
                   <td>Reviewer</td>
-                  <td>{{ reviewInfo().reviewer }}</td>
+                  <td>{{ reviewInfo().reviewer.firstName }} {{ reviewInfo().reviewer.lastName }}</td>
                 </tr>
                 <tr>
                   <td>Date</td>
