@@ -643,13 +643,14 @@ const ActiveLearningView = View.extend({
 
     applyReviews() {
         _.forEach(_.values(this.annotationsByImageId), (values) => {
-            const annotation = values.labels.get('annotation').labels;
+            const annotation = values.labels.get('annotation');
             if (annotation) {
-                _.forEach(Object.items(annotation.attributes.reviews), (v, k) => {
+                _.forEach(Object.entries(annotation.attributes.reviews), ([k, v]) => {
                     annotation.elements[0].values[k] = v.value;
                 });
             }
         });
+        this.saveAnnotations(Object.keys(this.annotationsByImageId));
     },
 
     retrain(goToNextStep) {
