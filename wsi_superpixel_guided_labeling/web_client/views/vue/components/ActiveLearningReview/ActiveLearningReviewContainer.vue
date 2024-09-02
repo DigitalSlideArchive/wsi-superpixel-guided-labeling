@@ -344,7 +344,8 @@ export default Vue.extend({
                 reviews[superpixel.index] = {
                     reviewer: store.currentUser,
                     date: new Date().toDateString(),
-                    value: newCategory
+                    value: newCategory,
+                    epoch: store.epoch,
                 };
             }
             superpixel.reviewCategory = newCategory;

@@ -283,19 +283,14 @@ const ActiveLearningView = View.extend({
             }
         }).done((annotations) => {
             // Find the current epoch of training by looking at annotation names.
-            // Start by assuming no annotations exist for training. Since running the
-            // algorithm once generates annotations for Epoch 0, represent the initial
-            // state as epoch -1
-            if (!this.epoch) {
-                this.epoch = -1;
-            }
+            // Start by assuming no annotations exist for training.
             _.forEach(annotations, (annotation) => {
                 const matches = epochRegex.exec(annotation.annotation.name);
                 if (matches) {
-                    this.epoch = Math.max(this.epoch, parseInt(matches[1]));
+                    store.epoch = Math.max(store.epoch, parseInt(matches[1]));
                 }
             });
-            store.activeLearningStep = Math.max(store.activeLearningStep, this.epoch + 1);
+            store.activeLearningStep = Math.max(store.activeLearningStep, store.epoch + 1);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -823,9 +818,8 @@ const ActiveLearningView = View.extend({
             contentType: 'application/json'
         }).then(() => {
             store.reviewedSuperpixels = _.reduce(_.values(this.annotationsByImageId), (acc, ann) => {
-                const dt = ann.labels.attributes.created;
                 const attrs = ann.labels.get('annotation').attributes;
-                return acc + _.size(_.pick(attrs.reviews, (v, k) => v.date < dt));
+                return acc + _.size(_.pick(attrs.reviews, (v) => v.epoch === store.epoch));
             }, 0);
             return store.reviewedSuperpixels;
         });

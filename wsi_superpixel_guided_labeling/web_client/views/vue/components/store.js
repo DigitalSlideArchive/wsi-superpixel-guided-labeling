@@ -24,6 +24,7 @@ const store = Vue.observable({
     sortedSuperpixelIndices: [],
     reviewSuperpixel: null,
     currentUser: null,
+    epoch: -1,
     /*********
      * UI
      *********/
