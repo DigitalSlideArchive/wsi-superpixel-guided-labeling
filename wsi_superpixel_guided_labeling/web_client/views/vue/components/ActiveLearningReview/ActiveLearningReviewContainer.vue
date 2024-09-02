@@ -270,19 +270,19 @@ export default Vue.extend({
             // Filter by selections that have been reviewed by current user
             if (store.filterBy.includes('by me')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return !!superpixel.reviewCategory && superpixel.reviewer._id === store.currentUser._id;
+                    return !!superpixel.reviewValue && superpixel.meta.reviewer._id === store.currentUser._id;
                 }));
             }
             // Filter by selections that have been reviewed by other users
             if (store.filterBy.includes('by others')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return !!superpixel.reviewCategory && superpixel.reviewer._id !== store.currentUser._id;
+                    return !!superpixel.reviewValue && superpixel.meta.reviewer._id !== store.currentUser._id;
                 }));
             }
             // Filter by selections that have not been reviewed
             if (store.filterBy.includes('no review')) {
                 results.push(_.filter(data, (superpixel) => {
-                    return !superpixel.reviewCategory;
+                    return !superpixel.reviewValue;
                 }));
             }
             const filtered = results.length ? _.intersection(...results) : data;
@@ -335,21 +335,17 @@ export default Vue.extend({
         },
         applyReview(superpixel, newValue) {
             const labels = store.annotationsByImageId[superpixel.imageId].labels;
-            const reviews = labels.get('annotation').attributes.reviews;
+            const meta = labels.get('annotation').attributes.metadata;
             // If no new value is provided user selection is correct
             const newCategory = newValue === 0 ? superpixel.selectedCategory : newValue;
-            if (_.isNull(newCategory)) {
-                delete reviews[superpixel.index];
-            } else {
-                reviews[superpixel.index] = {
-                    reviewer: store.currentUser,
-                    date: new Date().toDateString(),
-                    value: newCategory,
-                    epoch: store.epoch,
-                };
-            }
-            superpixel.reviewCategory = newCategory;
-            superpixel.reviewer = store.currentUser;
+            meta[superpixel.index] = {
+                reviewer: store.currentUser,
+                reviewDate: new Date().toDateString(),
+                reviewValue: newCategory,
+                reviewEpoch: store.epoch
+            };
+            superpixel.reviewValue = newCategory;
+            superpixel.meta.reviewer = store.currentUser;
         },
         applyBulkReview(newValue) {
             _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
@@ -377,8 +373,8 @@ export default Vue.extend({
                 return {};
             }
             const labels = store.annotationsByImageId[this.selectedSuperpixel.imageId].labels;
-            const reviews = labels.get('annotation').attributes.reviews;
-            return reviews[this.selectedSuperpixel.index];
+            const meta = labels.get('annotation').attributes.metadata;
+            return meta[this.selectedSuperpixel.index];
         }
     }
 });
@@ -479,14 +475,14 @@ export default Vue.extend({
               />
             </div>
             <table
-              v-if="!!selectedSuperpixel.reviewCategory && reviewTable"
+              v-if="!!selectedSuperpixel.reviewValue && reviewTable"
               id="reviewTable"
               class="table table-striped"
             >
               <tbody>
                 <tr>
                   <td>Selected</td>
-                  <td>{{ selectedSuperpixel.labelCategories[reviewInfo().value].label }}</td>
+                  <td>{{ selectedSuperpixel.labelCategories[reviewInfo().reviewValue].label }}</td>
                 </tr>
                 <tr>
                   <td>Reviewer</td>
@@ -494,12 +490,12 @@ export default Vue.extend({
                 </tr>
                 <tr>
                   <td>Date</td>
-                  <td>{{ reviewInfo().date }}</td>
+                  <td>{{ reviewInfo().reviewDate }}</td>
                 </tr>
               </tbody>
             </table>
             <h6
-              v-if="!selectedSuperpixel.reviewCategory && reviewTable"
+              v-if="!selectedSuperpixel.reviewValue && reviewTable"
               id="reviewTable"
               :style="{'text-align': 'center'}"
             >
@@ -964,14 +960,14 @@ export default Vue.extend({
                 :superpixel="superpixel"
                 :preview-size="parseFloat(previewSize)"
                 :card-details="cardDetails"
-                :review-category="superpixel.reviewCategory"
+                :review-value="superpixel.reviewValue"
                 data-toggle="modal"
                 data-target="#context"
                 @click.native="selectedSuperpixel = superpixel"
                 @apply-review="applyReview"
               />
               <div
-                v-if="!!superpixel.reviewCategory"
+                v-if="!!superpixel.reviewValue"
                 class="flag chip-overlay"
                 :style="{'left': '-2px'}"
               >

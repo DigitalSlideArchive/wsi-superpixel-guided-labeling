@@ -375,8 +375,8 @@ const ActiveLearningView = View.extend({
                         this.annotationsByImageId[imageId][key] = backboneModel;
                         if (key === 'labels') {
                             const annotation = backboneModel.get('annotation');
-                            if (!_.has(annotation.attributes, 'reviews')) {
-                                annotation.attributes.reviews = {};
+                            if (!_.has(annotation.attributes, 'metadata')) {
+                                annotation.attributes.metadata = {};
                             }
                             this.saveAnnotationReviews(imageId);
                             if (!this.availableImages.includes(imageId)) {
@@ -499,7 +499,6 @@ const ActiveLearningView = View.extend({
             const superpixelCategories = annotation.elements[0].categories;
             const boundaries = annotation.elements[0].boundaries;
             const scale = annotation.elements[0].transform.matrix[0][0];
-            const reviews = labels.attributes.reviews;
             _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
                 const prediction = {
@@ -515,8 +514,8 @@ const ActiveLearningView = View.extend({
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
                     selectedCategory: labelValues[index],
-                    reviewCategory: index in reviews ? reviews[index].value : undefined,
-                    reviewer: index in reviews ? reviews[index].reviewer : undefined
+                    meta: labels.attributes.metadata,
+                    reviewValue: labels.attributes.metadata.reviewValue
                 };
                 this.superpixelPredictionsData.push(prediction);
             });
@@ -640,8 +639,8 @@ const ActiveLearningView = View.extend({
         _.forEach(_.values(this.annotationsByImageId), (values) => {
             const annotation = values.labels.get('annotation');
             if (annotation) {
-                _.forEach(Object.entries(annotation.attributes.reviews), ([k, v]) => {
-                    annotation.elements[0].values[k] = v.value;
+                _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
+                    annotation.elements[0].values[k] = v.reviewValue;
                 });
             }
         });
@@ -810,16 +809,17 @@ const ActiveLearningView = View.extend({
      */
     saveAnnotationReviews(imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
-        const reviews = annotation.get('annotation').attributes.reviews;
+        const metadata = annotation.get('annotation').attributes.metadata;
         restRequest({
             type: 'PUT',
             url: `annotation/${annotation.id}/metadata`,
-            data: JSON.stringify({ reviews }),
+            data: JSON.stringify({ metadata }),
             contentType: 'application/json'
         }).then(() => {
             store.reviewedSuperpixels = _.reduce(_.values(this.annotationsByImageId), (acc, ann) => {
                 const attrs = ann.labels.get('annotation').attributes;
-                return acc + _.size(_.pick(attrs.reviews, (v) => v.epoch === store.epoch));
+                console.log(attrs.metadata);
+                return acc + _.size(_.pick(attrs.metadata, (v) => v.reviewEpoch === store.epoch));
             }, 0);
             return store.reviewedSuperpixels;
         });

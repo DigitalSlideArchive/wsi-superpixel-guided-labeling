@@ -5,7 +5,7 @@ import _ from 'underscore';
 import { store } from '../store';
 
 export default Vue.extend({
-    props: ['superpixel', 'previewSize', 'cardDetails', 'reviewCategory'],
+    props: ['superpixel', 'previewSize', 'cardDetails', 'reviewValue'],
     data() {
         return {
             override: false,
@@ -76,11 +76,11 @@ export default Vue.extend({
         },
         reviewed() {
             const reviews = this.getReviewInfo();
-            return !_.isNull(reviews[this.superpixel.index].value);
+            return !_.isNull(reviews[this.superpixel.index].reviewValue);
         },
         reviewerCategorySelection: {
             get() {
-                return this.superpixel.reviewCategory || this.superpixel.selectedCategory;
+                return this.superpixel.reviewValue || this.superpixel.selectedCategory;
             },
             set(newCategory) {
                 this.$emit('apply-review', this.superpixel, newCategory);
@@ -89,7 +89,7 @@ export default Vue.extend({
         }
     },
     watch: {
-        reviewCategory(newCategory, oldCategory) {
+        reviewValue(newCategory, oldCategory) {
             if (newCategory === oldCategory) {
                 return;
             }
@@ -99,7 +99,7 @@ export default Vue.extend({
     methods: {
         getReviewInfo() {
             const labels = store.annotationsByImageId[this.superpixel.imageId].labels;
-            return labels.get('annotation').attributes.reviews;
+            return labels.get('annotation').attributes.metadata;
         },
         formatValue(value) {
             if (value.toPrecision(4).length > value.toExponential(4).length) {
@@ -138,8 +138,8 @@ export default Vue.extend({
         v-model="reviewerCategorySelection"
         class="categories-selector"
       >
-        <option :value="!superpixel.reviewCategory ? 0 : null">
-          {{ !superpixel.reviewCategory ? 'Approve' : 'Clear Review' }}
+        <option :value="!superpixel.reviewValue ? 0 : null">
+          {{ !superpixel.reviewValue ? 'Approve' : 'Clear Review' }}
         </option>
         <option
           v-for="(category, index) in categories"
