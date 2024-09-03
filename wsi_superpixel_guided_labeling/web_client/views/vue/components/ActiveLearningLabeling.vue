@@ -7,7 +7,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import { store, assignHotkey, nextCard, previousCard } from './store.js';
 import { boundaryColor, comboHotkeys, viewMode, activeLearningSteps } from './constants.js';
-import { getFillColor } from './utils.js';
+import { applyReview, getFillColor } from './utils.js';
 
 // Define some helpful constants for adding categories
 const defaultCategory = {
@@ -255,14 +255,26 @@ export default Vue.extend({
                 const pixelmapElement = annotations.get('annotation').elements[0];
                 pixelmapElement.categories = [...this.allNewCategories];
 
+                // Update the metadata
+                const meta = labels.get('annotation').attributes.metadata;
+
                 // Removing categories changes indices of the remaining categories.
                 // Make sure that the values are kept in sync with these new values.
                 _.forEach(newCats, (catsAndInds, newValue) => {
-                    const indices = catsAndInds.indices[imageId] || new Set();
+                    const labelIndices = catsAndInds.indices[imageId] || new Set();
+                    const indices = labelIndices.union(_.keys(meta));
                     // The newCats list does not include the "default" category
                     // so we offset the new value by one to account for this.
                     _.forEach([...indices], (index) => {
-                        pixelmapElement.values[index] = (newValue + 1);
+                        const oldValue = pixelmapElement.values[index];
+                        const superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
+                        if (index in _.keys(meta) && meta.reviewValue === oldValue) {
+                            applyReview(superpixel, newValue + 1, true);
+                        }
+                        if (index in labelIndices) {
+                            pixelmapElement.values[index] = (newValue + 1);
+                            applyReview(superpixel, newValue + 1, false);
+                        }
                     });
                 });
 
@@ -270,8 +282,19 @@ export default Vue.extend({
                 // indices are now associated with the new merged category.
                 const newValue = isMerge ? store.categoriesAndIndices.length : 0;
                 _.forEach(oldCats, (catsAndInds) => {
-                    const indices = catsAndInds.indices[imageId] || new Set();
-                    _.forEach([...indices], (i) => { pixelmapElement.values[i] = newValue; });
+                    const labelIndices = catsAndInds.indices[imageId] || new Set();
+                    const indices = labelIndices.union(_.keys(meta));
+                    _.forEach([...indices], (i) => {
+                        const oldValue = pixelmapElement.values[i];
+                        const superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
+                        if (index in _.keys(meta) && meta.reviewValue === oldValue) {
+                            applyReview(superpixel, newValue, true);
+                        }
+                        if (index in labelIndices) {
+                            pixelmapElement.values[i] = newValue;
+                            applyReview(superpixel, newValue, false);
+                        }
+                    });
                     if (isMerge) {
                         const mergedCategory = _.last(store.categoriesAndIndices);
                         const mergedIndices = mergedCategory.indices[imageId] || new Set();
