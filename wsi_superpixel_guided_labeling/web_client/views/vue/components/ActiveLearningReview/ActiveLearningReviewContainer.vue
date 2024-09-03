@@ -6,6 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
+import { applyReview } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -333,23 +334,9 @@ export default Vue.extend({
                 event.stopImmediatePropagation();
             }
         },
-        applyReview(superpixel, newValue) {
-            const labels = store.annotationsByImageId[superpixel.imageId].labels;
-            const meta = labels.get('annotation').attributes.metadata;
-            // If no new value is provided user selection is correct
-            const newCategory = newValue === 0 ? superpixel.selectedCategory : newValue;
-            meta[superpixel.index] = {
-                reviewer: store.currentUser,
-                reviewDate: new Date().toDateString(),
-                reviewValue: newCategory,
-                reviewEpoch: store.epoch
-            };
-            superpixel.reviewValue = newCategory;
-            superpixel.meta.reviewer = store.currentUser;
-        },
         applyBulkReview(newValue) {
             _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
-                this.applyReview(superpixel, newValue);
+                applyReview(superpixel, newValue, true);
             });
             _.forEach(_.keys(store.annotationsByImageId),
                 (imageId) => store.backboneParent.saveAnnotationReviews(imageId));
@@ -964,7 +951,6 @@ export default Vue.extend({
                 data-toggle="modal"
                 data-target="#context"
                 @click.native="selectedSuperpixel = superpixel"
-                @apply-review="applyReview"
               />
               <div
                 v-if="!!superpixel.reviewValue"

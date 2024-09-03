@@ -66,7 +66,9 @@ export default {
         agreeAll() {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {
                 superpixel.selectedCategory = superpixel.prediction;
+                applyReview(superpixel, superpixel.prediction, false);
             });
+            store.backboneParent.saveAnnotationReviews(store.currentImageId);
         },
         resetAll() {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {

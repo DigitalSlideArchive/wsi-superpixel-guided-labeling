@@ -3,6 +3,7 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import { store } from '../store';
+import { applyReview } from '../utils';
 
 export default Vue.extend({
     props: ['superpixel', 'previewSize', 'cardDetails', 'reviewValue'],
@@ -83,7 +84,7 @@ export default Vue.extend({
                 return this.superpixel.reviewValue || this.superpixel.selectedCategory;
             },
             set(newCategory) {
-                this.$emit('apply-review', this.superpixel, newCategory);
+                applyReview(this.superpixel, newCategory, true);
                 store.backboneParent.saveAnnotationReviews(this.superpixel.imageId);
             }
         }

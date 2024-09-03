@@ -109,6 +109,9 @@ export default Vue.extend({
             if (newValue !== 0) {
                 store.categoriesAndIndices[newValue - 1].indices[this.imageId].add(index);
             }
+
+            applyReview(this.superpixelDecision, newValue, false);
+            store.backboneParent.saveAnnotationReviews(store.currentImageId);
             store.changeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {
