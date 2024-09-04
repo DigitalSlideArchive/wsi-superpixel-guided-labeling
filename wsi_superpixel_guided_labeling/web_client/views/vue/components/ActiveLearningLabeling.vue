@@ -256,22 +256,28 @@ export default Vue.extend({
                 pixelmapElement.categories = [...this.allNewCategories];
 
                 // Update the metadata
-                const meta = labels.get('annotation').attributes.metadata;
+                const meta = annotations.get('annotation').attributes.metadata;
 
                 // Removing categories changes indices of the remaining categories.
                 // Make sure that the values are kept in sync with these new values.
                 _.forEach(newCats, (catsAndInds, newValue) => {
                     const labelIndices = catsAndInds.indices[imageId] || new Set();
-                    const indices = labelIndices.union(_.keys(meta));
+                    const indices = labelIndices.union(new Set(_.map(_.keys(meta), (k) => Number(k))));
                     // The newCats list does not include the "default" category
                     // so we offset the new value by one to account for this.
                     _.forEach([...indices], (index) => {
                         const oldValue = pixelmapElement.values[index];
-                        const superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
-                        if (index in _.keys(meta) && meta.reviewValue === oldValue) {
+                        let superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
+                        if (!superpixel) {
+                            // If we don't can't find the superpixels build our own.
+                            superpixel = { imageId, selectedCategory: newValue, index };
+                        }
+                        if (index in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
+                            // A review is affected, update the metadata
                             applyReview(superpixel, newValue + 1, true);
                         }
-                        if (index in labelIndices) {
+                        if (labelIndices.has(index)) {
+                            // A label is affected, update the value and the metadata
                             pixelmapElement.values[index] = (newValue + 1);
                             applyReview(superpixel, newValue + 1, false);
                         }
@@ -283,14 +289,20 @@ export default Vue.extend({
                 const newValue = isMerge ? store.categoriesAndIndices.length : 0;
                 _.forEach(oldCats, (catsAndInds) => {
                     const labelIndices = catsAndInds.indices[imageId] || new Set();
-                    const indices = labelIndices.union(_.keys(meta));
+                    const indices = labelIndices.union(new Set(_.map(_.keys(meta), (k) => Number(k))));
                     _.forEach([...indices], (i) => {
                         const oldValue = pixelmapElement.values[i];
-                        const superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
-                        if (index in _.keys(meta) && meta.reviewValue === oldValue) {
+                        let superpixel = _.findWhere(store.sortedSuperpixelIndices, { index: i, imageId });
+                        if (!superpixel) {
+                            // If we don't can't find the superpixels build our own.
+                            superpixel = { imageId, selectedCategory: newValue, index: i };
+                        }
+                        if (i in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
+                            // A review is affected, update the metadata
                             applyReview(superpixel, newValue, true);
                         }
-                        if (index in labelIndices) {
+                        if (labelIndices.has(i)) {
+                            // A label is affected, update the value and the metadata
                             pixelmapElement.values[i] = newValue;
                             applyReview(superpixel, newValue, false);
                         }
