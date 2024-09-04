@@ -5,7 +5,7 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import { boundaryColor, viewMode } from './constants.js';
+import { activeLearningSteps, boundaryColor, viewMode } from './constants.js';
 import { store, updatePixelmapLayerStyle } from './store.js';
 import { applyReview, getFillColor } from './utils.js';
 

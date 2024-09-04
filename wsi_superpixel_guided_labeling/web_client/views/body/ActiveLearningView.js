@@ -818,7 +818,6 @@ const ActiveLearningView = View.extend({
         }).then(() => {
             store.reviewedSuperpixels = _.reduce(_.values(this.annotationsByImageId), (acc, ann) => {
                 const attrs = ann.labels.get('annotation').attributes;
-                console.log(attrs.metadata);
                 return acc + _.size(_.pick(attrs.metadata, (v) => v.reviewEpoch === store.epoch));
             }, 0);
             return store.reviewedSuperpixels;
