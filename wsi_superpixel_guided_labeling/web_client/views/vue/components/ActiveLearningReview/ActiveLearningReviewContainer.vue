@@ -6,7 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
-import { applyReview } from '../utils.js';
+import { updateMetadata } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -336,7 +336,7 @@ export default Vue.extend({
         },
         applyBulkReview(newValue) {
             _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
-                applyReview(superpixel, newValue, true);
+                updateMetadata(superpixel, newValue, true);
             });
             _.forEach(_.keys(store.annotationsByImageId),
                 (imageId) => store.backboneParent.saveAnnotationReviews(imageId));

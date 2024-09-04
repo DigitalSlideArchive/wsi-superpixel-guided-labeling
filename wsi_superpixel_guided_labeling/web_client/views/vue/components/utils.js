@@ -32,7 +32,7 @@ export const rgbStringToArray = (rgbStr) => {
  * @param {int} newValue The new category that the review or label should be set to
  * @param {boolean} isReview Whether or not this is a review. Will update the label if not a review.
 */
-export const applyReview = (superpixel, newValue, isReview) => {
+export const updateMetadata = (superpixel, newValue, isReview) => {
     const labels = store.annotationsByImageId[superpixel.imageId].labels;
     const meta = labels.get('annotation').attributes.metadata;
     // If no new value is provided user selection is correct

@@ -7,7 +7,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import { store, assignHotkey, nextCard, previousCard } from './store.js';
 import { boundaryColor, comboHotkeys, viewMode, activeLearningSteps } from './constants.js';
-import { applyReview, getFillColor } from './utils.js';
+import { updateMetadata, getFillColor } from './utils.js';
 
 // Define some helpful constants for adding categories
 const defaultCategory = {
@@ -274,12 +274,12 @@ export default Vue.extend({
                         }
                         if (index in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
                             // A review is affected, update the metadata
-                            applyReview(superpixel, newValue + 1, true);
+                            updateMetadata(superpixel, newValue + 1, true);
                         }
                         if (labelIndices.has(index)) {
                             // A label is affected, update the value and the metadata
                             pixelmapElement.values[index] = (newValue + 1);
-                            applyReview(superpixel, newValue + 1, false);
+                            updateMetadata(superpixel, newValue + 1, false);
                         }
                     });
                 });
@@ -299,12 +299,12 @@ export default Vue.extend({
                         }
                         if (i in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
                             // A review is affected, update the metadata
-                            applyReview(superpixel, newValue, true);
+                            updateMetadata(superpixel, newValue, true);
                         }
                         if (labelIndices.has(i)) {
                             // A label is affected, update the value and the metadata
                             pixelmapElement.values[i] = newValue;
-                            applyReview(superpixel, newValue, false);
+                            updateMetadata(superpixel, newValue, false);
                         }
                     });
                     if (isMerge) {

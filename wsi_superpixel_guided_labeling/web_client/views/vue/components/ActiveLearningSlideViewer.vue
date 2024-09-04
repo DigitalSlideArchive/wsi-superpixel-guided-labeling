@@ -7,7 +7,7 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 
 import { activeLearningSteps, boundaryColor, viewMode } from './constants.js';
 import { store, updatePixelmapLayerStyle } from './store.js';
-import { applyReview, getFillColor } from './utils.js';
+import { updateMetadata, getFillColor } from './utils.js';
 
 export default Vue.extend({
     props: ['availableImages'],
@@ -441,7 +441,7 @@ export default Vue.extend({
                     index: boundaries ? index / 2 : index
                 };
             }
-            applyReview(superpixel, newLabel, false);
+            updateMetadata(superpixel, newLabel, false);
             store.backboneParent.saveAnnotationReviews(store.currentImageId);
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
