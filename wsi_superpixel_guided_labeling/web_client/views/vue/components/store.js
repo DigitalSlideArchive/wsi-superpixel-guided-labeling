@@ -78,6 +78,10 @@ const nextCard = () => {
 };
 
 const updateSelectedPage = () => {
+    if (store.activeLearningStep < activeLearningSteps.GuidedLabeling) {
+        return;
+    }
+
     const startIndex = store.page * store.pageSize;
     const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
     store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
