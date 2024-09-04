@@ -66,8 +66,9 @@ export default {
         },
         agreeAll() {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {
-                superpixel.selectedCategory = superpixel.prediction;
-                updateMetadata(superpixel, superpixel.prediction, false);
+                // Account for missing "default" category in predictions
+                superpixel.selectedCategory = superpixel.prediction + 1;
+                updateMetadata(superpixel, superpixel.prediction + 1, false);
             });
             store.backboneParent.saveAnnotationReviews(store.currentImageId);
         },
