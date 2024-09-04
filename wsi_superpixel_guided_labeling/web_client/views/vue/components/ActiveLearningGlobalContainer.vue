@@ -80,7 +80,9 @@ export default Vue.extend({
             immediate: true
         },
         sortedSuperpixelIndices() {
-            updateSelectedPage();
+            if (store.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+                updateSelectedPage();
+            }
         },
         mode() {
             if (store.mode === viewMode.Review) {
