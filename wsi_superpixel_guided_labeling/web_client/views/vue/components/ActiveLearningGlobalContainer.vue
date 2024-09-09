@@ -80,10 +80,6 @@ export default Vue.extend({
             immediate: true
         },
         sortedSuperpixelIndices() {
-            const startIndex = 0;
-            const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
-            store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);
-            store.maxPage = store.sortedSuperpixelIndices.length / store.pageSize;
             updateSelectedPage();
         },
         mode() {

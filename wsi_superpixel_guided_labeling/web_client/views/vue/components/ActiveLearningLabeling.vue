@@ -7,7 +7,7 @@ import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInpu
 
 import { store, assignHotkey, nextCard, previousCard } from './store.js';
 import { boundaryColor, comboHotkeys, viewMode, activeLearningSteps } from './constants.js';
-import { getFillColor } from './utils.js';
+import { updateMetadata, getFillColor } from './utils.js';
 
 // Define some helpful constants for adding categories
 const defaultCategory = {
@@ -255,14 +255,32 @@ export default Vue.extend({
                 const pixelmapElement = annotations.get('annotation').elements[0];
                 pixelmapElement.categories = [...this.allNewCategories];
 
+                // Update the metadata
+                const meta = annotations.get('annotation').attributes.metadata;
+
                 // Removing categories changes indices of the remaining categories.
                 // Make sure that the values are kept in sync with these new values.
                 _.forEach(newCats, (catsAndInds, newValue) => {
-                    const indices = catsAndInds.indices[imageId] || new Set();
+                    const labelIndices = catsAndInds.indices[imageId] || new Set();
+                    const indices = labelIndices.union(new Set(_.map(_.keys(meta), (k) => Number(k))));
                     // The newCats list does not include the "default" category
                     // so we offset the new value by one to account for this.
                     _.forEach([...indices], (index) => {
-                        pixelmapElement.values[index] = (newValue + 1);
+                        const oldValue = pixelmapElement.values[index];
+                        let superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
+                        if (!superpixel) {
+                            // If we don't can't find the superpixels build our own.
+                            superpixel = { imageId, selectedCategory: newValue, index };
+                        }
+                        if (index in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
+                            // A review is affected, update the metadata
+                            updateMetadata(superpixel, newValue + 1, true);
+                        }
+                        if (labelIndices.has(index)) {
+                            // A label is affected, update the value and the metadata
+                            pixelmapElement.values[index] = (newValue + 1);
+                            updateMetadata(superpixel, newValue + 1, false);
+                        }
                     });
                 });
 
@@ -270,8 +288,25 @@ export default Vue.extend({
                 // indices are now associated with the new merged category.
                 const newValue = isMerge ? store.categoriesAndIndices.length : 0;
                 _.forEach(oldCats, (catsAndInds) => {
-                    const indices = catsAndInds.indices[imageId] || new Set();
-                    _.forEach([...indices], (i) => { pixelmapElement.values[i] = newValue; });
+                    const labelIndices = catsAndInds.indices[imageId] || new Set();
+                    const indices = labelIndices.union(new Set(_.map(_.keys(meta), (k) => Number(k))));
+                    _.forEach([...indices], (i) => {
+                        const oldValue = pixelmapElement.values[i];
+                        let superpixel = _.findWhere(store.sortedSuperpixelIndices, { index: i, imageId });
+                        if (!superpixel) {
+                            // If we don't can't find the superpixels build our own.
+                            superpixel = { imageId, selectedCategory: newValue, index: i };
+                        }
+                        if (i in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
+                            // A review is affected, update the metadata
+                            updateMetadata(superpixel, newValue, true);
+                        }
+                        if (labelIndices.has(i)) {
+                            // A label is affected, update the value and the metadata
+                            pixelmapElement.values[i] = newValue;
+                            updateMetadata(superpixel, newValue, false);
+                        }
+                    });
                     if (isMerge) {
                         const mergedCategory = _.last(store.categoriesAndIndices);
                         const mergedIndices = mergedCategory.indices[imageId] || new Set();
@@ -552,10 +587,7 @@ export default Vue.extend({
                 </td>
                 <td v-else>
                   {{ hotkeyFromIndex(index + 1) }}
-                  <div
-                    v-if="mode !== viewMode.Review"
-                    class="editing-icons edit-hotkey"
-                  >
+                  <div class="editing-icons edit-hotkey">
                     <button
                       class="btn h-table-button"
                       data-toggle="tooltip"
@@ -594,10 +626,7 @@ export default Vue.extend({
                   :style="[mode === viewMode.Review && {'width': 'auto'}]"
                 >
                   {{ labeledSuperpixelCounts[key].label }}
-                  <div
-                    v-if="mode !== viewMode.Review"
-                    class="editing-icons"
-                  >
+                  <div class="editing-icons">
                     <button
                       class="btn h-table-button"
                       data-toggle="tooltip"
@@ -610,7 +639,6 @@ export default Vue.extend({
                 </td>
                 <td>{{ labeledSuperpixelCounts[key].count }}</td>
                 <td
-                  v-if="mode !== viewMode.Review"
                   id="colorPickerInput"
                   @click="(e) => togglePicker(e, index)"
                 >
@@ -622,12 +650,6 @@ export default Vue.extend({
                     :color="labeledSuperpixelCounts[key].fillColor"
                     data-toggle="tooltip"
                     title="Change label color"
-                  />
-                </td>
-                <td v-else>
-                  <i
-                    class="icon-stop"
-                    :style="[{'color': labeledSuperpixelCounts[key].fillColor}]"
                   />
                 </td>
                 <td v-if="mode === viewMode.Labeling">

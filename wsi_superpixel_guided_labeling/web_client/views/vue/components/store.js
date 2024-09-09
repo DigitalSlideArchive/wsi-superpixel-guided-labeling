@@ -23,6 +23,8 @@ const store = Vue.observable({
     center: { x: 1, y: 1 },
     sortedSuperpixelIndices: [],
     reviewSuperpixel: null,
+    currentUser: null,
+    epoch: -1,
     /*********
      * UI
      *********/
@@ -45,9 +47,10 @@ const store = Vue.observable({
     selectedReviewSuperpixels: [],
     groupBy: 0,
     sortBy: 0,
-    filterBy: [],
+    filterBy: ['no review'],
     previewSize: 0.5,
-    cardDetails: []
+    cardDetails: [],
+    reviewedSuperpixels: 0
 });
 
 const previousCard = () => {
@@ -75,6 +78,10 @@ const nextCard = () => {
 };
 
 const updateSelectedPage = () => {
+    if (store.activeLearningStep < activeLearningSteps.GuidedLabeling) {
+        return;
+    }
+
     const startIndex = store.page * store.pageSize;
     const endIndex = Math.min(startIndex + store.pageSize, store.sortedSuperpixelIndices.length);
     store.superpixelsToDisplay = store.sortedSuperpixelIndices.slice(startIndex, endIndex);

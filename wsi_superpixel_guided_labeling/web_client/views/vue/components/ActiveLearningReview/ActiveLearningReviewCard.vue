@@ -3,9 +3,10 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import { store } from '../store';
+import { updateMetadata } from '../utils';
 
 export default Vue.extend({
-    props: ['superpixel', 'previewSize', 'cardDetails'],
+    props: ['superpixel', 'previewSize', 'cardDetails', 'reviewValue'],
     data() {
         return {
             override: false,
@@ -73,9 +74,34 @@ export default Vue.extend({
             const predicted = this.superpixel.predictionCategories[this.superpixel.prediction];
             const selected = this.superpixel.labelCategories[this.superpixel.selectedCategory];
             return selected.label === predicted.label;
+        },
+        reviewed() {
+            const reviews = this.getReviewInfo();
+            return !_.isNull(reviews[this.superpixel.index].reviewValue);
+        },
+        reviewerCategorySelection: {
+            get() {
+                return this.superpixel.reviewValue || this.superpixel.selectedCategory;
+            },
+            set(newCategory) {
+                updateMetadata(this.superpixel, newCategory, true);
+                store.backboneParent.saveAnnotationReviews(this.superpixel.imageId);
+            }
+        }
+    },
+    watch: {
+        reviewValue(newCategory, oldCategory) {
+            if (newCategory === oldCategory) {
+                return;
+            }
+            this.reviewerCategorySelection = newCategory;
         }
     },
     methods: {
+        getReviewInfo() {
+            const labels = store.annotationsByImageId[this.superpixel.imageId].labels;
+            return labels.get('annotation').attributes.metadata;
+        },
         formatValue(value) {
             if (value.toPrecision(4).length > value.toExponential(4).length) {
                 return value.toExponential(4);
@@ -110,19 +136,16 @@ export default Vue.extend({
       :style="{'display': 'flex', 'flex-direction': 'column'}"
     >
       <select
+        v-model="reviewerCategorySelection"
         class="categories-selector"
       >
-        <option
-          :value="null"
-          :disabled="!superpixel.reviewCategory"
-        >
-          {{ !superpixel.reviewCategory ? '' : 'Clear Review' }}
+        <option :value="!superpixel.reviewValue ? 0 : null">
+          {{ !superpixel.reviewValue ? 'Approve' : 'Clear Review' }}
         </option>
         <option
           v-for="(category, index) in categories"
           :key="index"
           :value="index + 1"
-          :selected="superpixel.selectedCategory === index + 1"
         >
           {{ category.label }}
         </option>

@@ -5,9 +5,9 @@ import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 import { ViewerWidget } from '@girder/large_image_annotation/views';
 
-import { boundaryColor, viewMode } from './constants.js';
+import { activeLearningSteps, boundaryColor, viewMode } from './constants.js';
 import { store, updatePixelmapLayerStyle } from './store.js';
-import { getFillColor } from './utils.js';
+import { updateMetadata, getFillColor } from './utils.js';
 
 export default Vue.extend({
     props: ['availableImages'],
@@ -426,6 +426,23 @@ export default Vue.extend({
             const offset = boundaries ? 1 : 0;
             data[index] = data[index + offset] = newLabel;
             store.labelsOverlayLayer.indexModified(index, index + offset).draw();
+
+            let superpixel = {};
+            if (store.activeLearningStep >= activeLearningSteps.GuidedLabeling) {
+                superpixel = _.findWhere(store.sortedSuperpixelIndices, {
+                    index: boundaries ? index / 2 : index, imageId: store.currentImageId
+                });
+            } else {
+                // If we don't have predictions yet we don't have a list of
+                // superpixels. Build our own.
+                superpixel = {
+                    imageId: store.currentImageId,
+                    selectedCategory: newLabel,
+                    index: boundaries ? index / 2 : index
+                };
+            }
+            updateMetadata(superpixel, newLabel, false);
+            store.backboneParent.saveAnnotationReviews(store.currentImageId);
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);

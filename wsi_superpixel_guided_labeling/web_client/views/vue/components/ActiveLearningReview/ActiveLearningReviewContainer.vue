@@ -6,6 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
+import { updateMetadata } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -29,7 +30,8 @@ export default Vue.extend({
             summaryTable: true,
             scrollObserver: null,
             observedSuperpixel: null,
-            totalSuperpixels: 0
+            totalSuperpixels: 0,
+            reviewTable: true
         };
     },
     computed: {
@@ -79,7 +81,8 @@ export default Vue.extend({
             return {
                 Slide: slides,
                 Label: categories,
-                Prediction: ['agree', 'disagree']
+                Prediction: ['agree', 'disagree'],
+                Reviewed: ['by me', 'by others', 'no review']
             };
         },
         imageItemsById() {
@@ -127,10 +130,10 @@ export default Vue.extend({
     },
     watch: {
         selectedSuperpixel() {
-            store.reviewSuperpixel = this.selectedSuperpixel;
+            store.reviewSuperpixel = this.selectedSuperpixel || null;
         },
         filteredSortedGroupedSuperpixels(data) {
-            if (!_.isNull(this.observedSuperpixel)) {
+            if (this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
@@ -156,7 +159,7 @@ export default Vue.extend({
             rootMargin: '0px',
             threshold: 0.1
         });
-        this.scrollObserver.observe(document.querySelector('.h-superpixel-card'));
+        this.updateObserved();
 
         // Make sure menus are always visible when opened
         const menuObserver = new IntersectionObserver((entries, observer) => {
@@ -183,6 +186,7 @@ export default Vue.extend({
             document.addEventListener('mousemove', this.mouseMove);
             document.addEventListener('mouseup', () => { this.isResizing = false; });
         });
+        this.backboneParent.getCurrentUser();
     },
     destroyed() {
         const resizeHandle = document.querySelector('.resize-handle');
@@ -264,6 +268,24 @@ export default Vue.extend({
                     return store.filterBy.includes(label);
                 }));
             }
+            // Filter by selections that have been reviewed by current user
+            if (store.filterBy.includes('by me')) {
+                results.push(_.filter(data, (superpixel) => {
+                    return !!superpixel.reviewValue && superpixel.meta.reviewer._id === store.currentUser._id;
+                }));
+            }
+            // Filter by selections that have been reviewed by other users
+            if (store.filterBy.includes('by others')) {
+                results.push(_.filter(data, (superpixel) => {
+                    return !!superpixel.reviewValue && superpixel.meta.reviewer._id !== store.currentUser._id;
+                }));
+            }
+            // Filter by selections that have not been reviewed
+            if (store.filterBy.includes('no review')) {
+                results.push(_.filter(data, (superpixel) => {
+                    return !superpixel.reviewValue;
+                }));
+            }
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
@@ -312,15 +334,34 @@ export default Vue.extend({
                 event.stopImmediatePropagation();
             }
         },
+        applyBulkReview(newValue) {
+            _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
+                updateMetadata(superpixel, newValue, true);
+            });
+            _.forEach(_.keys(store.annotationsByImageId),
+                (imageId) => store.backboneParent.saveAnnotationReviews(imageId));
+            this.selectedReviewSuperpixels = [];
+            this.selectingSuperpixels = false;
+        },
         selectAll() {
             this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
         },
         updateObserved() {
-            if (!_.isNull(this.observedSuperpixel)) {
+            if (this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
-            this.scrollObserver.observe(this.observedSuperpixel);
+            if (this.observedSuperpixel) {
+                this.scrollObserver.observe(this.observedSuperpixel);
+            }
+        },
+        reviewInfo() {
+            if (!this.selectedSuperpixel) {
+                return {};
+            }
+            const labels = store.annotationsByImageId[this.selectedSuperpixel.imageId].labels;
+            const meta = labels.get('annotation').attributes.metadata;
+            return meta[this.selectedSuperpixel.index];
         }
     }
 });
@@ -408,9 +449,45 @@ export default Vue.extend({
             </table>
             <div
               class="panel-heading collapsible"
+              @click="reviewTable = !reviewTable"
             >
-              <label>Review History</label>
+              <label for="reviewTable">Review History</label>
+              <i
+                v-if="reviewTable"
+                class="icon-angle-down"
+              />
+              <i
+                v-else
+                class="icon-angle-up"
+              />
             </div>
+            <table
+              v-if="!!selectedSuperpixel.reviewValue && reviewTable"
+              id="reviewTable"
+              class="table table-striped"
+            >
+              <tbody>
+                <tr>
+                  <td>Selected</td>
+                  <td>{{ selectedSuperpixel.labelCategories[reviewInfo().reviewValue].label }}</td>
+                </tr>
+                <tr>
+                  <td>Reviewer</td>
+                  <td>{{ reviewInfo().reviewer.firstName }} {{ reviewInfo().reviewer.lastName }}</td>
+                </tr>
+                <tr>
+                  <td>Date</td>
+                  <td>{{ reviewInfo().reviewDate }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <h6
+              v-if="!selectedSuperpixel.reviewValue && reviewTable"
+              id="reviewTable"
+              :style="{'text-align': 'center'}"
+            >
+              No review history
+            </h6>
           </div>
           <div v-else>
             <h5>No superpixel selected</h5>
@@ -778,6 +855,7 @@ export default Vue.extend({
               type="button"
               class="btn btn-success btn-group-two"
               :disabled="selectedReviewSuperpixels.length < 1"
+              @click="() => applyBulkReview(0)"
             >
               Approve
             </button>
@@ -802,6 +880,7 @@ export default Vue.extend({
                       <input
                         type="radio"
                         class="hidden-radio"
+                        @click="() => applyBulkReview(null)"
                       >
                       Clear Review
                     </label>
@@ -816,6 +895,7 @@ export default Vue.extend({
                       <input
                         type="radio"
                         class="hidden-radio"
+                        @click="() => applyBulkReview(index + 1)"
                       >
                       {{ category }}
                     </label>
@@ -867,12 +947,13 @@ export default Vue.extend({
                 :superpixel="superpixel"
                 :preview-size="parseFloat(previewSize)"
                 :card-details="cardDetails"
+                :review-value="superpixel.reviewValue"
                 data-toggle="modal"
                 data-target="#context"
                 @click.native="selectedSuperpixel = superpixel"
               />
               <div
-                v-if="!!superpixel.reviewCategory"
+                v-if="!!superpixel.reviewValue"
                 class="flag chip-overlay"
                 :style="{'left': '-2px'}"
               >

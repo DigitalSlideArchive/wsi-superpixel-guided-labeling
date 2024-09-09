@@ -5,6 +5,7 @@ import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';
 import { store, updateSelectedPage } from '../store.js';
 import { viewMode } from '../constants';
+import { updateMetadata } from '../utils.js';
 
 export default {
     components: {
@@ -65,8 +66,11 @@ export default {
         },
         agreeAll() {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {
-                superpixel.selectedCategory = superpixel.prediction;
+                // Account for missing "default" category in predictions
+                superpixel.selectedCategory = superpixel.prediction + 1;
+                updateMetadata(superpixel, superpixel.prediction + 1, false);
             });
+            store.backboneParent.saveAnnotationReviews(store.currentImageId);
         },
         resetAll() {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {

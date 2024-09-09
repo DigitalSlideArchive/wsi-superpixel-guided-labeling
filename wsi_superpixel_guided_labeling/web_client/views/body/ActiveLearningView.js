@@ -63,6 +63,7 @@ const ActiveLearningView = View.extend({
         this.histomicsUIConfig = {};
 
         this.mountToolbarComponent();
+        this.getCurrentUser();
         this.getHistomicsYamlConfig();
     },
 
@@ -282,19 +283,14 @@ const ActiveLearningView = View.extend({
             }
         }).done((annotations) => {
             // Find the current epoch of training by looking at annotation names.
-            // Start by assuming no annotations exist for training. Since running the
-            // algorithm once generates annotations for Epoch 0, represent the initial
-            // state as epoch -1
-            if (!this.epoch) {
-                this.epoch = -1;
-            }
+            // Start by assuming no annotations exist for training.
             _.forEach(annotations, (annotation) => {
                 const matches = epochRegex.exec(annotation.annotation.name);
                 if (matches) {
-                    this.epoch = Math.max(this.epoch, parseInt(matches[1]));
+                    store.epoch = Math.max(store.epoch, parseInt(matches[1]));
                 }
             });
-            store.activeLearningStep = Math.max(store.activeLearningStep, this.epoch + 1);
+            store.activeLearningStep = Math.max(store.activeLearningStep, store.epoch + 1);
             // TODO: refine name checking
             const predictionsAnnotations = _.filter(annotations, (annotation) => {
                 return this.annotationIsValid(annotation) && annotation.annotation.name.includes('Predictions');
@@ -377,10 +373,18 @@ const ActiveLearningView = View.extend({
                     const backboneModel = new AnnotationModel({ _id: annotationId });
                     promises.push(backboneModel.fetch().done(() => {
                         this.annotationsByImageId[imageId][key] = backboneModel;
-                        if (key === 'predictions') {
+                        if (key === 'labels') {
+                            const annotation = backboneModel.get('annotation');
+                            if (!_.has(annotation.attributes, 'metadata')) {
+                                annotation.attributes.metadata = {};
+                            }
+                            this.saveAnnotationReviews(imageId);
+                            if (!this.availableImages.includes(imageId)) {
+                                this.availableImages.push(imageId);
+                            }
+                        } else {
+                            // These are predictions
                             this.computeAverageCertainty(backboneModel);
-                        } else if (!this.availableImages.includes(imageId)) {
-                            this.availableImages.push(imageId);
                         }
                     }));
                 }
@@ -509,7 +513,9 @@ const ActiveLearningView = View.extend({
                     prediction: pixelmapValues[index],
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
-                    selectedCategory: labelValues[index]
+                    selectedCategory: labelValues[index],
+                    meta: labels.attributes.metadata,
+                    reviewValue: labels.attributes.metadata.reviewValue
                 };
                 this.superpixelPredictionsData.push(prediction);
             });
@@ -629,7 +635,23 @@ const ActiveLearningView = View.extend({
         });
     },
 
+    applyReviews() {
+        _.forEach(_.values(this.annotationsByImageId), (values) => {
+            const annotation = values.labels.get('annotation');
+            if (annotation) {
+                _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
+                    if (v.reviewValue && v.reviewEpoch >= v.labelEpoch) {
+                        annotation.elements[0].values[k] = v.reviewValue;
+                    }
+                });
+            }
+        });
+        this.saveAnnotations(Object.keys(this.annotationsByImageId));
+    },
+
     retrain(goToNextStep) {
+        // Apply any changes from reviews before retraining
+        this.applyReviews();
         // Make sure that our folder ids are up-to-date
         const data = this.generateClassificationJobData();
         data.jobId = this.lastRunJobId;
@@ -782,6 +804,38 @@ const ActiveLearningView = View.extend({
                 }
             });
         }, 2000);
+    },
+
+    /**
+     * Update the annotation metadata
+     */
+    saveAnnotationReviews(imageId) {
+        const annotation = this.annotationsByImageId[imageId].labels;
+        const metadata = annotation.get('annotation').attributes.metadata;
+        restRequest({
+            type: 'PUT',
+            url: `annotation/${annotation.id}/metadata`,
+            data: JSON.stringify({ metadata }),
+            contentType: 'application/json'
+        }).then(() => {
+            store.reviewedSuperpixels = _.reduce(_.values(this.annotationsByImageId), (acc, ann) => {
+                const attrs = ann.labels.get('annotation').attributes;
+                return acc + _.size(_.pick(attrs.metadata, (v) => v.reviewEpoch === store.epoch));
+            }, 0);
+            return store.reviewedSuperpixels;
+        });
+    },
+
+    /**
+     * Get the currently logged in user.
+     */
+    getCurrentUser() {
+        restRequest({
+            url: 'user/me'
+        }).then((user) => {
+            store.currentUser = user;
+            return store.currentUser;
+        });
     }
 });
 
