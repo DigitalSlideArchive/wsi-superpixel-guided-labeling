@@ -771,77 +771,103 @@ export default Vue.extend({
               <option :value="1.00" />
             </datalist>
           </div>
-          <div>
-            <div
-              class="btn btn-primary btn-block"
-              @click="dataSelectMenu = !dataSelectMenu"
-            >
-              <span class="multiselect-dropdown-label">
-                Superpixel Data
-                <span class="caret" />
-              </span>
+          <div
+            :style="{'position': 'relative'}"
+            class="dropdown-dropup selector-with-button"
+          >
+            <div class="dropdown-button">
+              <div
+                class="btn btn-default btn-block"
+                @click="dataSelectMenu = !dataSelectMenu"
+              >
+                <span class="multiselect-dropdown-label">
+                  Superpixel Data
+                  <span class="caret" />
+                </span>
+              </div>
+              <ul
+                class="dropdown-menu"
+                :style="[dataSelectMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
+              >
+                <li>
+                  <label
+                    for="className"
+                    class="checkboxLabel"
+                  >
+                    <input
+                      id="className"
+                      v-model="cardDetails"
+                      type="checkbox"
+                      value="selectedCategory"
+                    >
+                    Class Name
+                  </label>
+                </li>
+                <li>
+                  <label
+                    for="confidence"
+                    class="checkboxLabel"
+                  >
+                    <input
+                      id="confidence"
+                      v-model="cardDetails"
+                      type="checkbox"
+                      value="confidence"
+                    >
+                    Confidence
+                  </label>
+                </li>
+                <li>
+                  <label
+                    for="certainty"
+                    class="checkboxLabel"
+                  >
+                    <input
+                      id="certainty"
+                      v-model="cardDetails"
+                      type="checkbox"
+                      value="certainty"
+                    >
+                    Certainty
+                  </label>
+                </li>
+                <li>
+                  <label
+                    for="prediction"
+                    class="checkboxLabel"
+                  >
+                    <input
+                      id="prediction"
+                      v-model="cardDetails"
+                      type="checkbox"
+                      value="prediction"
+                    >
+                    Prediction
+                  </label>
+                </li>
+              </ul>
             </div>
-            <ul
-              class="multiselect-dropdown-items"
-              :style="[dataSelectMenu ? {'display': 'flex'} : {'display': 'none'}]"
+            <button
+              class="btn btn-success btn-xs"
+              :style="{'margin-right': '3px'}"
+              @click="cardDetails=['selectedCategory', 'confidence', 'certainty', 'prediction']"
             >
-              <li>
-                <label
-                  for="className"
-                  class="checkboxLabel"
-                >
-                  <input
-                    id="className"
-                    v-model="cardDetails"
-                    type="checkbox"
-                    value="selectedCategory"
-                  >
-                  Class Name
-                </label>
-              </li>
-              <li>
-                <label
-                  for="confidence"
-                  class="checkboxLabel"
-                >
-                  <input
-                    id="confidence"
-                    v-model="cardDetails"
-                    type="checkbox"
-                    value="confidence"
-                  >
-                  Confidence
-                </label>
-              </li>
-              <li>
-                <label
-                  for="certainty"
-                  class="checkboxLabel"
-                >
-                  <input
-                    id="certainty"
-                    v-model="cardDetails"
-                    type="checkbox"
-                    value="certainty"
-                  >
-                  Certainty
-                </label>
-              </li>
-              <li>
-                <label
-                  for="prediction"
-                  class="checkboxLabel"
-                >
-                  <input
-                    id="prediction"
-                    v-model="cardDetails"
-                    type="checkbox"
-                    value="prediction"
-                  >
-                  Prediction
-                </label>
-              </li>
-            </ul>
+              <i
+                class="icon-ok-squared"
+                data-toggle="tooltip"
+                title="Show all"
+              />
+            </button>
+            <button
+              class="btn btn-danger btn-xs"
+              @click="cardDetails=[]"
+            >
+              <i
+                class="icon-minus-squared"
+                data-toggle="tooltip"
+                title="Hide all"
+              />
+            </button>
           </div>
         </div>
       </div>
