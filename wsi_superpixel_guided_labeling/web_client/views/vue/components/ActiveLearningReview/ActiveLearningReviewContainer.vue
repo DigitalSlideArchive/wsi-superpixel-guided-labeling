@@ -19,6 +19,7 @@ export default Vue.extend({
             selectedSuperpixel: null,
             sortAscending: true,
             categoriesPanelCollapsed: false,
+            sortingPanelCollapsed: false,
             filtersPanelCollapsed: false,
             viewPanelCollapsed: false,
             bulkPanelCollapsed: false,
@@ -31,7 +32,9 @@ export default Vue.extend({
             scrollObserver: null,
             observedSuperpixel: null,
             totalSuperpixels: 0,
-            reviewTable: true
+            reviewTable: true,
+            slideFilterMenu: false,
+            labelCatFilterMenu: false
         };
     },
     computed: {
@@ -168,8 +171,10 @@ export default Vue.extend({
                 if (parent) {
                     if (entry.isIntersecting) {
                         const hidden = entry.rootBounds.bottom < entry.boundingClientRect.bottom;
+                        hidden ? entry.target.classList.add('dropup-adjustment') : entry.target.classList.add('dropdown-adjustment');
                         hidden ? parent.classList.add('dropup') : parent.classList.add('dropdown');
                     } else {
+                        entry.target.classList.remove('dropdown-adjustment', 'dropup-adjustment');
                         parent.classList.remove('dropdown', 'dropup');
                     }
                 }
@@ -261,11 +266,12 @@ export default Vue.extend({
                     return category.label;
                 }
             });
-            if (_.some(labels, (label) => store.filterBy.includes(label))) {
+            // Filter by label categories
+            if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
-                    return store.filterBy.includes(label);
+                    return store.filterBy.includes(`label_${label}`);
                 }));
             }
             // Filter by selections that have been reviewed by current user
@@ -384,7 +390,7 @@ export default Vue.extend({
           href="#overview"
           @click="overviewPanelCollapsed = !overviewPanelCollapsed"
         >
-          Superpixel Overview
+          Overview
           <i
             v-if="overviewPanelCollapsed"
             class="icon-angle-down"
@@ -522,12 +528,12 @@ export default Vue.extend({
         <div
           class="panel-heading collapsible"
           data-toggle="collapse"
-          href="#filters"
-          @click="filtersPanelCollapsed = !filtersPanelCollapsed"
+          href="#sorting"
+          @click="sortingPanelCollapsed = !sortingPanelCollapsed"
         >
-          Filters
+          Organize
           <i
-            v-if="filtersPanelCollapsed"
+            v-if="sortingPanelCollapsed"
             class="icon-angle-down"
           />
           <i
@@ -536,7 +542,7 @@ export default Vue.extend({
           />
         </div>
         <div
-          id="filters"
+          id="sorting"
           class="panel-body collapse in"
         >
           <div>
@@ -546,14 +552,14 @@ export default Vue.extend({
               class="dropdown-dropup"
             >
               <button
-                class="btn btn-block btn-default dropdown-toggle drop-down-button"
+                class="btn btn-block btn-default dropdown-toggle dropdown-button"
                 type="button"
                 data-toggle="dropdown"
               >
                 {{ groupByOptions[groupBy] }}
                 <span class="caret" />
               </button>
-              <ul class="dropdown-menu">
+              <ul class="dropdown-menu" :style="{'top': 'auto'}">
                 <li
                   v-for="[key, value] in Object.entries(groupByOptions)"
                   :key="key"
@@ -581,10 +587,10 @@ export default Vue.extend({
             <label for="sortby">Sort By</label>
             <div
               id="sortby"
-              class="dropdown-dropup sort-by-selector"
+              class="dropdown-dropup selector-with-button"
             >
               <button
-                class="btn btn-block btn-default dropdown-toggle drop-down-button"
+                class="btn btn-block btn-default dropdown-toggle dropdown-button"
                 type="button"
                 data-toggle="dropdown"
               >
@@ -613,7 +619,10 @@ export default Vue.extend({
                   </div>
                 </li>
               </ul>
-              <button @click="sortAscending = !sortAscending">
+              <button
+                class="btn btn-info btn-sm"
+                @click="sortAscending = !sortAscending"
+              >
                 <i
                   v-if="sortAscending"
                   class="icon-sort-alt-up"
@@ -629,63 +638,125 @@ export default Vue.extend({
               </button>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="panel panel-info">
+        <div
+          class="panel-heading collapsible"
+          data-toggle="collapse"
+          href="#filters"
+          @click="filtersPanelCollapsed = !filtersPanelCollapsed"
+        >
+          Filter
+          <i
+            v-if="filtersPanelCollapsed"
+            class="icon-angle-down"
+          />
+          <i
+            v-else
+            class="icon-angle-up"
+          />
+        </div>
+        <div
+          id="filters"
+          class="panel-body collapse in"
+        >
           <div>
-            <label for="filterby">Filter By</label>
-            <i
-              class="icon-help-circled text-info"
-              data-toggle="tooltip"
-              title="Use ctrl+left-click to de-select an item."
-            />
-            <div
-              id="filterby"
-              :style="{'position': 'relative'}"
-              class="dropdown-dropup sort-by-selector"
-            >
-              <button
-                class="btn btn-default dropdown-toggle drop-down-button"
-                type="button"
-                data-toggle="dropdown"
-                :style="{'width': 'calc(100% - 36px)'}"
+            <div :style="{'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between'}">
+              <label for="filterby">Filter By</label>
+              <button class="btn btn-link">Clear All</button>
+            </div>
+            <div id="filterby">
+              <div
+                :style="{'position': 'relative'}"
+                class="dropdown-dropup selector-with-button"
               >
-                <span
-                  class="filter-text"
-                  data-toggle="tooltip"
-                  :title="filterBy.join(',') || '(None)'"
-                >
-                  {{ filterBy.join(',') || '(None)' }}
-                </span>
-                <span class="caret" />
-              </button>
-              <select
-                v-model="filterBy"
-                class="dropdown-menu dropdown-menu-block form-control input-sm"
-                multiple
-                @click="handleMenuSelection"
-              >
-                <optgroup
-                  v-for="label in Object.keys(filterOptions)"
-                  :key="label"
-                  :label="label"
-                >
-                  <option
-                    v-for="item, index in filterOptions[label]"
-                    :key="`${index}_${label}`"
-                    :value="item"
+                <div class="dropdown-button">
+                  <div
+                    class="btn btn-default btn-block"
+                    @click="slideFilterMenu = !slideFilterMenu"
                   >
-                    {{ item }}
-                  </option>
-                </optgroup>
-              </select>
-              <button
-                :style="{'width': '36px'}"
-                @click="filterBy = []"
+                    <span class="multiselect-dropdown-label">
+                      Slide Image
+                      <span class="caret" />
+                    </span>
+                  </div>
+                  <ul
+                    class="dropdown-menu"
+                    :style="[slideFilterMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
+                  >
+                    <li v-for="(imageName, index) in filterOptions.Slide">
+                      <label
+                        :for="`slide_${index}`"
+                        class="checkboxLabel"
+                        :key="`slide_${index}`"
+                      >
+                        <input
+                          :id="`slide_${index}`"
+                          v-model="filterBy"
+                          type="checkbox"
+                          :value=imageName
+                        >
+                        {{ imageName }}
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="btn btn-danger btn-sm"
+                >
+                  <i
+                    class="icon-minus-squared"
+                    data-toggle="tooltip"
+                    title="Clear all filters"
+                  />
+                </button>
+              </div>
+              <div
+                :style="{'position': 'relative'}"
+                class="dropdown-dropup selector-with-button"
               >
-                <i
-                  class="icon-ccw"
-                  data-toggle="tooltip"
-                  title="Clear all filters"
-                />
-              </button>
+                <div class="dropdown-button">
+                  <div
+                    class="btn btn-default btn-block"
+                    @click="labelCatFilterMenu = !labelCatFilterMenu"
+                  >
+                    <span class="multiselect-dropdown-label">
+                      Label Category
+                      <span class="caret" />
+                    </span>
+                  </div>
+                  <ul
+                    class="dropdown-menu"
+                    :style="[labelCatFilterMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
+                  >
+                    <li v-for="(cat, index) in filterOptions.Categories">
+                      <label
+                        :for="`cat_${index}`"
+                        class="checkboxLabel"
+                        :key="`cat_${index}`"
+                      >
+                        <input
+                          :id="`cat_${index}`"
+                          v-model="filterBy"
+                          type="checkbox"
+                          :value='`label_${cat}`'
+                        >
+                        {{ cat }}
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="btn btn-danger btn-sm"
+                >
+                  <i
+                    class="icon-minus-squared"
+                    data-toggle="tooltip"
+                    title="Clear all filters"
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1002,8 +1073,9 @@ export default Vue.extend({
 }
 
 .dropdown-menu {
-  width: 100%;
-  top: auto;
+  width: calc(100% - 45px);
+  top: 101%;
+  left: auto;
 }
 
 .dropdown-menu-block {
@@ -1034,16 +1106,17 @@ export default Vue.extend({
   margin-left: 5px;
 }
 
-.sort-by-selector {
+.selector-with-button {
   display: flex;
-  align-items: stretch;
+  margin-bottom: 3px;
 }
 
-.drop-down-button {
+.dropdown-button {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-right: 3px;
 }
 
 .filter-text {
@@ -1103,20 +1176,7 @@ export default Vue.extend({
   align-items: center;
 }
 
-.multiselect-dropdown-items {
-  padding: 5px;
-  border: 1px solid #ccc;
-  position: absolute;
-  background: white;
-  color: black;
-  flex-direction: column;
-  align-items: flex-start;
-  left: 20px;
-  width: 90%;
-  z-index: 1;
-}
-
-.multiselect-dropdown-items li {
+.dropdown-menu li {
   list-style: none;
 }
 
@@ -1210,5 +1270,13 @@ export default Vue.extend({
 .checkboxLabel {
   font-weight: normal;
   vertical-align: middle;
+}
+
+.dropdown-adjustment {
+  top: 101%;
+}
+
+.dropup-adjustment {
+  top: auto;
 }
 </style>
