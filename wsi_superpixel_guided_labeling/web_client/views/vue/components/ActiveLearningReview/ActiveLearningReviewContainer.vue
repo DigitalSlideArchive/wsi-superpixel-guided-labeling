@@ -82,10 +82,8 @@ export default Vue.extend({
                 return this.imageItemsById[imageId].name;
             });
             return {
-                Slide: slides,
-                Label: categories,
-                Prediction: ['agree', 'disagree'],
-                Reviewed: ['by me', 'by others', 'no review']
+                Slides: slides,
+                Labels: categories
             };
         },
         imageItemsById() {
@@ -234,24 +232,6 @@ export default Vue.extend({
         },
         filterSuperpixels(data) {
             const results = [];
-            // Filter by selections that agree with the prediction
-            if (store.filterBy.includes('agree')) {
-                results.push(_.filter(data, (superpixel) => {
-                    const { selectedCategory, prediction } = superpixel;
-                    const selection = superpixel.labelCategories[selectedCategory].label;
-                    const predicted = superpixel.predictionCategories[prediction].label;
-                    return selection === predicted;
-                }));
-            }
-            // Filter by selections that disagree with the prediction
-            if (store.filterBy.includes('disagree')) {
-                results.push(_.filter(data, (superpixel) => {
-                    const { selectedCategory, prediction } = superpixel;
-                    const selection = superpixel.labelCategories[selectedCategory].label;
-                    const predicted = superpixel.predictionCategories[prediction].label;
-                    return selection !== predicted;
-                }));
-            }
             // Filter by selected slide(s)
             const slideNames = _.pluck(this.imageItemsById, 'name');
             if (_.some(slideNames, (name) => store.filterBy.includes(name))) {
@@ -261,35 +241,13 @@ export default Vue.extend({
                 }));
             }
             // Filter by selected category(ies)
-            const labels = _.map(this.categories, (category) => {
-                if (category.label !== 'default') {
-                    return category.label;
-                }
-            });
+            const labels = _.rest(_.pluck(this.categories, 'label'));
             // Filter by label categories
             if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
                 results.push(_.filter(data, (superpixel) => {
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
                     return store.filterBy.includes(`label_${label}`);
-                }));
-            }
-            // Filter by selections that have been reviewed by current user
-            if (store.filterBy.includes('by me')) {
-                results.push(_.filter(data, (superpixel) => {
-                    return !!superpixel.reviewValue && superpixel.meta.reviewer._id === store.currentUser._id;
-                }));
-            }
-            // Filter by selections that have been reviewed by other users
-            if (store.filterBy.includes('by others')) {
-                results.push(_.filter(data, (superpixel) => {
-                    return !!superpixel.reviewValue && superpixel.meta.reviewer._id !== store.currentUser._id;
-                }));
-            }
-            // Filter by selections that have not been reviewed
-            if (store.filterBy.includes('no review')) {
-                results.push(_.filter(data, (superpixel) => {
-                    return !superpixel.reviewValue;
                 }));
             }
             const filtered = results.length ? _.intersection(...results) : data;
@@ -368,6 +326,9 @@ export default Vue.extend({
             const labels = store.annotationsByImageId[this.selectedSuperpixel.imageId].labels;
             const meta = labels.get('annotation').attributes.metadata;
             return meta[this.selectedSuperpixel.index];
+        },
+        removeFilters(values) {
+            this.filterBy = _.without(this.filterBy, ...values);
         }
     }
 });
@@ -664,7 +625,12 @@ export default Vue.extend({
           <div>
             <div :style="{'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between'}">
               <label for="filterby">Filter By</label>
-              <button class="btn btn-link">Clear All</button>
+              <button
+                class="btn btn-link"
+                @click="filterBy = []"
+              >
+                Clear All
+              </button>
             </div>
             <div id="filterby">
               <div
@@ -685,7 +651,7 @@ export default Vue.extend({
                     class="dropdown-menu"
                     :style="[slideFilterMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
                   >
-                    <li v-for="(imageName, index) in filterOptions.Slide">
+                    <li v-for="(imageName, index) in filterOptions.Slides">
                       <label
                         :for="`slide_${index}`"
                         class="checkboxLabel"
@@ -704,6 +670,8 @@ export default Vue.extend({
                 </div>
                 <button
                   class="btn btn-danger btn-sm"
+                  @click="removeFilters(filterOptions.Slides)"
+                  :disabled="!filterOptions.Slides.some(name => filterBy.includes(name))"
                 >
                   <i
                     class="icon-minus-squared"
@@ -722,7 +690,7 @@ export default Vue.extend({
                     @click="labelCatFilterMenu = !labelCatFilterMenu"
                   >
                     <span class="multiselect-dropdown-label">
-                      Label Category
+                      Labels
                       <span class="caret" />
                     </span>
                   </div>
@@ -730,7 +698,7 @@ export default Vue.extend({
                     class="dropdown-menu"
                     :style="[labelCatFilterMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
                   >
-                    <li v-for="(cat, index) in filterOptions.Categories">
+                    <li v-for="(cat, index) in filterOptions.Labels">
                       <label
                         :for="`cat_${index}`"
                         class="checkboxLabel"
@@ -749,6 +717,8 @@ export default Vue.extend({
                 </div>
                 <button
                   class="btn btn-danger btn-sm"
+                  @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
+                  :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
                 >
                   <i
                     class="icon-minus-squared"
