@@ -499,6 +499,7 @@ const ActiveLearningView = View.extend({
             const superpixelCategories = annotation.elements[0].categories;
             const boundaries = annotation.elements[0].boundaries;
             const scale = annotation.elements[0].transform.matrix[0][0];
+            const metadata = labels.attributes.metadata;
             _.forEach(userData.certainty, (score, index) => {
                 const bbox = userData.bbox.slice(index * 4, index * 4 + 4);
                 const prediction = {
@@ -514,8 +515,8 @@ const ActiveLearningView = View.extend({
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
                     selectedCategory: labelValues[index],
-                    meta: labels.attributes.metadata,
-                    reviewValue: labels.attributes.metadata.reviewValue
+                    meta: metadata[index],
+                    reviewValue: metadata[index] ? metadata[index].reviewValue : null
                 };
                 this.superpixelPredictionsData.push(prediction);
             });
