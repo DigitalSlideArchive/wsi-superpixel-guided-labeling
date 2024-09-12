@@ -82,10 +82,12 @@ export default Vue.extend({
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
             const labelers = _.groupBy(meta, (entry) => entry.labeler && entry.labeler._id);
+            const reviewers = _.groupBy(meta, (entry) => entry.reviewer && entry.reviewer._id);
             return {
                 Slides: slides,
                 Labels: categories,
-                Labelers: _.omit(labelers, undefined)
+                Labelers: _.omit(labelers, undefined),
+                Reviewers: _.omit(reviewers, undefined)
             };
         },
         imageItemsById() {
@@ -260,6 +262,21 @@ export default Vue.extend({
                     return store.filterBy.includes(`labeler_${id}`);
                 }));
             }
+            // Filter by reviewer
+            const review_results = [];
+            const reviewers = this.filterOptions.Reviewers;
+            if (_.some(_.keys(reviewers), (id) => store.filterBy.includes(`reviewer_${id}`))) {
+                review_results.push(..._.filter(data, (superpixel) => {
+                    const id = superpixel.meta.reviewer ? superpixel.meta.reviewer._id : '';
+                    return store.filterBy.includes(`reviewer_${id}`);
+                }));
+            }
+            if (store.filterBy.includes('no review')) {
+                review_results.push(..._.filter(data, (superpixel) => {
+                    return !!superpixel.reviewValue && superpixel.reviewValue !== 0;
+                }));
+            }
+            results.push(review_results);
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
@@ -782,6 +799,66 @@ export default Vue.extend({
                   class="btn btn-danger btn-sm"
                   :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
                   @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
+                >
+                  <i
+                    class="icon-minus-squared"
+                    data-toggle="tooltip"
+                    title="Clear all filters"
+                  />
+                </button>
+              </div>
+              <div
+                :style="{'position': 'relative'}"
+                class="dropdown-dropup selector-with-button"
+              >
+                <div class="dropdown-button">
+                  <div
+                    class="btn btn-default btn-block"
+                    @click="toggleOpenMenu('reviewer')"
+                  >
+                    <span class="multiselect-dropdown-label">
+                      Reviewed By
+                      <span class="caret" />
+                    </span>
+                  </div>
+                  <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
+                    <li>
+                      <label
+                        for="reviewer_none"
+                        class="checkboxLabel"
+                      >
+                        <input
+                          id="reviewer_none"
+                          v-model="filterBy"
+                          type="checkbox"
+                          value="no review"
+                        >
+                        not reviewed
+                      </label>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                      :key="`reviewer_${key}`"
+                    >
+                      <label
+                        :for="`reviewer_${key}`"
+                        class="checkboxLabel"
+                      >
+                        <input
+                          :id="`reviewer_${key}`"
+                          v-model="filterBy"
+                          type="checkbox"
+                          :value="`reviewer_${key}`"
+                        >
+                        {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }}
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="btn btn-danger btn-sm"
+                  :disabled="!Object.keys(filterOptions.Reviewers).some(k => filterBy.includes(`reviewer_${k}`))"
+                  @click="removeFilters(Object.keys(filterOptions.Reviewers).map((k) => `reviewer_${k}`))"
                 >
                   <i
                     class="icon-minus-squared"
