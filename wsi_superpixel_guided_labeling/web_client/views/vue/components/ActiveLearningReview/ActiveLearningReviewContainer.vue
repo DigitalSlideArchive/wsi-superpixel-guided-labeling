@@ -80,9 +80,12 @@ export default Vue.extend({
             const slides = _.map(Object.keys(this.annotationsByImageId), (imageId) => {
                 return this.imageItemsById[imageId].name;
             });
+            const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
+            const labelers = _.groupBy(meta, (entry) => entry.labeler && entry.labeler._id);
             return {
                 Slides: slides,
-                Labels: categories
+                Labels: categories,
+                Labelers: _.omit(labelers, undefined)
             };
         },
         imageItemsById() {
@@ -247,6 +250,14 @@ export default Vue.extend({
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
                     return store.filterBy.includes(`label_${label}`);
+                }));
+            }
+            // Filter by labeler
+            const labelers = this.filterOptions.Labelers;
+            if (_.some(_.keys(labelers), (id) => store.filterBy.includes(`labeler_${id}`))) {
+                results.push(_.filter(data, (superpixel) => {
+                    const id = superpixel.meta.labeler ? superpixel.meta.labeler._id : '';
+                    return store.filterBy.includes(`labeler_${id}`);
                 }));
             }
             const filtered = results.length ? _.intersection(...results) : data;
@@ -725,6 +736,52 @@ export default Vue.extend({
                   class="btn btn-danger btn-sm"
                   :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
                   @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
+                >
+                  <i
+                    class="icon-minus-squared"
+                    data-toggle="tooltip"
+                    title="Clear all filters"
+                  />
+                </button>
+              </div>
+              <div
+                :style="{'position': 'relative'}"
+                class="dropdown-dropup selector-with-button"
+              >
+                <div class="dropdown-button">
+                  <div
+                    class="btn btn-default btn-block"
+                    @click="toggleOpenMenu('labeler')"
+                  >
+                    <span class="multiselect-dropdown-label">
+                      Labeled By
+                      <span class="caret" />
+                    </span>
+                  </div>
+                  <ul :class="['dropdown-menu', openMenu === 'labeler' ? 'visible-menu' : 'hidden']">
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                      :key="`labeler_${key}`"
+                    >
+                      <label
+                        :for="`labeler_${key}`"
+                        class="checkboxLabel"
+                      >
+                        <input
+                          :id="`labeler_${key}`"
+                          v-model="filterBy"
+                          type="checkbox"
+                          :value="`labeler_${key}`"
+                        >
+                        {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }}
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="btn btn-danger btn-sm"
+                  :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
+                  @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
                 >
                   <i
                     class="icon-minus-squared"
