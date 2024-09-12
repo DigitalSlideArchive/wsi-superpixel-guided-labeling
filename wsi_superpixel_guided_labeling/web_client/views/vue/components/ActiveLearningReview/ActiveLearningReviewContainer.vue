@@ -86,8 +86,9 @@ export default Vue.extend({
             return {
                 Slides: slides,
                 Labels: categories,
-                Labelers: _.omit(labelers, undefined),
-                Reviewers: _.omit(reviewers, undefined)
+                Reviews: categories,
+                Labelers: _.omit(labelers, [undefined, null]),
+                Reviewers: _.omit(reviewers, [undefined, null])
             };
         },
         imageItemsById() {
@@ -254,6 +255,21 @@ export default Vue.extend({
                     return store.filterBy.includes(`label_${label}`);
                 }));
             }
+            // Filter by review categories
+            const reviewResults = [];
+            if (_.some(labels, (label) => store.filterBy.includes(`review_${label}`))) {
+                reviewResults.push(..._.filter(data, (superpixel) => {
+                    const { reviewValue, labelCategories } = superpixel;
+                    const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
+                    return store.filterBy.includes(`review_${label}`);
+                }));
+            }
+            if (store.filterBy.includes('no review')) {
+                reviewResults.push(..._.filter(data, (superpixel) => {
+                    return !_.isNumber(superpixel.meta.reviewValue);
+                }));
+            }
+            reviewResults.length && results.push(reviewResults);
             // Filter by labeler
             const labelers = this.filterOptions.Labelers;
             if (_.some(_.keys(labelers), (id) => store.filterBy.includes(`labeler_${id}`))) {
@@ -263,20 +279,13 @@ export default Vue.extend({
                 }));
             }
             // Filter by reviewer
-            const review_results = [];
             const reviewers = this.filterOptions.Reviewers;
             if (_.some(_.keys(reviewers), (id) => store.filterBy.includes(`reviewer_${id}`))) {
-                review_results.push(..._.filter(data, (superpixel) => {
+                results.push(_.filter(data, (superpixel) => {
                     const id = superpixel.meta.reviewer ? superpixel.meta.reviewer._id : '';
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
-            if (store.filterBy.includes('no review')) {
-                review_results.push(..._.filter(data, (superpixel) => {
-                    return !!superpixel.reviewValue && superpixel.reviewValue !== 0;
-                }));
-            }
-            results.push(review_results);
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
@@ -768,6 +777,66 @@ export default Vue.extend({
                 <div class="dropdown-button">
                   <div
                     class="btn btn-default btn-block"
+                    @click="toggleOpenMenu('reviews')"
+                  >
+                    <span class="multiselect-dropdown-label">
+                      Reviews
+                      <span class="caret" />
+                    </span>
+                  </div>
+                  <ul :class="['dropdown-menu', openMenu === 'reviews' ? 'visible-menu' : 'hidden']">
+                    <li>
+                      <label
+                        for="no review"
+                        class="checkboxLabel"
+                      >
+                        <input
+                          id="no review"
+                          v-model="filterBy"
+                          type="checkbox"
+                          value="no review"
+                        >
+                        not reviewed
+                      </label>
+                    </li>
+                    <li
+                      v-for="(cat, index) in filterOptions.Reviews"
+                      :key="`review_${index}`"
+                    >
+                      <label
+                        :for="`review_${index}`"
+                        class="checkboxLabel"
+                      >
+                        <input
+                          :id="`review_${index}`"
+                          v-model="filterBy"
+                          type="checkbox"
+                          :value="`review_${cat}`"
+                        >
+                        {{ cat }}
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="btn btn-danger btn-sm"
+                  :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
+                  @click="removeFilters(filterOptions.Reviews.map(cat => `review_${cat}`))"
+                >
+                  <i
+                    class="icon-minus-squared"
+                    data-toggle="tooltip"
+                    title="Clear all filters"
+                  />
+                </button>
+              </div>
+              <div
+                :style="{'position': 'relative'}"
+                class="dropdown-dropup selector-with-button"
+              >
+                <div class="dropdown-button">
+                  <div
+                    class="btn btn-default btn-block"
                     @click="toggleOpenMenu('labeler')"
                   >
                     <span class="multiselect-dropdown-label">
@@ -822,20 +891,6 @@ export default Vue.extend({
                     </span>
                   </div>
                   <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
-                    <li>
-                      <label
-                        for="reviewer_none"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          id="reviewer_none"
-                          v-model="filterBy"
-                          type="checkbox"
-                          value="no review"
-                        >
-                        not reviewed
-                      </label>
-                    </li>
                     <li
                       v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
                       :key="`reviewer_${key}`"
