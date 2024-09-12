@@ -33,8 +33,7 @@ export default Vue.extend({
             observedSuperpixel: null,
             totalSuperpixels: 0,
             reviewTable: true,
-            slideFilterMenu: false,
-            labelCatFilterMenu: false
+            openMenu: null,
         };
     },
     computed: {
@@ -329,6 +328,9 @@ export default Vue.extend({
         },
         removeFilters(values) {
             this.filterBy = _.without(this.filterBy, ...values);
+        },
+        toggleOpenMenu(menu) {
+            this.openMenu = this.openMenu === menu ? null : menu;
         }
     }
 });
@@ -640,17 +642,14 @@ export default Vue.extend({
                 <div class="dropdown-button">
                   <div
                     class="btn btn-default btn-block"
-                    @click="slideFilterMenu = !slideFilterMenu"
+                    @click="toggleOpenMenu('slide')"
                   >
                     <span class="multiselect-dropdown-label">
                       Slide Image
                       <span class="caret" />
                     </span>
                   </div>
-                  <ul
-                    class="dropdown-menu"
-                    :style="[slideFilterMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
-                  >
+                  <ul :class="['dropdown-menu', openMenu === 'slide' ? 'visible-menu' : 'hidden']">
                     <li v-for="(imageName, index) in filterOptions.Slides">
                       <label
                         :for="`slide_${index}`"
@@ -687,17 +686,14 @@ export default Vue.extend({
                 <div class="dropdown-button">
                   <div
                     class="btn btn-default btn-block"
-                    @click="labelCatFilterMenu = !labelCatFilterMenu"
+                    @click="toggleOpenMenu('labels')"
                   >
                     <span class="multiselect-dropdown-label">
                       Labels
                       <span class="caret" />
                     </span>
                   </div>
-                  <ul
-                    class="dropdown-menu"
-                    :style="[labelCatFilterMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
-                  >
+                  <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
                     <li v-for="(cat, index) in filterOptions.Labels">
                       <label
                         :for="`cat_${index}`"
@@ -778,17 +774,14 @@ export default Vue.extend({
             <div class="dropdown-button">
               <div
                 class="btn btn-default btn-block"
-                @click="dataSelectMenu = !dataSelectMenu"
+                @click="toggleOpenMenu('data')"
               >
                 <span class="multiselect-dropdown-label">
                   Superpixel Data
                   <span class="caret" />
                 </span>
               </div>
-              <ul
-                class="dropdown-menu"
-                :style="[dataSelectMenu ? {'display': 'block', 'padding': '10px 5px 5px 10px'} : {'display': 'none'}]"
-              >
+              <ul :class="['dropdown-menu', openMenu === 'data' ? 'visible-menu' : 'hidden']">
                 <li>
                   <label
                     for="className"
@@ -1274,5 +1267,10 @@ export default Vue.extend({
 
 .dropup-adjustment {
   top: auto;
+}
+
+.visible-menu {
+  display: block;
+  padding: 10px 5px 5px 10px;
 }
 </style>
