@@ -83,7 +83,10 @@ export default Vue.extend({
             get() {
                 return this.superpixel.reviewValue || this.superpixel.selectedCategory;
             },
-            set(newCategory) {
+            set(newCategory, oldCategory) {
+                if (newCategory === oldCategory) {
+                    return;
+                }
                 updateMetadata(this.superpixel, newCategory, true);
                 store.backboneParent.saveAnnotationReviews(this.superpixel.imageId);
             }
