@@ -560,7 +560,7 @@ export default Vue.extend({
                 {{ sortByOptions[sortBy] }}
                 <span class="caret" />
               </button>
-              <ul class="dropdown-menu">
+              <ul class="dropdown-menu" :style="{'top': 'auto'}">
                 <li
                   v-for="[key, value] in Object.entries(sortByOptions)"
                   :key="key"
