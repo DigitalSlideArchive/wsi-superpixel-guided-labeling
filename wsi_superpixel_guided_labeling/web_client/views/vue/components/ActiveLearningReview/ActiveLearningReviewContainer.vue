@@ -33,7 +33,7 @@ export default Vue.extend({
             observedSuperpixel: null,
             totalSuperpixels: 0,
             reviewTable: true,
-            openMenu: null,
+            openMenu: null
         };
     },
     computed: {
@@ -522,7 +522,10 @@ export default Vue.extend({
                 {{ groupByOptions[groupBy] }}
                 <span class="caret" />
               </button>
-              <ul class="dropdown-menu" :style="{'top': 'auto'}">
+              <ul
+                class="dropdown-menu"
+                :style="{'top': 'auto'}"
+              >
                 <li
                   v-for="[key, value] in Object.entries(groupByOptions)"
                   :key="key"
@@ -560,7 +563,10 @@ export default Vue.extend({
                 {{ sortByOptions[sortBy] }}
                 <span class="caret" />
               </button>
-              <ul class="dropdown-menu" :style="{'top': 'auto'}">
+              <ul
+                class="dropdown-menu"
+                :style="{'top': 'auto'}"
+              >
                 <li
                   v-for="[key, value] in Object.entries(sortByOptions)"
                   :key="key"
@@ -650,17 +656,19 @@ export default Vue.extend({
                     </span>
                   </div>
                   <ul :class="['dropdown-menu', openMenu === 'slide' ? 'visible-menu' : 'hidden']">
-                    <li v-for="(imageName, index) in filterOptions.Slides">
+                    <li
+                      v-for="(imageName, index) in filterOptions.Slides"
+                      :key="`slide_${index}`"
+                    >
                       <label
                         :for="`slide_${index}`"
                         class="checkboxLabel"
-                        :key="`slide_${index}`"
                       >
                         <input
                           :id="`slide_${index}`"
                           v-model="filterBy"
                           type="checkbox"
-                          :value=imageName
+                          :value="imageName"
                         >
                         {{ imageName }}
                       </label>
@@ -669,8 +677,8 @@ export default Vue.extend({
                 </div>
                 <button
                   class="btn btn-danger btn-sm"
-                  @click="removeFilters(filterOptions.Slides)"
                   :disabled="!filterOptions.Slides.some(name => filterBy.includes(name))"
+                  @click="removeFilters(filterOptions.Slides)"
                 >
                   <i
                     class="icon-minus-squared"
@@ -694,17 +702,19 @@ export default Vue.extend({
                     </span>
                   </div>
                   <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
-                    <li v-for="(cat, index) in filterOptions.Labels">
+                    <li
+                      v-for="(cat, index) in filterOptions.Labels"
+                      :key="`cat_${index}`"
+                    >
                       <label
                         :for="`cat_${index}`"
                         class="checkboxLabel"
-                        :key="`cat_${index}`"
                       >
                         <input
                           :id="`cat_${index}`"
                           v-model="filterBy"
                           type="checkbox"
-                          :value='`label_${cat}`'
+                          :value="`label_${cat}`"
                         >
                         {{ cat }}
                       </label>
@@ -713,8 +723,8 @@ export default Vue.extend({
                 </div>
                 <button
                   class="btn btn-danger btn-sm"
-                  @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
                   :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
+                  @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
                 >
                   <i
                     class="icon-minus-squared"
