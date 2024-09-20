@@ -747,203 +747,207 @@ export default Vue.extend({
                   />
                 </button>
               </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('labels')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Labels
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
-                    <li
-                      v-for="(cat, index) in filterOptions.Labels"
-                      :key="`cat_${index}`"
-                    >
-                      <label
-                        :for="`cat_${index}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`cat_${index}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`label_${cat}`"
-                        >
-                        {{ cat }}
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
-                  @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
+              <div class="flex">
+                <div
+                  :style="{'position': 'relative', 'margin-right': '3px', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
                 >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('labels')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Labels
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="(cat, index) in filterOptions.Labels"
+                        :key="`cat_${index}`"
+                      >
+                        <label
+                          :for="`cat_${index}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`cat_${index}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`label_${cat}`"
+                          >
+                          {{ cat }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
+                    @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
+                <div
+                  :style="{'position': 'relative', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
+                >
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('reviews')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Reviews
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'reviews' ? 'visible-menu' : 'hidden']">
+                      <li>
+                        <label
+                          for="no review"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            id="no review"
+                            v-model="filterBy"
+                            type="checkbox"
+                            value="no review"
+                          >
+                          not reviewed
+                        </label>
+                      </li>
+                      <li
+                        v-for="(cat, index) in filterOptions.Reviews"
+                        :key="`review_${index}`"
+                      >
+                        <label
+                          :for="`review_${index}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`review_${index}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`review_${cat}`"
+                          >
+                          {{ cat }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
+                    @click="removeFilters(filterOptions.Reviews.map(cat => `review_${cat}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
               </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('reviews')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Reviews
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'reviews' ? 'visible-menu' : 'hidden']">
-                    <li>
-                      <label
-                        for="no review"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          id="no review"
-                          v-model="filterBy"
-                          type="checkbox"
-                          value="no review"
-                        >
-                        not reviewed
-                      </label>
-                    </li>
-                    <li
-                      v-for="(cat, index) in filterOptions.Reviews"
-                      :key="`review_${index}`"
-                    >
-                      <label
-                        :for="`review_${index}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`review_${index}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`review_${cat}`"
-                        >
-                        {{ cat }}
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
-                  @click="removeFilters(['no review', ...filterOptions.Reviews.map(cat => `review_${cat}`)])"
+              <div class="flex">
+                <div
+                  :style="{'position': 'relative', 'margin-right': '3px', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
                 >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
-              </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('labeler')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Labeled By
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'labeler' ? 'visible-menu' : 'hidden']">
-                    <li
-                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
-                      :key="`labeler_${key}`"
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('labeler')"
                     >
-                      <label
-                        :for="`labeler_${key}`"
-                        class="checkboxLabel"
+                      <span class="multiselect-dropdown-label">
+                        Labeled By
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'labeler' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                        :key="`labeler_${key}`"
                       >
-                        <input
-                          :id="`labeler_${key}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`labeler_${key}`"
+                        <label
+                          :for="`labeler_${key}`"
+                          class="checkboxLabel"
                         >
-                        {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }}
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
-                  @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
-                >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
-              </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('reviewer')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Reviewed By
-                      <span class="caret" />
-                    </span>
+                          <input
+                            :id="`labeler_${key}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`labeler_${key}`"
+                          >
+                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }}
+                        </label>
+                      </li>
+                    </ul>
                   </div>
-                  <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
-                    <li
-                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
-                      :key="`reviewer_${key}`"
-                    >
-                      <label
-                        :for="`reviewer_${key}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`reviewer_${key}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`reviewer_${key}`"
-                        >
-                        {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }}
-                      </label>
-                    </li>
-                  </ul>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
+                    @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
                 </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!Object.keys(filterOptions.Reviewers).some(k => filterBy.includes(`reviewer_${k}`))"
-                  @click="removeFilters(Object.keys(filterOptions.Reviewers).map((k) => `reviewer_${k}`))"
+                <div
+                  :style="{'position': 'relative', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
                 >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('reviewer')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Reviewed By
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                        :key="`reviewer_${key}`"
+                      >
+                        <label
+                          :for="`reviewer_${key}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`reviewer_${key}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`reviewer_${key}`"
+                          >
+                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!Object.keys(filterOptions.Reviewers).some(k => filterBy.includes(`reviewer_${k}`))"
+                    @click="removeFilters(Object.keys(filterOptions.Reviewers).map((k) => `reviewer_${k}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1494,5 +1498,9 @@ export default Vue.extend({
 .visible-menu {
   display: block;
   padding: 10px 5px 5px 10px;
+}
+
+.flex {
+  display: flex;
 }
 </style>
