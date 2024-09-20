@@ -549,7 +549,7 @@ export default Vue.extend({
             <label for="groupby">Group By</label>
             <div
               id="groupby"
-              class="dropdown-dropup"
+              class="dropdown-dropup selector-with-button"
             >
               <button
                 class="btn btn-block btn-default dropdown-toggle dropdown-button"
@@ -584,6 +584,17 @@ export default Vue.extend({
                   </div>
                 </li>
               </ul>
+              <button
+                class="btn btn-danger btn-xs"
+                :disabled="groupBy === 0"
+                @click="groupBy === 0"
+              >
+                <i
+                  class="icon-minus-squared"
+                  data-toggle="tooltip"
+                  title="Clear grouping"
+                />
+              </button>
             </div>
           </div>
           <div>
@@ -626,7 +637,19 @@ export default Vue.extend({
                 </li>
               </ul>
               <button
-                class="btn btn-info btn-sm"
+                class="btn btn-danger btn-xs"
+                :style="{'margin-right': '3px'}"
+                :disabled="sortBy === 0"
+                @click="sortBy === 0"
+              >
+                <i
+                  class="icon-minus-squared"
+                  data-toggle="tooltip"
+                  title="Clear sort"
+                />
+              </button>
+              <button
+                class="btn btn-info btn-xs"
                 @click="sortAscending = !sortAscending"
               >
                 <i
@@ -713,7 +736,7 @@ export default Vue.extend({
                   </ul>
                 </div>
                 <button
-                  class="btn btn-danger btn-sm"
+                  class="btn btn-danger btn-xs"
                   :disabled="!filterOptions.Slides.some(name => filterBy.includes(name))"
                   @click="removeFilters(filterOptions.Slides)"
                 >
