@@ -821,7 +821,7 @@ export default Vue.extend({
                 <button
                   class="btn btn-danger btn-sm"
                   :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
-                  @click="removeFilters(filterOptions.Reviews.map(cat => `review_${cat}`))"
+                  @click="removeFilters(['no review', ...filterOptions.Reviews.map(cat => `review_${cat}`)])"
                 >
                   <i
                     class="icon-minus-squared"
