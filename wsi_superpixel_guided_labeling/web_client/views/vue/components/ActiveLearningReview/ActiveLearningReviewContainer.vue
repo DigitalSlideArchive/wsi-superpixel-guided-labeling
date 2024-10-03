@@ -1197,24 +1197,24 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'All' : '(None)')}}
+                    {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)')}}
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
                     <li>
                       <div class="radio" :disabled="firstComparison === 'prediction'">
                         <label
-                          for="all"
+                          for="any"
                           :class="['options', firstComparison === 'prediction' && 'disabled-label']"
                         >
                           <input
-                            id="all"
+                            id="any"
                             v-model="secondComparison"
                             type="radio"
                             :value="null"
                             class="hidden-radio"
                           >
-                            All
+                            Any
                         </label>
                       </div>
                     </li>
