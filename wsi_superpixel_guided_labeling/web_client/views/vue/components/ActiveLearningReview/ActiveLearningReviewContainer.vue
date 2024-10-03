@@ -298,6 +298,43 @@ export default Vue.extend({
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
+            //Filter by comparison
+            if (!!this.firstComparison && !!this.booleanOperator) {
+                // Select the appropriate comparison function
+                const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
+                const [key0, userID0] = this.firstComparison.split('_');
+                // If no second option is selected we should compare the first selection
+                // to all remaining options. Otherwise just compare to the second selection.
+                let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
+                if (!!this.secondComparison) {
+                    [key1, userID1, key2] = this.secondComparison.split('_');
+                }
+
+                results.push(_.filter(data, (superpixel) => {
+                    const values = [null, null, null];
+                    _.forEach([key0, key1, key2], (key, idx) => {
+                        const userID = idx === 0 ? userID0 : userID1;
+                        if (key === 'prediction') {
+                            values[idx] = superpixel.predictionCategories[superpixel.prediction];
+                        } else if (key === 'label') {
+                            if (!this.secondComparison || (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)) {
+                                values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
+                            }
+                        } else if (key === 'review') {
+                            if (!this.secondComparison || (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID)) {
+                                values[idx] = superpixel.labelCategories[superpixel.reviewValue];
+                            }
+                        }
+                        // As we support more complex options to add/remove/rename categories across epochs the
+                        // predictions categories and labels categories have a higher chance of diverging and we
+                        // shouldn't assume the same order in both lists. Compare label values instead.
+                        values[idx] = !!values[idx] ? values[idx].label : values[idx];
+                    });
+                    return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
+                           (!!values[0] && !!values[2] && op(values[0], values[2]));
+                }));
+            }
+
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
