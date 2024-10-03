@@ -638,6 +638,7 @@ export default Vue.extend({
             <label for="groupby">Group By</label>
             <div
               id="groupby"
+              :style="{'position': 'relative'}"
               class="dropdown-dropup selector-with-button"
             >
               <button
@@ -648,10 +649,7 @@ export default Vue.extend({
                 {{ groupByOptions[groupBy] }}
                 <span class="caret" />
               </button>
-              <ul
-                class="dropdown-menu"
-                :style="{'top': 'auto'}"
-              >
+              <ul class="dropdown-menu">
                 <li
                   v-for="[key, value] in Object.entries(groupByOptions)"
                   :key="key"
@@ -690,6 +688,7 @@ export default Vue.extend({
             <label for="sortby">Sort By</label>
             <div
               id="sortby"
+              :style="{'position': 'relative'}"
               class="dropdown-dropup selector-with-button"
             >
               <button
@@ -700,10 +699,7 @@ export default Vue.extend({
                 {{ sortByOptions[sortBy] }}
                 <span class="caret" />
               </button>
-              <ul
-                class="dropdown-menu"
-                :style="{'top': 'auto'}"
-              >
+              <ul class="dropdown-menu">
                 <li
                   v-for="[key, value] in Object.entries(sortByOptions)"
                   :key="key"
@@ -934,7 +930,7 @@ export default Vue.extend({
                   <button
                     class="btn btn-danger btn-xs"
                     :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
-                    @click="removeFilters(filterOptions.Reviews.map(cat => `review_${cat}`))"
+                    @click="removeFilters(['no review', ...filterOptions.Reviews.map(cat => `review_${cat}`)])"
                   >
                     <i
                       class="icon-minus-squared"
@@ -1042,7 +1038,7 @@ export default Vue.extend({
               <div id="comp" class="flex">
                 <div
                   class="dropdown-dropup selector-with-button"
-                  :style="{'width': '35%'}"
+                  :style="{'width': '35%', 'position': 'relative'}"
                 >
                   <button
                     class="btn btn-block btn-default dropdown-toggle dropdown-button"
@@ -1128,7 +1124,7 @@ export default Vue.extend({
                 </div>
                 <div
                   class="dropdown-dropup selector-with-button"
-                  :style="{'width': '30%'}"
+                  :style="{'width': '30%', 'position': 'relative'}"
                 >
                   <button
                     class="btn btn-block btn-default dropdown-toggle dropdown-button"
@@ -1194,7 +1190,7 @@ export default Vue.extend({
                 </div>
                 <div
                   class="dropdown-dropup selector-with-button"
-                  :style="{'width': '35%'}"
+                  :style="{'width': '35%', 'position': 'relative'}"
                 >
                   <button
                     class="btn btn-block btn-default dropdown-toggle dropdown-button"
@@ -1489,7 +1485,10 @@ export default Vue.extend({
             >
               Approve
             </button>
-            <div class="dropdown-dropup btn-group-two">
+            <div
+              class="dropdown-dropup btn-group-two"
+              :style="{'position': 'relative'}"
+            >
               <button
                 class="btn btn-primary dropdown-toggle btn-block"
                 :style="{'text-wrap': 'pretty'}"
