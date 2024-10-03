@@ -50,7 +50,10 @@ const store = Vue.observable({
     filterBy: ['no review'],
     previewSize: 0.5,
     cardDetails: [],
-    reviewedSuperpixels: 0
+    reviewedSuperpixels: 0,
+    firstComparison: null,
+    secondComparison: null,
+    booleanOperator: null,
 });
 
 const previousCard = () => {

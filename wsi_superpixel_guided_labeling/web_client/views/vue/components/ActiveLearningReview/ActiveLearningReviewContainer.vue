@@ -132,7 +132,19 @@ export default Vue.extend({
         cardDetails: {
             get() { return store.cardDetails; },
             set(value) { store.cardDetails = value; }
-        }
+        },
+        firstComparison: {
+            get() { return store.firstComparison; },
+            set(value) { store.firstComparison = value; }
+        },
+        secondComparison: {
+            get() { return store.secondComparison; },
+            set(value) { store.secondComparison = value; }
+        },
+        booleanOperator: {
+            get() { return store.booleanOperator; },
+            set(value) { store.booleanOperator = value; }
+        },
     },
     watch: {
         selectedSuperpixel() {
@@ -948,6 +960,240 @@ export default Vue.extend({
                     />
                   </button>
                 </div>
+              </div>
+              <label for="comp">Filter By Comparison</label>
+              <div id="comp" class="flex">
+                <div
+                  class="dropdown-dropup selector-with-button"
+                  :style="{'width': '35%'}"
+                >
+                  <button
+                    class="btn btn-block btn-default dropdown-toggle dropdown-button"
+                    type="button"
+                    data-toggle="dropdown"
+                  >
+                    {{ firstComparison }}
+                    <span class="caret" />
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <div class="radio">
+                        <label for="no_selection_1">
+                          <input
+                            id="no_selection_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            :value="null"
+                            class="hidden-radio"
+                          >
+                          (None)
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label for="prediction_1">
+                          <input
+                            id="prediction_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            value="prediction"
+                            class="hidden-radio"
+                          >
+                          Predictions
+                        </label>
+                      </div>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                      :key="`comp_labeler_${key}`"
+                    >
+                      <div class="radio">
+                        <label :for="`comp_labeler_${key}_1`">
+                          <input
+                            :id="`comp_labeler_${key}_1`"
+                            v-model="firstComparison"
+                            type="radio"
+                            :value="`label_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }} Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                      :key="`comp_reviewer_${key}`"
+                    >
+                      <div class="radio">
+                        <label :for="`comp_reviewer_${key}_1`">
+                          <input
+                            :id="`comp_reviewer_${key}_1`"
+                            v-model="firstComparison"
+                            type="radio"
+                            :value="`review_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }} Reviews
+                        </label>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="dropdown-dropup selector-with-button"
+                  :style="{'width': '30%'}"
+                >
+                  <button
+                    class="btn btn-block btn-default dropdown-toggle dropdown-button"
+                    type="button"
+                    data-toggle="dropdown"
+                  >
+                    {{ booleanOperator }}
+                    <span class="caret" />
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="no_selection_2"
+                          class="options"
+                        >
+                          <input
+                            id="no_selection_2"
+                            v-model="booleanOperator"
+                            type="radio"
+                            :value="null"
+                            class="hidden-radio"
+                          >
+                          (None)
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="matches"
+                          class="options"
+                        >
+                          <input
+                            id="matches"
+                            v-model="booleanOperator"
+                            type="radio"
+                            value="matches"
+                            class="hidden-radio"
+                          >
+                          matches
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="differsFrom"
+                          class="options"
+                        >
+                          <input
+                            id="differsFrom"
+                            v-model="booleanOperator"
+                            type="radio"
+                            value="differs from"
+                            class="hidden-radio"
+                          >
+                          differs from
+                        </label>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="dropdown-dropup selector-with-button"
+                  :style="{'width': '35%'}"
+                >
+                  <button
+                    class="btn btn-block btn-default dropdown-toggle dropdown-button"
+                    type="button"
+                    data-toggle="dropdown"
+                  >
+                    {{ secondComparison }}
+                    <span class="caret" />
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <div class="radio" :disabled="firstComparison === 'prediction'">
+                        <label for="all">
+                          <input
+                            id="all"
+                            v-model="secondComparison"
+                            type="radio"
+                            :value="null"
+                            class="hidden-radio"
+                          >
+                          {{ !firstComparison && !booleanOperator ? 'All' : '(None)'}}
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio" :disabled="firstComparison === 'prediction'">
+                        <label for="prediction_2">
+                          <input
+                            id="prediction_2"
+                            v-model="secondComparison"
+                            type="radio"
+                            value="prediction"
+                            class="hidden-radio"
+                          >
+                          Predictions
+                        </label>
+                      </div>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                      :key="`comp_labeler_${key}_2`"
+                    >
+                      <div class="radio">
+                        <label :for="`comp_labeler_${key}_2`">
+                          <input
+                            :id="`comp_labeler_${key}_2`"
+                            v-model="secondComparison"
+                            type="radio"
+                            :value="`label_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }} Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                      :key="`comp_reviewer_${key}_2`"
+                    >
+                      <div class="radio">
+                        <label :for="`comp_reviewer_${key}_2`">
+                          <input
+                            :id="`comp_reviewer_${key}_2`"
+                            v-model="secondComparison"
+                            type="radio"
+                            :value="`review_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }} Reviews
+                        </label>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="btn btn-danger btn-xs"
+                  :disabled="!this.firstComparison && !this.booleanOperator && !this.secondComparison"
+                  @click="() => {this.firstComparison = this.booleanOperator = this.secondComparison = null}"
+                >
+                  <i
+                    class="icon-minus-squared"
+                    data-toggle="tooltip"
+                    title="Clear comparison filters"
+                  />
+                </button>
               </div>
             </div>
           </div>
