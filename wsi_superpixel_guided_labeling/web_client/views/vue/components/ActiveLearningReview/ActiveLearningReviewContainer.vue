@@ -33,7 +33,9 @@ export default Vue.extend({
             observedSuperpixel: null,
             totalSuperpixels: 0,
             reviewTable: true,
-            openMenu: null
+            openMenu: null,
+            labelFlag: false,
+            predictionFlag: false
         };
     },
     computed: {
@@ -160,6 +162,14 @@ export default Vue.extend({
                 this.selectedSuperpixel = _.values(data)[0][0];
             }
             this.$nextTick(() => this.updateObserved());
+        },
+        firstComparison() {
+            this.labelFlag = !!this.firstComparison && !!this.booleanOperator;
+            this.predictionFlag = !!this.firstComparison && !!this.booleanOperator;
+        },
+        booleanOperator() {
+            this.labelFlag = !!this.firstComparison && !!this.booleanOperator;
+            this.predictionFlag = !!this.firstComparison && !!this.booleanOperator;
         }
     },
     mounted() {
@@ -365,6 +375,10 @@ export default Vue.extend({
         },
         catColorByIndex(index) {
             return store.categories[index].fillColor;
+        },
+        predColorByIndex(superpixel) {
+            const prediction = superpixel.prediction;
+            return superpixel.predictionCategories[prediction].fillColor;
         },
         triggerRetrain() {
             this.backboneParent.retrain();
@@ -1578,6 +1592,16 @@ export default Vue.extend({
                   :style="{'color': 'white'}"
                 />
               </div>
+              <i
+                v-if="superpixel.selectedCategory >= 0 && labelFlag"
+                class="flag-bottom-left icon-tag"
+                :style="{'color': catColorByIndex(superpixel.selectedCategory)}"
+              />
+              <i
+                v-if="superpixel.prediction >= 0 && predictionFlag"
+                class="flag-bottom-right icon-lightbulb"
+                :style="{'color': predColorByIndex(superpixel)}"
+              />
               <input
                 v-show="selectingSuperpixels"
                 v-model="selectedReviewSuperpixels"
@@ -1792,6 +1816,36 @@ export default Vue.extend({
   float: left;
   width: 25px;
   top: -2px;
+}
+
+.flag-top-left {
+  position: absolute;
+  top: -2px;
+  z-index: 100;
+  font-size: 16px;
+  border-radius: 18px;
+  background-color: white;
+  left: -2px;
+}
+
+.flag-bottom-left {
+  position: absolute;
+  bottom: -2px;
+  z-index: 100;
+  font-size: 16px;
+  border-radius: 18px;
+  background-color: white;
+  left: -2px;
+}
+
+.flag-bottom-right {
+  position: absolute;
+  bottom: -2px;
+  z-index: 100;
+  font-size: 16px;
+  border-radius: 18px;
+  background-color: white;
+  right: -2px;
 }
 
 .h-superpixel-card {
