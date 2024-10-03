@@ -1018,7 +1018,10 @@ export default Vue.extend({
                     </li>
                     <li>
                       <div class="radio">
-                        <label for="prediction_1">
+                        <label
+                          for="prediction_1"
+                          :class="['options', secondComparison === 'prediction' && 'disabled-label']"
+                        >
                           <input
                             id="prediction_1"
                             v-model="firstComparison"
@@ -1035,7 +1038,10 @@ export default Vue.extend({
                       :key="`comp_labeler_${key}`"
                     >
                       <div class="radio">
-                        <label :for="`comp_labeler_${key}_1`">
+                        <label
+                          :for="`comp_labeler_${key}_1`"
+                          :class="['options', (!!secondComparison && secondComparison.startsWith('label')) && 'disabled-label']"
+                        >
                           <input
                             :id="`comp_labeler_${key}_1`"
                             v-model="firstComparison"
@@ -1052,7 +1058,10 @@ export default Vue.extend({
                       :key="`comp_reviewer_${key}`"
                     >
                       <div class="radio">
-                        <label :for="`comp_reviewer_${key}_1`">
+                        <label
+                          :for="`comp_reviewer_${key}_1`"
+                          :class="['options', (!!secondComparison && secondComparison.startsWith('review')) && 'disabled-label']"
+                        >
                           <input
                             :id="`comp_reviewer_${key}_1`"
                             v-model="firstComparison"
@@ -1147,7 +1156,10 @@ export default Vue.extend({
                   <ul class="dropdown-menu">
                     <li>
                       <div class="radio" :disabled="firstComparison === 'prediction'">
-                        <label for="all">
+                        <label
+                          for="all"
+                          :class="['options', firstComparison === 'prediction' && 'disabled-label']"
+                        >
                           <input
                             id="all"
                             v-model="secondComparison"
@@ -1161,7 +1173,10 @@ export default Vue.extend({
                     </li>
                     <li>
                       <div class="radio" :disabled="firstComparison === 'prediction'">
-                        <label for="prediction_2">
+                        <label
+                          for="prediction_2"
+                          :class="['options', firstComparison === 'prediction' && 'disabled-label']"
+                        >
                           <input
                             id="prediction_2"
                             v-model="secondComparison"
@@ -1178,7 +1193,10 @@ export default Vue.extend({
                       :key="`comp_labeler_${key}_2`"
                     >
                       <div class="radio">
-                        <label :for="`comp_labeler_${key}_2`">
+                        <label
+                          :for="`comp_labeler_${key}_2`"
+                          :class="['options', (!!firstComparison && firstComparison.startsWith('label')) && 'disabled-label']"
+                        >
                           <input
                             :id="`comp_labeler_${key}_2`"
                             v-model="secondComparison"
@@ -1195,7 +1213,10 @@ export default Vue.extend({
                       :key="`comp_reviewer_${key}_2`"
                     >
                       <div class="radio">
-                        <label :for="`comp_reviewer_${key}_2`">
+                        <label
+                          :for="`comp_reviewer_${key}_2`"
+                          :class="['options', (!!firstComparison && firstComparison.startsWith('review')) && 'disabled-label']"
+                        >
                           <input
                             :id="`comp_reviewer_${key}_2`"
                             v-model="secondComparison"
@@ -1774,5 +1795,14 @@ export default Vue.extend({
 
 .flex {
   display: flex;
+}
+
+.disabled-label {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.disabled-label input {
+  pointer-events: none;
 }
 </style>
