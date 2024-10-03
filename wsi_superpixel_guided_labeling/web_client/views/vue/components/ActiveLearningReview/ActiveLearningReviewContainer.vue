@@ -380,6 +380,32 @@ export default Vue.extend({
         },
         toggleOpenMenu(menu) {
             this.openMenu = this.openMenu === menu ? null : menu;
+        },
+        selectedComparisonText(selection) {
+            if (!selection || selection === 'prediction') {
+                return selection;
+            } else {
+                let [key, userID] = selection.split('_');
+                let user;
+                if (store.currentUser._id === userID) {
+                    user = store.currentUser;
+                } else {
+                    const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
+                        if (!!superpixel.meta) {
+                            return (
+                              (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) ||
+                              (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)
+                            )
+                        }
+                        return false;
+                    });
+                    user = superpixel.meta.labeler;
+                    if (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) {
+                        user = superpixel.meta.reviewer;
+                    }
+                }
+                return `${user.firstName} ${user.lastName} ${key}s`
+            }
         }
     }
 });
@@ -972,7 +998,7 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ firstComparison }}
+                    {{ selectedComparisonText(firstComparison) || '(None)' }}
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
@@ -1049,7 +1075,7 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ booleanOperator }}
+                    {{ booleanOperator || '(None)' }}
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
@@ -1115,7 +1141,7 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ secondComparison }}
+                    {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'All' : '(None)')}}
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
@@ -1129,7 +1155,7 @@ export default Vue.extend({
                             :value="null"
                             class="hidden-radio"
                           >
-                          {{ !firstComparison && !booleanOperator ? 'All' : '(None)'}}
+                            All
                         </label>
                       </div>
                     </li>
