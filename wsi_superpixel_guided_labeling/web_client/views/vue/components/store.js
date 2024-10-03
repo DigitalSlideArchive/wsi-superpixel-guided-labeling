@@ -53,7 +53,7 @@ const store = Vue.observable({
     reviewedSuperpixels: 0,
     firstComparison: null,
     secondComparison: null,
-    booleanOperator: null,
+    booleanOperator: null
 });
 
 const previousCard = () => {

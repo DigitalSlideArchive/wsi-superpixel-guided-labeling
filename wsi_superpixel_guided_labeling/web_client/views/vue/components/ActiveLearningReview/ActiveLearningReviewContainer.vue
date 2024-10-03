@@ -146,7 +146,7 @@ export default Vue.extend({
         booleanOperator: {
             get() { return store.booleanOperator; },
             set(value) { store.booleanOperator = value; }
-        },
+        }
     },
     watch: {
         selectedSuperpixel() {
@@ -308,7 +308,7 @@ export default Vue.extend({
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
-            //Filter by comparison
+            // Filter by comparison
             if (!!this.firstComparison && !!this.booleanOperator) {
                 // Select the appropriate comparison function
                 const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
@@ -316,7 +316,7 @@ export default Vue.extend({
                 // If no second option is selected we should compare the first selection
                 // to all remaining options. Otherwise just compare to the second selection.
                 let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
-                if (!!this.secondComparison) {
+                if (this.secondComparison) {
                     [key1, userID1, key2] = this.secondComparison.split('_');
                 }
 
@@ -338,7 +338,7 @@ export default Vue.extend({
                         // As we support more complex options to add/remove/rename categories across epochs the
                         // predictions categories and labels categories have a higher chance of diverging and we
                         // shouldn't assume the same order in both lists. Compare label values instead.
-                        values[idx] = !!values[idx] ? values[idx].label : values[idx];
+                        values[idx] = values[idx] ? values[idx].label : values[idx];
                     });
                     return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
                            (!!values[0] && !!values[2] && op(values[0], values[2]));
@@ -436,17 +436,17 @@ export default Vue.extend({
             if (!selection || selection === 'prediction') {
                 return selection;
             } else {
-                let [key, userID] = selection.split('_');
+                const [key, userID] = selection.split('_');
                 let user;
                 if (store.currentUser._id === userID) {
                     user = store.currentUser;
                 } else {
                     const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
-                        if (!!superpixel.meta) {
+                        if (superpixel.meta) {
                             return (
-                              (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) ||
+                                (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) ||
                               (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)
-                            )
+                            );
                         }
                         return false;
                     });
@@ -455,7 +455,7 @@ export default Vue.extend({
                         user = superpixel.meta.reviewer;
                     }
                 }
-                return `${user.firstName} ${user.lastName} ${key}s`
+                return `${user.firstName} ${user.lastName} ${key}s`;
             }
         }
     }
@@ -1035,7 +1035,10 @@ export default Vue.extend({
                 </div>
               </div>
               <label for="comp">Filter By Comparison</label>
-              <div id="comp" class="flex">
+              <div
+                id="comp"
+                class="flex"
+              >
                 <div
                   class="dropdown-dropup selector-with-button"
                   :style="{'width': '35%', 'position': 'relative'}"
@@ -1197,12 +1200,15 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)')}}
+                    {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
                     <li>
-                      <div class="radio" :disabled="firstComparison === 'prediction'">
+                      <div
+                        class="radio"
+                        :disabled="firstComparison === 'prediction'"
+                      >
                         <label
                           for="any"
                           :class="['options', firstComparison === 'prediction' && 'disabled-label']"
@@ -1214,12 +1220,15 @@ export default Vue.extend({
                             :value="null"
                             class="hidden-radio"
                           >
-                            Any
+                          Any
                         </label>
                       </div>
                     </li>
                     <li>
-                      <div class="radio" :disabled="firstComparison === 'prediction'">
+                      <div
+                        class="radio"
+                        :disabled="firstComparison === 'prediction'"
+                      >
                         <label
                           for="prediction_2"
                           :class="['options', firstComparison === 'prediction' && 'disabled-label']"
@@ -1279,8 +1288,8 @@ export default Vue.extend({
                 </div>
                 <button
                   class="btn btn-danger btn-xs"
-                  :disabled="!this.firstComparison && !this.booleanOperator && !this.secondComparison"
-                  @click="() => {this.firstComparison = this.booleanOperator = this.secondComparison = null}"
+                  :disabled="!firstComparison && !booleanOperator && !secondComparison"
+                  @click="() => {firstComparison = booleanOperator = secondComparison = null}"
                 >
                   <i
                     class="icon-minus-squared"
