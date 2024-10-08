@@ -35,7 +35,7 @@ export default Vue.extend({
             reviewTable: true,
             openMenu: null,
             labelFlag: false,
-            predictionFlag: false
+            showFlags: false
         };
     },
     computed: {
@@ -164,12 +164,10 @@ export default Vue.extend({
             this.$nextTick(() => this.updateObserved());
         },
         firstComparison() {
-            this.labelFlag = !!this.firstComparison && !!this.booleanOperator;
-            this.predictionFlag = !!this.firstComparison && !!this.booleanOperator;
+            this.showFlags = !!this.firstComparison && !!this.booleanOperator;
         },
         booleanOperator() {
-            this.labelFlag = !!this.firstComparison && !!this.booleanOperator;
-            this.predictionFlag = !!this.firstComparison && !!this.booleanOperator;
+            this.showFlags = !!this.firstComparison && !!this.booleanOperator;
         }
     },
     mounted() {
@@ -1323,24 +1321,49 @@ export default Vue.extend({
           id="view"
           class="panel-body collapse in"
         >
-          <div class="preview-size-selector">
-            <label for="sizeSelector">Preview Size</label>
-            <input
-              id="sizeSelector"
-              v-model="previewSize"
-              type="range"
-              name="sizeSelector"
-              list="markers"
-              :step="0.25"
-              :min="0.25"
-              :max="1.0"
-            >
-            <datalist id="markers">
-              <option :value="0.25" />
-              <option :value="0.50" />
-              <option :value="0.75" />
-              <option :value="1.00" />
-            </datalist>
+          <div :style="{'display': 'flex'}">
+            <div class="preview-size-selector">
+              <label
+                for="sizeSelector"
+                :style="{'text-wrap': 'nowrap'}"
+              >Preview Size</label>
+              <input
+                id="sizeSelector"
+                v-model="previewSize"
+                type="range"
+                name="sizeSelector"
+                list="markers"
+                :step="0.25"
+                :min="0.25"
+                :max="1.0"
+              >
+              <datalist id="markers">
+                <option :value="0.25" />
+                <option :value="0.50" />
+                <option :value="0.75" />
+                <option :value="1.00" />
+              </datalist>
+            </div>
+            <div class="flag-options">
+              <label
+                for="flagVisibility"
+                :style="{'margin': '0px 5px'}"
+              >Flags</label>
+              <button
+                id="flagVisibility"
+                class="btn btn-xs"
+                @click="showFlags = !showFlags"
+              >
+                <i
+                  v-if="showFlags"
+                  class="icon-eye-off"
+                />
+                <i
+                  v-else
+                  class="icon-eye"
+                />
+              </button>
+            </div>
           </div>
           <div
             :style="{'position': 'relative'}"
@@ -1596,12 +1619,12 @@ export default Vue.extend({
                 :style="{'background-color': catColorByIndex(superpixel.reviewValue)}"
               />
               <i
-                v-if="superpixel.selectedCategory >= 0 && labelFlag"
+                v-if="superpixel.selectedCategory >= 0 && showFlags"
                 class="flag-bottom-left icon-tag"
                 :style="{'background-color': catColorByIndex(superpixel.selectedCategory)}"
               />
               <i
-                v-if="superpixel.prediction >= 0 && predictionFlag"
+                v-if="superpixel.prediction >= 0 && showFlags"
                 class="flag-bottom-right icon-lightbulb"
                 :style="{'background-color': predColorByIndex(superpixel)}"
               />
@@ -1712,6 +1735,9 @@ export default Vue.extend({
 
 .preview-size-selector {
   margin-bottom: 5px;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
 }
 
 .chips-container {
@@ -1888,5 +1914,11 @@ export default Vue.extend({
 
 .disabled-label input {
   pointer-events: none;
+}
+
+.flag-options {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-evenly;
 }
 </style>
