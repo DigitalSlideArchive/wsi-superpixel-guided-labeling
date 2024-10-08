@@ -1291,6 +1291,7 @@ export default Vue.extend({
                 <button
                   class="btn btn-danger btn-xs"
                   :disabled="!firstComparison && !booleanOperator && !secondComparison"
+                  :style="{'margin-bottom': '3px'}"
                   @click="() => {firstComparison = booleanOperator = secondComparison = null}"
                 >
                   <i
