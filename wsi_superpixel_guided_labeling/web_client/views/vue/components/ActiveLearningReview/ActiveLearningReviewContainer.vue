@@ -1046,7 +1046,9 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ selectedComparisonText(firstComparison) || '(None)' }}
+                    <span class="overflow-text">
+                      {{ selectedComparisonText(firstComparison) || '(None)' }}
+                    </span>
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
@@ -1198,7 +1200,9 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
+                    <span class="overflow-text">
+                      {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
+                    </span>
                     <span class="caret" />
                   </button>
                   <ul class="dropdown-menu">
@@ -1714,7 +1718,7 @@ export default Vue.extend({
   margin-right: 3px;
 }
 
-.filter-text {
+.overflow-text {
   text-overflow: ellipsis;
   overflow: hidden;
 }
