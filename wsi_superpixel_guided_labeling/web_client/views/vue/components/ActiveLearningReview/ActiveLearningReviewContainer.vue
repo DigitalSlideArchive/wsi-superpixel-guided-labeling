@@ -1590,25 +1590,20 @@ export default Vue.extend({
                 data-target="#context"
                 @click.native="selectedSuperpixel = superpixel"
               />
-              <div
+              <i
                 v-if="!!superpixel.reviewValue"
-                class="flag chip-overlay"
-                :style="{'left': '-2px'}"
-              >
-                <i
-                  class="icon-user"
-                  :style="{'color': 'white'}"
-                />
-              </div>
+                class="flag-top-left icon-user"
+                :style="{'background-color': catColorByIndex(superpixel.reviewValue)}"
+              />
               <i
                 v-if="superpixel.selectedCategory >= 0 && labelFlag"
                 class="flag-bottom-left icon-tag"
-                :style="{'color': catColorByIndex(superpixel.selectedCategory)}"
+                :style="{'background-color': catColorByIndex(superpixel.selectedCategory)}"
               />
               <i
                 v-if="superpixel.prediction >= 0 && predictionFlag"
                 class="flag-bottom-right icon-lightbulb"
-                :style="{'color': predColorByIndex(superpixel)}"
+                :style="{'background-color': predColorByIndex(superpixel)}"
               />
               <input
                 v-show="selectingSuperpixels"
@@ -1816,23 +1811,13 @@ export default Vue.extend({
   top: -4px;
 }
 
-.flag {
-  background-color: #337ab7;
-  padding: 3px 3px 20px;
-  clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
-  border-radius: 2px;
-  float: left;
-  width: 25px;
-  top: -2px;
-}
-
 .flag-top-left {
   position: absolute;
   top: -2px;
   z-index: 100;
   font-size: 16px;
   border-radius: 18px;
-  background-color: white;
+  color: white;
   left: -2px;
 }
 
@@ -1842,7 +1827,7 @@ export default Vue.extend({
   z-index: 100;
   font-size: 16px;
   border-radius: 18px;
-  background-color: white;
+  color: white;
   left: -2px;
 }
 
@@ -1852,7 +1837,7 @@ export default Vue.extend({
   z-index: 100;
   font-size: 16px;
   border-radius: 18px;
-  background-color: white;
+  color: white;
   right: -2px;
 }
 
