@@ -1621,16 +1621,22 @@ export default Vue.extend({
                 v-if="!!superpixel.reviewValue"
                 class="flag-top-left icon-user"
                 :style="{'background-color': catColorByIndex(superpixel.reviewValue)}"
+                data-toggle="tooltip"
+                :title="`Review: ${superpixel.labelCategories[superpixel.reviewValue].label}`"
               />
               <i
                 v-if="superpixel.selectedCategory >= 0 && showFlags"
                 class="flag-bottom-left icon-tag"
                 :style="{'background-color': catColorByIndex(superpixel.selectedCategory)}"
+                data-toggle="tooltip"
+                :title="`Label: ${superpixel.labelCategories[superpixel.selectedCategory].label}`"
               />
               <i
                 v-if="superpixel.prediction >= 0 && showFlags"
                 class="flag-bottom-right icon-lightbulb"
                 :style="{'background-color': predColorByIndex(superpixel)}"
+                data-toggle="tooltip"
+                :title="`Prediction: ${superpixel.predictionCategories[superpixel.prediction].label}`"
               />
               <input
                 v-show="selectingSuperpixels"
