@@ -33,7 +33,9 @@ export default Vue.extend({
             observedSuperpixel: null,
             totalSuperpixels: 0,
             reviewTable: true,
-            openMenu: null
+            openMenu: null,
+            labelFlag: false,
+            showFlags: false
         };
     },
     computed: {
@@ -132,6 +134,18 @@ export default Vue.extend({
         cardDetails: {
             get() { return store.cardDetails; },
             set(value) { store.cardDetails = value; }
+        },
+        firstComparison: {
+            get() { return store.firstComparison; },
+            set(value) { store.firstComparison = value; }
+        },
+        secondComparison: {
+            get() { return store.secondComparison; },
+            set(value) { store.secondComparison = value; }
+        },
+        booleanOperator: {
+            get() { return store.booleanOperator; },
+            set(value) { store.booleanOperator = value; }
         }
     },
     watch: {
@@ -148,6 +162,12 @@ export default Vue.extend({
                 this.selectedSuperpixel = _.values(data)[0][0];
             }
             this.$nextTick(() => this.updateObserved());
+        },
+        firstComparison() {
+            this.showFlags = !!this.firstComparison && !!this.booleanOperator;
+        },
+        booleanOperator() {
+            this.showFlags = !!this.firstComparison && !!this.booleanOperator;
         }
     },
     mounted() {
@@ -286,6 +306,43 @@ export default Vue.extend({
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
+            // Filter by comparison
+            if (!!this.firstComparison && !!this.booleanOperator) {
+                // Select the appropriate comparison function
+                const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
+                const [key0, userID0] = this.firstComparison.split('_');
+                // If no second option is selected we should compare the first selection
+                // to all remaining options. Otherwise just compare to the second selection.
+                let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
+                if (this.secondComparison) {
+                    [key1, userID1, key2] = this.secondComparison.split('_');
+                }
+
+                results.push(_.filter(data, (superpixel) => {
+                    const values = [null, null, null];
+                    _.forEach([key0, key1, key2], (key, idx) => {
+                        const userID = idx === 0 ? userID0 : userID1;
+                        if (key === 'prediction') {
+                            values[idx] = superpixel.predictionCategories[superpixel.prediction];
+                        } else if (key === 'label') {
+                            if (!this.secondComparison || (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)) {
+                                values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
+                            }
+                        } else if (key === 'review') {
+                            if (!this.secondComparison || (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID)) {
+                                values[idx] = superpixel.labelCategories[superpixel.reviewValue];
+                            }
+                        }
+                        // As we support more complex options to add/remove/rename categories across epochs the
+                        // predictions categories and labels categories have a higher chance of diverging and we
+                        // shouldn't assume the same order in both lists. Compare label values instead.
+                        values[idx] = values[idx] ? values[idx].label : values[idx];
+                    });
+                    return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
+                           (!!values[0] && !!values[2] && op(values[0], values[2]));
+                }));
+            }
+
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
@@ -316,6 +373,10 @@ export default Vue.extend({
         },
         catColorByIndex(index) {
             return store.categories[index].fillColor;
+        },
+        predColorByIndex(superpixel) {
+            const prediction = superpixel.prediction;
+            return superpixel.predictionCategories[prediction].fillColor;
         },
         triggerRetrain() {
             this.backboneParent.retrain();
@@ -368,6 +429,32 @@ export default Vue.extend({
         },
         toggleOpenMenu(menu) {
             this.openMenu = this.openMenu === menu ? null : menu;
+        },
+        selectedComparisonText(selection) {
+            if (!selection || selection === 'prediction') {
+                return selection;
+            } else {
+                const [key, userID] = selection.split('_');
+                let user;
+                if (store.currentUser._id === userID) {
+                    user = store.currentUser;
+                } else {
+                    const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
+                        if (superpixel.meta) {
+                            return (
+                                (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) ||
+                              (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)
+                            );
+                        }
+                        return false;
+                    });
+                    user = superpixel.meta.labeler;
+                    if (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) {
+                        user = superpixel.meta.reviewer;
+                    }
+                }
+                return `${user.firstName} ${user.lastName} ${key}s`;
+            }
         }
     }
 });
@@ -549,7 +636,8 @@ export default Vue.extend({
             <label for="groupby">Group By</label>
             <div
               id="groupby"
-              class="dropdown-dropup"
+              :style="{'position': 'relative'}"
+              class="dropdown-dropup selector-with-button"
             >
               <button
                 class="btn btn-block btn-default dropdown-toggle dropdown-button"
@@ -559,10 +647,7 @@ export default Vue.extend({
                 {{ groupByOptions[groupBy] }}
                 <span class="caret" />
               </button>
-              <ul
-                class="dropdown-menu"
-                :style="{'top': 'auto'}"
-              >
+              <ul class="dropdown-menu">
                 <li
                   v-for="[key, value] in Object.entries(groupByOptions)"
                   :key="key"
@@ -584,12 +669,24 @@ export default Vue.extend({
                   </div>
                 </li>
               </ul>
+              <button
+                class="btn btn-danger btn-xs"
+                :disabled="groupBy === 0"
+                @click="groupBy === 0"
+              >
+                <i
+                  class="icon-minus-squared"
+                  data-toggle="tooltip"
+                  title="Clear grouping"
+                />
+              </button>
             </div>
           </div>
           <div>
             <label for="sortby">Sort By</label>
             <div
               id="sortby"
+              :style="{'position': 'relative'}"
               class="dropdown-dropup selector-with-button"
             >
               <button
@@ -600,10 +697,7 @@ export default Vue.extend({
                 {{ sortByOptions[sortBy] }}
                 <span class="caret" />
               </button>
-              <ul
-                class="dropdown-menu"
-                :style="{'top': 'auto'}"
-              >
+              <ul class="dropdown-menu">
                 <li
                   v-for="[key, value] in Object.entries(sortByOptions)"
                   :key="key"
@@ -626,7 +720,19 @@ export default Vue.extend({
                 </li>
               </ul>
               <button
-                class="btn btn-info btn-sm"
+                class="btn btn-danger btn-xs"
+                :style="{'margin-right': '3px'}"
+                :disabled="sortBy === 0"
+                @click="sortBy === 0"
+              >
+                <i
+                  class="icon-minus-squared"
+                  data-toggle="tooltip"
+                  title="Clear sort"
+                />
+              </button>
+              <button
+                class="btn btn-info btn-xs"
                 @click="sortAscending = !sortAscending"
               >
                 <i
@@ -713,7 +819,7 @@ export default Vue.extend({
                   </ul>
                 </div>
                 <button
-                  class="btn btn-danger btn-sm"
+                  class="btn btn-danger btn-xs"
                   :disabled="!filterOptions.Slides.some(name => filterBy.includes(name))"
                   @click="removeFilters(filterOptions.Slides)"
                 >
@@ -724,201 +830,474 @@ export default Vue.extend({
                   />
                 </button>
               </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('labels')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Labels
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
-                    <li
-                      v-for="(cat, index) in filterOptions.Labels"
-                      :key="`cat_${index}`"
-                    >
-                      <label
-                        :for="`cat_${index}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`cat_${index}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`label_${cat}`"
-                        >
-                        {{ cat }}
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
-                  @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
+              <div class="flex">
+                <div
+                  :style="{'position': 'relative', 'margin-right': '3px', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
                 >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
-              </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('reviews')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Reviews
-                      <span class="caret" />
-                    </span>
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('labels')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Labels
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="(cat, index) in filterOptions.Labels"
+                        :key="`cat_${index}`"
+                      >
+                        <label
+                          :for="`cat_${index}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`cat_${index}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`label_${cat}`"
+                          >
+                          {{ cat }}
+                        </label>
+                      </li>
+                    </ul>
                   </div>
-                  <ul :class="['dropdown-menu', openMenu === 'reviews' ? 'visible-menu' : 'hidden']">
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!filterOptions.Labels.some(cat => filterBy.includes(`label_${cat}`))"
+                    @click="removeFilters(filterOptions.Labels.map(cat => `label_${cat}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
+                <div
+                  :style="{'position': 'relative', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
+                >
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('reviews')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Reviews
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'reviews' ? 'visible-menu' : 'hidden']">
+                      <li>
+                        <label
+                          for="no review"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            id="no review"
+                            v-model="filterBy"
+                            type="checkbox"
+                            value="no review"
+                          >
+                          not reviewed
+                        </label>
+                      </li>
+                      <li
+                        v-for="(cat, index) in filterOptions.Reviews"
+                        :key="`review_${index}`"
+                      >
+                        <label
+                          :for="`review_${index}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`review_${index}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`review_${cat}`"
+                          >
+                          {{ cat }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
+                    @click="removeFilters(['no review', ...filterOptions.Reviews.map(cat => `review_${cat}`)])"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
+              </div>
+              <div class="flex">
+                <div
+                  :style="{'position': 'relative', 'margin-right': '3px', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
+                >
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('labeler')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Labeled By
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'labeler' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                        :key="`labeler_${key}`"
+                      >
+                        <label
+                          :for="`labeler_${key}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`labeler_${key}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`labeler_${key}`"
+                          >
+                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
+                    @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
+                <div
+                  :style="{'position': 'relative', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
+                >
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('reviewer')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Reviewed By
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                        :key="`reviewer_${key}`"
+                      >
+                        <label
+                          :for="`reviewer_${key}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`reviewer_${key}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`reviewer_${key}`"
+                          >
+                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!Object.keys(filterOptions.Reviewers).some(k => filterBy.includes(`reviewer_${k}`))"
+                    @click="removeFilters(Object.keys(filterOptions.Reviewers).map((k) => `reviewer_${k}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
+              </div>
+              <label for="comp">Filter By Comparison</label>
+              <div
+                id="comp"
+                class="flex"
+              >
+                <div
+                  class="dropdown-dropup selector-with-button"
+                  :style="{'width': '35%', 'position': 'relative'}"
+                >
+                  <button
+                    class="btn btn-block btn-default dropdown-toggle dropdown-button"
+                    type="button"
+                    data-toggle="dropdown"
+                  >
+                    <span class="overflow-text">
+                      {{ selectedComparisonText(firstComparison) || '(None)' }}
+                    </span>
+                    <span class="caret" />
+                  </button>
+                  <ul class="dropdown-menu">
                     <li>
-                      <label
-                        for="no review"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          id="no review"
-                          v-model="filterBy"
-                          type="checkbox"
-                          value="no review"
-                        >
-                        not reviewed
-                      </label>
+                      <div class="radio">
+                        <label for="no_selection_1">
+                          <input
+                            id="no_selection_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            :value="null"
+                            class="hidden-radio"
+                          >
+                          (None)
+                        </label>
+                      </div>
                     </li>
-                    <li
-                      v-for="(cat, index) in filterOptions.Reviews"
-                      :key="`review_${index}`"
-                    >
-                      <label
-                        :for="`review_${index}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`review_${index}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`review_${cat}`"
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="prediction_1"
+                          :class="['options', secondComparison === 'prediction' && 'disabled-label']"
                         >
-                        {{ cat }}
-                      </label>
+                          <input
+                            id="prediction_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            value="prediction"
+                            class="hidden-radio"
+                          >
+                          Predictions
+                        </label>
+                      </div>
                     </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!filterBy.includes('no review') && !filterOptions.Reviews.some(cat => filterBy.includes(`review_${cat}`))"
-                  @click="removeFilters(['no review', ...filterOptions.Reviews.map(cat => `review_${cat}`)])"
-                >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
-              </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('labeler')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Labeled By
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'labeler' ? 'visible-menu' : 'hidden']">
                     <li
                       v-for="[key, value] in Object.entries(filterOptions.Labelers)"
-                      :key="`labeler_${key}`"
+                      :key="`comp_labeler_${key}`"
                     >
-                      <label
-                        :for="`labeler_${key}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`labeler_${key}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`labeler_${key}`"
+                      <div class="radio">
+                        <label
+                          :for="`comp_labeler_${key}_1`"
+                          :class="['options', (!!secondComparison && secondComparison.startsWith('label')) && 'disabled-label']"
                         >
-                        {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }}
-                      </label>
+                          <input
+                            :id="`comp_labeler_${key}_1`"
+                            v-model="firstComparison"
+                            type="radio"
+                            :value="`label_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }} Labels
+                        </label>
+                      </div>
                     </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
-                  @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
-                >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
-              </div>
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('reviewer')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Reviewed By
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
                     <li
                       v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
-                      :key="`reviewer_${key}`"
+                      :key="`comp_reviewer_${key}`"
                     >
-                      <label
-                        :for="`reviewer_${key}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`reviewer_${key}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="`reviewer_${key}`"
+                      <div class="radio">
+                        <label
+                          :for="`comp_reviewer_${key}_1`"
+                          :class="['options', (!!secondComparison && secondComparison.startsWith('review')) && 'disabled-label']"
                         >
-                        {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }}
-                      </label>
+                          <input
+                            :id="`comp_reviewer_${key}_1`"
+                            v-model="firstComparison"
+                            type="radio"
+                            :value="`review_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }} Reviews
+                        </label>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="dropdown-dropup selector-with-button"
+                  :style="{'width': '30%', 'position': 'relative'}"
+                >
+                  <button
+                    class="btn btn-block btn-default dropdown-toggle dropdown-button"
+                    type="button"
+                    data-toggle="dropdown"
+                  >
+                    {{ booleanOperator || '(None)' }}
+                    <span class="caret" />
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="no_selection_2"
+                          class="options"
+                        >
+                          <input
+                            id="no_selection_2"
+                            v-model="booleanOperator"
+                            type="radio"
+                            :value="null"
+                            class="hidden-radio"
+                          >
+                          (None)
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="matches"
+                          class="options"
+                        >
+                          <input
+                            id="matches"
+                            v-model="booleanOperator"
+                            type="radio"
+                            value="matches"
+                            class="hidden-radio"
+                          >
+                          matches
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="differsFrom"
+                          class="options"
+                        >
+                          <input
+                            id="differsFrom"
+                            v-model="booleanOperator"
+                            type="radio"
+                            value="differs from"
+                            class="hidden-radio"
+                          >
+                          differs from
+                        </label>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="dropdown-dropup selector-with-button"
+                  :style="{'width': '35%', 'position': 'relative'}"
+                >
+                  <button
+                    class="btn btn-block btn-default dropdown-toggle dropdown-button"
+                    type="button"
+                    data-toggle="dropdown"
+                  >
+                    <span class="overflow-text">
+                      {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
+                    </span>
+                    <span class="caret" />
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <div
+                        class="radio"
+                        :disabled="firstComparison === 'prediction'"
+                      >
+                        <label
+                          for="any"
+                          :class="['options', firstComparison === 'prediction' && 'disabled-label']"
+                        >
+                          <input
+                            id="any"
+                            v-model="secondComparison"
+                            type="radio"
+                            :value="null"
+                            class="hidden-radio"
+                          >
+                          Any
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div
+                        class="radio"
+                        :disabled="firstComparison === 'prediction'"
+                      >
+                        <label
+                          for="prediction_2"
+                          :class="['options', firstComparison === 'prediction' && 'disabled-label']"
+                        >
+                          <input
+                            id="prediction_2"
+                            v-model="secondComparison"
+                            type="radio"
+                            value="prediction"
+                            class="hidden-radio"
+                          >
+                          Predictions
+                        </label>
+                      </div>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                      :key="`comp_labeler_${key}_2`"
+                    >
+                      <div class="radio">
+                        <label
+                          :for="`comp_labeler_${key}_2`"
+                          :class="['options', (!!firstComparison && firstComparison.startsWith('label')) && 'disabled-label']"
+                        >
+                          <input
+                            :id="`comp_labeler_${key}_2`"
+                            v-model="secondComparison"
+                            type="radio"
+                            :value="`label_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }} Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li
+                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                      :key="`comp_reviewer_${key}_2`"
+                    >
+                      <div class="radio">
+                        <label
+                          :for="`comp_reviewer_${key}_2`"
+                          :class="['options', (!!firstComparison && firstComparison.startsWith('review')) && 'disabled-label']"
+                        >
+                          <input
+                            :id="`comp_reviewer_${key}_2`"
+                            v-model="secondComparison"
+                            type="radio"
+                            :value="`review_${key}`"
+                            class="hidden-radio"
+                          >
+                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }} Reviews
+                        </label>
+                      </div>
                     </li>
                   </ul>
                 </div>
                 <button
-                  class="btn btn-danger btn-sm"
-                  :disabled="!Object.keys(filterOptions.Reviewers).some(k => filterBy.includes(`reviewer_${k}`))"
-                  @click="removeFilters(Object.keys(filterOptions.Reviewers).map((k) => `reviewer_${k}`))"
+                  class="btn btn-danger btn-xs"
+                  :disabled="!firstComparison && !booleanOperator && !secondComparison"
+                  :style="{'margin-bottom': '3px'}"
+                  @click="() => {firstComparison = booleanOperator = secondComparison = null}"
                 >
                   <i
                     class="icon-minus-squared"
                     data-toggle="tooltip"
-                    title="Clear all filters"
+                    title="Clear comparison filters"
                   />
                 </button>
               </div>
@@ -947,24 +1326,49 @@ export default Vue.extend({
           id="view"
           class="panel-body collapse in"
         >
-          <div class="preview-size-selector">
-            <label for="sizeSelector">Preview Size</label>
-            <input
-              id="sizeSelector"
-              v-model="previewSize"
-              type="range"
-              name="sizeSelector"
-              list="markers"
-              :step="0.25"
-              :min="0.25"
-              :max="1.0"
-            >
-            <datalist id="markers">
-              <option :value="0.25" />
-              <option :value="0.50" />
-              <option :value="0.75" />
-              <option :value="1.00" />
-            </datalist>
+          <div :style="{'display': 'flex'}">
+            <div class="preview-size-selector">
+              <label
+                for="sizeSelector"
+                :style="{'text-wrap': 'nowrap'}"
+              >Preview Size</label>
+              <input
+                id="sizeSelector"
+                v-model="previewSize"
+                type="range"
+                name="sizeSelector"
+                list="markers"
+                :step="0.25"
+                :min="0.25"
+                :max="1.0"
+              >
+              <datalist id="markers">
+                <option :value="0.25" />
+                <option :value="0.50" />
+                <option :value="0.75" />
+                <option :value="1.00" />
+              </datalist>
+            </div>
+            <div class="flag-options">
+              <label
+                for="flagVisibility"
+                :style="{'margin': '0px 5px'}"
+              >Flags</label>
+              <button
+                id="flagVisibility"
+                class="btn btn-xs"
+                @click="showFlags = !showFlags"
+              >
+                <i
+                  v-if="showFlags"
+                  class="icon-eye-off"
+                />
+                <i
+                  v-else
+                  class="icon-eye"
+                />
+              </button>
+            </div>
           </div>
           <div
             :style="{'position': 'relative'}"
@@ -1118,7 +1522,10 @@ export default Vue.extend({
             >
               Approve
             </button>
-            <div class="dropdown-dropup btn-group-two">
+            <div
+              class="dropdown-dropup btn-group-two"
+              :style="{'position': 'relative'}"
+            >
               <button
                 class="btn btn-primary dropdown-toggle btn-block"
                 :style="{'text-wrap': 'pretty'}"
@@ -1211,16 +1618,27 @@ export default Vue.extend({
                 data-target="#context"
                 @click.native="selectedSuperpixel = superpixel"
               />
-              <div
+              <i
                 v-if="!!superpixel.reviewValue"
-                class="flag chip-overlay"
-                :style="{'left': '-2px'}"
-              >
-                <i
-                  class="icon-user"
-                  :style="{'color': 'white'}"
-                />
-              </div>
+                class="flag-top-left icon-user"
+                :style="{'background-color': catColorByIndex(superpixel.reviewValue)}"
+                data-toggle="tooltip"
+                :title="`Review: ${superpixel.labelCategories[superpixel.reviewValue].label}`"
+              />
+              <i
+                v-if="superpixel.selectedCategory >= 0 && showFlags"
+                class="flag-bottom-left icon-tag"
+                :style="{'background-color': catColorByIndex(superpixel.selectedCategory)}"
+                data-toggle="tooltip"
+                :title="`Label: ${superpixel.labelCategories[superpixel.selectedCategory].label}`"
+              />
+              <i
+                v-if="superpixel.prediction >= 0 && showFlags"
+                class="flag-bottom-right icon-lightbulb"
+                :style="{'background-color': predColorByIndex(superpixel)}"
+                data-toggle="tooltip"
+                :title="`Prediction: ${superpixel.predictionCategories[superpixel.prediction].label}`"
+              />
               <input
                 v-show="selectingSuperpixels"
                 v-model="selectedReviewSuperpixels"
@@ -1307,7 +1725,7 @@ export default Vue.extend({
   margin-right: 3px;
 }
 
-.filter-text {
+.overflow-text {
   text-overflow: ellipsis;
   overflow: hidden;
 }
@@ -1328,6 +1746,9 @@ export default Vue.extend({
 
 .preview-size-selector {
   margin-bottom: 5px;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
 }
 
 .chips-container {
@@ -1427,14 +1848,34 @@ export default Vue.extend({
   top: -4px;
 }
 
-.flag {
-  background-color: #337ab7;
-  padding: 3px 3px 20px;
-  clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 65%, 0 50%);
-  border-radius: 2px;
-  float: left;
-  width: 25px;
+.flag-top-left {
+  position: absolute;
   top: -2px;
+  z-index: 100;
+  font-size: 16px;
+  border-radius: 18px;
+  color: white;
+  left: -2px;
+}
+
+.flag-bottom-left {
+  position: absolute;
+  bottom: -2px;
+  z-index: 100;
+  font-size: 16px;
+  border-radius: 18px;
+  color: white;
+  left: -2px;
+}
+
+.flag-bottom-right {
+  position: absolute;
+  bottom: -2px;
+  z-index: 100;
+  font-size: 16px;
+  border-radius: 18px;
+  color: white;
+  right: -2px;
 }
 
 .h-superpixel-card {
@@ -1471,5 +1912,24 @@ export default Vue.extend({
 .visible-menu {
   display: block;
   padding: 10px 5px 5px 10px;
+}
+
+.flex {
+  display: flex;
+}
+
+.disabled-label {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.disabled-label input {
+  pointer-events: none;
+}
+
+.flag-options {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-evenly;
 }
 </style>
