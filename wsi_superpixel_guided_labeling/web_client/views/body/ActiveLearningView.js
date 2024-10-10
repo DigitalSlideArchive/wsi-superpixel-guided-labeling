@@ -818,12 +818,6 @@ const ActiveLearningView = View.extend({
             url: `annotation/${annotation.id}/metadata`,
             data: JSON.stringify({ metadata }),
             contentType: 'application/json'
-        }).then(() => {
-            store.reviewedSuperpixels = _.reduce(_.values(this.annotationsByImageId), (acc, ann) => {
-                const attrs = ann.labels.get('annotation').attributes;
-                return acc + _.size(_.pick(attrs.metadata, (v) => v.reviewEpoch === store.epoch));
-            }, 0);
-            return store.reviewedSuperpixels;
         });
     },
 

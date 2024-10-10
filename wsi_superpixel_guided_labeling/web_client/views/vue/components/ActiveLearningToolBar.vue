@@ -17,9 +17,6 @@ export default Vue.extend({
         },
         activeLearningSteps() {
             return activeLearningSteps;
-        },
-        reviewedSuperpixels() {
-            return store.reviewedSuperpixels;
         }
     },
     methods: {
@@ -65,10 +62,6 @@ export default Vue.extend({
         @click="changeMode(viewMode.Review)"
       >
         <i class="icon-th" /> Review
-        <span
-          v-if="reviewedSuperpixels > 0"
-          class="badge"
-        >{{ reviewedSuperpixels }}</span>
       </button>
     </div>
   </div>
