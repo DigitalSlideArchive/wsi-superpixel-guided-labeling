@@ -312,7 +312,7 @@ export default Vue.extend({
                 const fillColor = getFillColor(store.categoriesAndIndices.length);
                 store.categoriesAndIndices.push({
                     category: {
-                        label: 'New Category',
+                        label: 'New Label',
                         fillColor,
                         strokeColor: boundaryColor
                     },

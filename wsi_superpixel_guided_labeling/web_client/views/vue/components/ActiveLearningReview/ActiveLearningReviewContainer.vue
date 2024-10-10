@@ -594,7 +594,7 @@ export default Vue.extend({
           href="#categories"
           @click="categoriesPanelCollapsed = !categoriesPanelCollapsed"
         >
-          Categories
+          Labels
           <i
             v-if="categoriesPanelCollapsed"
             class="icon-angle-down"
@@ -1396,7 +1396,7 @@ export default Vue.extend({
                       type="checkbox"
                       value="selectedCategory"
                     >
-                    Class Name
+                    Label Name
                   </label>
                 </li>
                 <li>
@@ -1533,7 +1533,7 @@ export default Vue.extend({
                 data-toggle="dropdown"
                 :disabled="selectedReviewSuperpixels.length < 1"
               >
-                Change Class
+                Change Label
                 <span class="caret" />
               </button>
               <ul

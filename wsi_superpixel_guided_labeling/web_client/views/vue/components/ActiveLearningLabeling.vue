@@ -26,7 +26,7 @@ export default Vue.extend({
             showLabelingContainer: true,
             editingLabel: -1,
             checkedCategories: [],
-            currentCategoryLabel: 'New Category',
+            currentCategoryLabel: 'New Label',
             currentCategoryFillColor: getFillColor(0),
             editingHotkey: -1,
             currentHotkeyInput: []
@@ -52,7 +52,7 @@ export default Vue.extend({
             const errors = [];
             const counts = _.map(Object.keys(this.labeledSuperpixelCounts), (entry) => this.labeledSuperpixelCounts[entry].count);
             if (_.filter(counts, (count) => count > 0).length < 2) {
-                errors.push('You must label superpixels for at least two different categories.');
+                errors.push('You must label superpixels for at least two different labels.');
             }
             return errors;
         },
@@ -222,7 +222,7 @@ export default Vue.extend({
          *************************/
         addCategory(newName, newFillColor) {
             if (_.isUndefined(newName)) {
-                newName = 'New Category';
+                newName = 'New Label';
             }
             if (_.isUndefined(newFillColor)) {
                 const idx = store.categoriesAndIndices.length || 0;
@@ -320,7 +320,7 @@ export default Vue.extend({
             this.$emit('combine');
         },
         mergeCategory(newLabel, newFillColor) {
-            this.addCategory('Merged Categories', newFillColor);
+            this.addCategory('Merged Labels', newFillColor);
             this.combineCategories(this.checkedCategories, true);
             _.last(store.categoriesAndIndices).category.label = this.enforceUniqueName(newLabel);
         },
@@ -347,9 +347,9 @@ export default Vue.extend({
                     return _.contains(predictions, labels[i + 1].label);
                 });
             });
-            const predictionsWarning = `Deleting a category with predictions will
+            const predictionsWarning = `Deleting a label with predictions will
                                         immediately force retraining to run.`;
-            const labelingWarning = `Deleting categories cannot be undone.`;
+            const labelingWarning = `Deleting labels cannot be undone.`;
             const message = `${hasPredictions ? predictionsWarning : labelingWarning}
                             Are you sure you want to delete all ${labelCounts} labeled
                             superpixels?`;
@@ -669,7 +669,7 @@ export default Vue.extend({
                 class="btn btn-danger btn-xs"
                 :disabled="checkedCategories.length < 1"
                 data-toggle="tooltip"
-                title="Delete category"
+                title="Delete label"
                 @click="() => deleteCategory(checkedCategories)"
               >
                 <i class="icon-trash" />
@@ -694,7 +694,7 @@ export default Vue.extend({
             :disabled="!currentCategoryFormValid"
             @click="() => addCategory()"
           >
-            <i class="icon-plus" /> Add Category
+            <i class="icon-plus" /> Add Label
           </button>
         </div>
       </div>
