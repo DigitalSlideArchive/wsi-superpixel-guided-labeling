@@ -123,7 +123,7 @@ const updatePixelmapLayerStyle = () => {
                     d += 1;
                 }
                 if (d < 0 || d >= store.categories.length) {
-                    console.warn(`No category found at index ${d} in the category map.`);
+                    console.warn(`No label found at index ${d} in the label map.`);
                     return 'rgba(0, 0, 0, 0)';
                 }
                 const category = store.categories[d];

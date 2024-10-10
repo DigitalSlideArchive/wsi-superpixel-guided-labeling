@@ -13,7 +13,7 @@ export default Vue.extend({
     data() {
         return {
             currentCategoryFillColor: 'rgba(0, 0, 0, 0.5)',
-            categoryName: 'Merged Categories'
+            categoryName: 'Merged Labels'
         };
     },
     computed: {
@@ -22,8 +22,8 @@ export default Vue.extend({
             const labelCounts = _.reduce([...store.selectedLabels.values()], (acc, selected) => {
                 return acc + selected.count;
             }, 0);
-            const message = `This will combine ${numCategories} categories into
-                          one category containing all ${labelCounts} labeled
+            const message = `This will combine ${numCategories} labels into
+                          one label containing all ${labelCounts} labeled
                           superpixels.`;
             return message;
         },
@@ -80,11 +80,11 @@ export default Vue.extend({
             &times;
           </button>
           <h4 class="modal-title">
-            Merge Categories
+            Merge Labels
           </h4>
         </div>
         <div class="modal-body">
-          <p> WARNING: Merging categories cannot be undone. {{ warningMessage }} </p>
+          <p> WARNING: Merging labels cannot be undone. {{ warningMessage }} </p>
           <div class="form-group h-form-inputs">
             <label for="usr">New Name:</label>
             <input

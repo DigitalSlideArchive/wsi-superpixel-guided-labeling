@@ -51,14 +51,14 @@ export const activeLearningSteps = {
 export const groupByOptions = {
     0: '(None)',
     1: 'Slide',
-    2: 'Class',
+    2: 'Label',
     3: 'Agree/Disagree'
 };
 
 export const sortByOptions = {
     0: '(None)',
     1: 'Slide',
-    2: 'Class',
+    2: 'Label',
     3: 'Agree/Disagree',
     4: 'Confidence',
     5: 'Certainty'

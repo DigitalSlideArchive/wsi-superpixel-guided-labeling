@@ -194,7 +194,7 @@ export default Vue.extend({
             :value="categoryIndex(category.label)"
             class="h-superpixel-select-option"
           >
-            Class: {{ category.label }}
+            Label: {{ category.label }}
           </option>
         </select>
       </div>
