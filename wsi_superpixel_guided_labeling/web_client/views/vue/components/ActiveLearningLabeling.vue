@@ -118,6 +118,9 @@ export default Vue.extend({
         },
         activeLearningSteps() {
             return activeLearningSteps;
+        },
+        exclusions() {
+            return store.exclusions;
         }
     },
     watch: {
@@ -207,6 +210,9 @@ export default Vue.extend({
                     this.$nextTick(() => el.focus());
                 }
             }
+        },
+        exclusions() {
+            store.backboneParent.updateHistomicsYamlConfig();
         }
     },
     mounted() {
@@ -488,6 +494,14 @@ export default Vue.extend({
             this.currentHotkeyInput = this.parseUserHotkeys(event);
             this.commitHotkeyChange();
         },
+        updateExclusions(index) {
+            if (store.exclusions.includes(index)) {
+                const pos = store.exclusions.indexOf(index);
+                store.exclusions.splice(pos, 1);
+            } else {
+                store.exclusions.push(index);
+            }
+        },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
@@ -572,6 +586,7 @@ export default Vue.extend({
                 v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
                 :key="index"
                 :class="{'h-selected-row': categoryIndex === index && mode === viewMode.Labeling}"
+                :style="[exclusions.includes(index) && {'color': 'red'}]"
                 @click="selectCategory(index)"
               >
                 <td v-if="editingHotkey === index">
@@ -657,8 +672,12 @@ export default Vue.extend({
                     :style="{'background-color': 'transparent'}"
                     data-toggle="tooltip"
                     title="Exclude from training"
+                    @click="updateExclusions(index)"
                   >
-                    <i class="icon-block" />
+                    <i
+                      class="icon-block"
+                      :style="[exclusions.includes(index) && {'color': 'red'}]"
+                    />
                   </button>
                 </td>
                 <td v-if="mode === viewMode.Labeling">

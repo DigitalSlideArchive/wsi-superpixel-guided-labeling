@@ -662,13 +662,15 @@ const ActiveLearningView = View.extend({
         const data = this.generateClassificationJobData();
         data.jobId = this.lastRunJobId;
         data.randomInput = false;
+        const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
             data: {
                 jobId: this.lastRunJobId,
                 randominput: false,
-                train: true
+                train: true,
+                exclude: excluded
             }
         }).done((job) => {
             store.page = 0;

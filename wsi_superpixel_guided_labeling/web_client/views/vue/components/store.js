@@ -26,6 +26,7 @@ const store = Vue.observable({
     currentUser: null,
     epoch: -1,
     userNames: {},
+    exclusions: [],
     /*********
      * UI
      *********/
