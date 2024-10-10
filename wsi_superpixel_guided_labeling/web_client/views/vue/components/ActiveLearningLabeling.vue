@@ -652,6 +652,16 @@ export default Vue.extend({
                     title="Change label color"
                   />
                 </td>
+                <td>
+                  <button
+                    class="btn btn-xs"
+                    :style="{'background-color': 'transparent'}"
+                    data-toggle="tooltip"
+                    title="Exclude from training"
+                  >
+                    <i class="icon-block" />
+                  </button>
+                </td>
                 <td v-if="mode === viewMode.Labeling">
                   <input
                     v-model="checkedCategories"
@@ -702,7 +712,10 @@ export default Vue.extend({
         v-if="!currentCategoryFormValid || !currentLabelsValid"
         class="h-error-messages"
       >
-        <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
+        <ul
+          v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0"
+          :style="{'padding-left': '10px'}"
+        >
           <li
             v-for="error in currentFormErrors"
             :key="error"
@@ -758,7 +771,7 @@ export default Vue.extend({
     position: absolute;
     top: 60px;
     left: 5px;
-    width: 400px;
+    width: 415px;
     display: flex;
     flex-direction: column;
     background-color: #fff;
@@ -836,7 +849,6 @@ tr:hover .editing-icons {
 }
 
 .h-error-messages {
-    padding-top: 25px;
     height: 100%;
 }
 
