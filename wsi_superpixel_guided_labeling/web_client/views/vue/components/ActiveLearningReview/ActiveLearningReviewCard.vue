@@ -81,12 +81,23 @@ export default Vue.extend({
         },
         reviewerCategorySelection: {
             get() {
-                return this.superpixel.reviewValue || this.superpixel.selectedCategory;
+                if (!_.isNumber(this.superpixel.reviewValue)) {
+                    return this.superpixel.selectedCategory;
+                }
+                return this.superpixel.reviewValue;
             },
-            set(newCategory, oldCategory) {
-                if (newCategory === oldCategory) {
+            set(newCategory) {
+                if (newCategory === this.superpixel.reviewValue) {
                     return;
                 }
+
+                if (newCategory === 0) {
+                    // Index (newCategory) 0 indicates "Approve" or "Clear Review". If we are approving
+                    // then we are setting the reviewValue to the selectedCategory. If we are clearing the
+                    // review we are setting the reviewValue to null.
+                    newCategory = this.superpixel.reviewValue ? null : this.superpixel.selectedCategory;
+                }
+
                 updateMetadata(this.superpixel, newCategory, true);
                 store.backboneParent.saveAnnotationReviews(this.superpixel.imageId);
             }
@@ -94,7 +105,7 @@ export default Vue.extend({
     },
     watch: {
         reviewValue(newCategory, oldCategory) {
-            if (newCategory === oldCategory) {
+            if (newCategory === oldCategory || this.reviewerCategorySelection === newCategory) {
                 return;
             }
             this.reviewerCategorySelection = newCategory;
@@ -142,7 +153,7 @@ export default Vue.extend({
         v-model="reviewerCategorySelection"
         class="categories-selector"
       >
-        <option :value="!superpixel.reviewValue ? 0 : null">
+        <option :value="0">
           {{ !superpixel.reviewValue ? 'Approve' : 'Clear Review' }}
         </option>
         <option

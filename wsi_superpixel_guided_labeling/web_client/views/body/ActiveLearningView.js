@@ -377,8 +377,8 @@ const ActiveLearningView = View.extend({
                             const annotation = backboneModel.get('annotation');
                             if (!_.has(annotation.attributes, 'metadata')) {
                                 annotation.attributes.metadata = {};
+                                this.saveAnnotationReviews(imageId);
                             }
-                            this.saveAnnotationReviews(imageId);
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
                             }
