@@ -400,7 +400,7 @@ export default Vue.extend({
                 updateMetadata(superpixel, newValue, true);
             });
             _.forEach(_.keys(store.annotationsByImageId),
-                (imageId) => store.backboneParent.saveAnnotationReviews(imageId));
+                (imageId) => store.backboneParent.updateAnnotationMetadata(imageId));
             this.selectedReviewSuperpixels = [];
             this.selectingSuperpixels = false;
         },

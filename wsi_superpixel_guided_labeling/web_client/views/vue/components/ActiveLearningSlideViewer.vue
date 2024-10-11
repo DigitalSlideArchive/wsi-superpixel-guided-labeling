@@ -442,7 +442,7 @@ export default Vue.extend({
                 };
             }
             updateMetadata(superpixel, newLabel, false);
-            store.backboneParent.saveAnnotationReviews(store.currentImageId);
+            store.backboneParent.updateAnnotationMetadata(store.currentImageId);
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);

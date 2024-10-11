@@ -377,7 +377,7 @@ const ActiveLearningView = View.extend({
                             const annotation = backboneModel.get('annotation');
                             if (!_.has(annotation.attributes, 'metadata')) {
                                 annotation.attributes.metadata = {};
-                                this.saveAnnotationReviews(imageId);
+                                this.updateAnnotationMetadata(imageId);
                             }
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
@@ -810,7 +810,7 @@ const ActiveLearningView = View.extend({
     /**
      * Update the annotation metadata
      */
-    saveAnnotationReviews(imageId) {
+    updateAnnotationMetadata(imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
         const metadata = annotation.get('annotation').attributes.metadata;
         restRequest({
