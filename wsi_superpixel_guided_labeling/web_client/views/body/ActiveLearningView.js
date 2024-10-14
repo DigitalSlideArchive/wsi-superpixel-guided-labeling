@@ -815,7 +815,7 @@ const ActiveLearningView = View.extend({
         let metadata = annotation.get('annotation').attributes.metadata;
         // We used to store the entire user object but now expect to only store
         // the user id string. Update old metadata to maintain compatability.
-        metadata = _.map(metadata, (meta) => {
+        metadata = _.mapObject(metadata, (meta) => {
             if (!!meta) {
                 if (_.isObject(meta.labeler)) {
                     meta.labeler = meta.labeler._id;

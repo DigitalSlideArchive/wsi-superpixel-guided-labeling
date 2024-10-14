@@ -296,7 +296,7 @@ export default Vue.extend({
             }
             if (store.filterBy.includes('no review')) {
                 reviewResults.push(..._.filter(data, (superpixel) => {
-                    return !_.isNumber(superpixel.meta.reviewValue);
+                    return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
             reviewResults.length && results.push(reviewResults);
@@ -304,7 +304,7 @@ export default Vue.extend({
             const labelers = this.filterOptions.Labelers;
             if (_.some(labelers, (id) => store.filterBy.includes(`labeler_${id}`))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const id = superpixel.meta.labeler || '';
+                    const id = !!superpixel.meta ? superpixel.meta.labeler : '';
                     return store.filterBy.includes(`labeler_${id}`);
                 }));
             }
@@ -312,7 +312,7 @@ export default Vue.extend({
             const reviewers = this.filterOptions.Reviewers;
             if (_.some(reviewers, (id) => store.filterBy.includes(`reviewer_${id}`))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const id = superpixel.meta.reviewer || '';
+                    const id = !!superpixel.meta ? superpixel.meta.reviewer : '';
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
@@ -335,11 +335,11 @@ export default Vue.extend({
                         if (key === 'prediction') {
                             values[idx] = superpixel.predictionCategories[superpixel.prediction];
                         } else if (key === 'label') {
-                            if (!this.secondComparison || (!!superpixel.meta.labeler === userID)) {
+                            if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
                                 values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
                             }
                         } else if (key === 'review') {
-                            if (!this.secondComparison || (!!superpixel.meta.reviewer === userID)) {
+                            if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
                                 values[idx] = superpixel.labelCategories[superpixel.reviewValue];
                             }
                         }
@@ -450,12 +450,14 @@ export default Vue.extend({
                         }
                         return false;
                     });
+                    if (!superpixel) {
+                      return '';
+                    }
                     user = superpixel.meta.labeler;
                     if (!!superpixel.meta.reviewer === userID) {
                         user = superpixel.meta.reviewer;
                     }
                 }
-
                 return store.userNames[user];
             }
         }
@@ -533,15 +535,15 @@ export default Vue.extend({
                   <td>Label</td>
                   <td>{{ selectedSuperpixel.labelCategories[selectedSuperpixel.selectedCategory].label }}</td>
                 </tr>
-                <tr>
+                <tr v-if="currentMetadata">
                   <td>Labeler</td>
                   <td>{{ userNames[currentMetadata.labeler] }}</td>
                 </tr>
-                <tr>
+                <tr v-if="currentMetadata">
                   <td>Date</td>
                   <td>{{ currentMetadata.labelDate }}</td>
                 </tr>
-                <tr>
+                <tr v-if="currentMetadata">
                   <td>Epoch</td>
                   <td>{{ currentMetadata.labelEpoch }}</td>
                 </tr>
