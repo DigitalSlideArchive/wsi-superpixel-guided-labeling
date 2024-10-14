@@ -121,8 +121,7 @@ export default Vue.extend({
                 if (!store.changeLog.length) {
                     return;
                 }
-                const change = store.changeLog.pop();
-                store.backboneParent.saveAnnotations([change.imageId]);
+                this.changeLog.pop();
                 this.drawPixelmapAnnotation();
             },
             deep: true

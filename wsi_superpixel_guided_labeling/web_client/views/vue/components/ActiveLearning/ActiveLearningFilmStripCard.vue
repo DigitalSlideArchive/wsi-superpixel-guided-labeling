@@ -138,9 +138,6 @@ export default Vue.extend({
         selectSuperpixelCard() {
             store.selectedIndex = this.index;
         },
-        onCategorySelectChange() {
-            store.changeLog.push(this.superpixelDecision);
-        },
         /**
          * Have a way to map between different lists of categories so that when we set the category for
          * the current superpixel, we use the right index.
