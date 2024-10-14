@@ -377,8 +377,8 @@ const ActiveLearningView = View.extend({
                             const annotation = backboneModel.get('annotation');
                             if (!_.has(annotation.attributes, 'metadata')) {
                                 annotation.attributes.metadata = {};
-                                this.updateAnnotationMetadata(imageId);
                             }
+                            this.updateAnnotationMetadata(imageId);
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
                             }
@@ -812,7 +812,17 @@ const ActiveLearningView = View.extend({
      */
     updateAnnotationMetadata(imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
-        const metadata = annotation.get('annotation').attributes.metadata;
+        let metadata = annotation.get('annotation').attributes.metadata;
+        // We used to store the entire user object but now expect to only store
+        // the user id string. Update old metadata to maintain compatability.
+        metadata = _.map(metadata, (meta) => {
+            if (_.isObject(meta.labeler)) {
+                meta.labeler = meta.labeler._id;
+            }
+            if (_.isObject(meta.reviewer)) {
+                meta.reviewer = meta.reviewer._id;
+            }
+        });
         restRequest({
             type: 'PUT',
             url: `annotation/${annotation.id}/metadata`,
@@ -828,8 +838,28 @@ const ActiveLearningView = View.extend({
         restRequest({
             url: 'user/me'
         }).then((user) => {
-            store.currentUser = user;
+            store.currentUser = user._id;
+            store.userNames[user._id] = `${user.firstName} ${user.lastName}`;
             return store.currentUser;
+        });
+    },
+
+    /**
+     * Get the requested user.
+     * @param {string} userId
+     * @returns user's first and last name
+     */
+    getUser(userId) {
+        if (userId in store.userNames) {
+            return;
+        }
+
+        restRequest({
+            url: `user/${userId}`
+        }).then((user) => {
+            // This is the first time we've fetched this user, cache their name
+            store.userNames[userId] = `${user.firstName} ${user.lastName}`;
+            return store.userNames[userId];
         });
     }
 });

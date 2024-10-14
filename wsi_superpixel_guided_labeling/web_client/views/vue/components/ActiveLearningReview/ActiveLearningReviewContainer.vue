@@ -35,7 +35,8 @@ export default Vue.extend({
             reviewTable: true,
             openMenu: null,
             labelFlag: false,
-            showFlags: false
+            showFlags: false,
+            currentMetadata: null,
         };
     },
     computed: {
@@ -83,14 +84,14 @@ export default Vue.extend({
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
-            const labelers = _.groupBy(meta, (entry) => entry.labeler && entry.labeler._id);
-            const reviewers = _.groupBy(meta, (entry) => entry.reviewer && entry.reviewer._id);
+            const labelers = _.compact(_.uniq(_.pluck(meta, 'labeler')));
+            const reviewers = _.compact(_.uniq(_.pluck(meta, 'reviewer')));
             return {
                 Slides: slides,
                 Labels: categories,
                 Reviews: categories,
-                Labelers: _.omit(labelers, [undefined, null]),
-                Reviewers: _.omit(reviewers, [undefined, null])
+                Labelers: labelers,
+                Reviewers: reviewers
             };
         },
         imageItemsById() {
@@ -146,11 +147,16 @@ export default Vue.extend({
         booleanOperator: {
             get() { return store.booleanOperator; },
             set(value) { store.booleanOperator = value; }
-        }
+        },
+        userNames() {
+            return store.userNames;
+        },
     },
     watch: {
         selectedSuperpixel() {
+            const { meta } = this.selectedSuperpixel;
             store.reviewSuperpixel = this.selectedSuperpixel || null;
+            this.currentMetadata = meta;
         },
         filteredSortedGroupedSuperpixels(data) {
             if (this.observedSuperpixel) {
@@ -214,7 +220,11 @@ export default Vue.extend({
             document.addEventListener('mousemove', this.mouseMove);
             document.addEventListener('mouseup', () => { this.isResizing = false; });
         });
+
+        // Pre-fetch all user names
         this.backboneParent.getCurrentUser();
+        const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
+        _.forEach(_.uniq(allUsers), (id) => store.backboneParent.getUser(id));
     },
     destroyed() {
         const resizeHandle = document.querySelector('.resize-handle');
@@ -292,17 +302,17 @@ export default Vue.extend({
             reviewResults.length && results.push(reviewResults);
             // Filter by labeler
             const labelers = this.filterOptions.Labelers;
-            if (_.some(_.keys(labelers), (id) => store.filterBy.includes(`labeler_${id}`))) {
+            if (_.some(labelers, (id) => store.filterBy.includes(`labeler_${id}`))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const id = superpixel.meta.labeler ? superpixel.meta.labeler._id : '';
+                    const id = superpixel.meta.labeler || '';
                     return store.filterBy.includes(`labeler_${id}`);
                 }));
             }
             // Filter by reviewer
             const reviewers = this.filterOptions.Reviewers;
-            if (_.some(_.keys(reviewers), (id) => store.filterBy.includes(`reviewer_${id}`))) {
+            if (_.some(reviewers, (id) => store.filterBy.includes(`reviewer_${id}`))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const id = superpixel.meta.reviewer ? superpixel.meta.reviewer._id : '';
+                    const id = superpixel.meta.reviewer || '';
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
@@ -325,11 +335,11 @@ export default Vue.extend({
                         if (key === 'prediction') {
                             values[idx] = superpixel.predictionCategories[superpixel.prediction];
                         } else if (key === 'label') {
-                            if (!this.secondComparison || (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)) {
+                            if (!this.secondComparison || (!!superpixel.meta.labeler === userID)) {
                                 values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
                             }
                         } else if (key === 'review') {
-                            if (!this.secondComparison || (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID)) {
+                            if (!this.secondComparison || (!!superpixel.meta.reviewer === userID)) {
                                 values[idx] = superpixel.labelCategories[superpixel.reviewValue];
                             }
                         }
@@ -416,14 +426,6 @@ export default Vue.extend({
                 this.scrollObserver.observe(this.observedSuperpixel);
             }
         },
-        reviewInfo() {
-            if (!this.selectedSuperpixel) {
-                return {};
-            }
-            const labels = store.annotationsByImageId[this.selectedSuperpixel.imageId].labels;
-            const meta = labels.get('annotation').attributes.metadata;
-            return meta[this.selectedSuperpixel.index];
-        },
         removeFilters(values) {
             this.filterBy = _.without(this.filterBy, ...values);
         },
@@ -436,24 +438,25 @@ export default Vue.extend({
             } else {
                 const [key, userID] = selection.split('_');
                 let user;
-                if (store.currentUser._id === userID) {
+                if (store.currentUser === userID) {
                     user = store.currentUser;
                 } else {
                     const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
                         if (superpixel.meta) {
                             return (
-                                (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) ||
-                              (!!superpixel.meta.labeler && superpixel.meta.labeler._id === userID)
+                                (!!superpixel.meta.reviewer === userID) ||
+                              (!!superpixel.meta.labeler === userID)
                             );
                         }
                         return false;
                     });
                     user = superpixel.meta.labeler;
-                    if (!!superpixel.meta.reviewer && superpixel.meta.reviewer._id === userID) {
+                    if (!!superpixel.meta.reviewer === userID) {
                         user = superpixel.meta.reviewer;
                     }
                 }
-                return `${user.firstName} ${user.lastName} ${key}s`;
+
+                return store.userNames[user];
             }
         }
     }
@@ -527,7 +530,7 @@ export default Vue.extend({
                   <td>{{ selectedSuperpixel.predictionCategories[selectedSuperpixel.prediction].label }}</td>
                 </tr>
                 <tr>
-                  <td>Selected</td>
+                  <td>Label</td>
                   <td>{{ selectedSuperpixel.labelCategories[selectedSuperpixel.selectedCategory].label }}</td>
                 </tr>
                 <tr>
@@ -562,15 +565,15 @@ export default Vue.extend({
               <tbody>
                 <tr>
                   <td>Selected</td>
-                  <td>{{ selectedSuperpixel.labelCategories[reviewInfo().reviewValue].label }}</td>
+                  <td>{{ selectedSuperpixel.labelCategories[currentMetadata.reviewValue].label }}</td>
                 </tr>
                 <tr>
                   <td>Reviewer</td>
-                  <td>{{ reviewInfo().reviewer.firstName }} {{ reviewInfo().reviewer.lastName }}</td>
+                  <td>{{ userNames[currentMetadata.reviewer] }}</td>
                 </tr>
                 <tr>
                   <td>Date</td>
-                  <td>{{ reviewInfo().reviewDate }}</td>
+                  <td>{{ currentMetadata.reviewDate }}</td>
                 </tr>
               </tbody>
             </table>
@@ -955,7 +958,7 @@ export default Vue.extend({
                     </div>
                     <ul :class="['dropdown-menu', openMenu === 'labeler' ? 'visible-menu' : 'hidden']">
                       <li
-                        v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                        v-for="key in filterOptions.Labelers"
                         :key="`labeler_${key}`"
                       >
                         <label
@@ -968,15 +971,15 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`labeler_${key}`"
                           >
-                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }}
+                          {{ userNames[key] }}
                         </label>
                       </li>
                     </ul>
                   </div>
                   <button
                     class="btn btn-danger btn-xs"
-                    :disabled="!Object.keys(filterOptions.Labelers).some(cat => filterBy.includes(`labeler_${cat}`))"
-                    @click="removeFilters(Object.keys(filterOptions.Labelers).map((k) => `labeler_${k}`))"
+                    :disabled="!filterOptions.Labelers.some(id => filterBy.includes(`labeler_${id}`))"
+                    @click="removeFilters(filterOptions.Labelers.map((id) => `labeler_${id}`))"
                   >
                     <i
                       class="icon-minus-squared"
@@ -1001,7 +1004,7 @@ export default Vue.extend({
                     </div>
                     <ul :class="['dropdown-menu', openMenu === 'reviewer' ? 'visible-menu' : 'hidden']">
                       <li
-                        v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                        v-for="key in filterOptions.Reviewers"
                         :key="`reviewer_${key}`"
                       >
                         <label
@@ -1014,15 +1017,15 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`reviewer_${key}`"
                           >
-                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }}
+                          {{ userNames[key] }}
                         </label>
                       </li>
                     </ul>
                   </div>
                   <button
                     class="btn btn-danger btn-xs"
-                    :disabled="!Object.keys(filterOptions.Reviewers).some(k => filterBy.includes(`reviewer_${k}`))"
-                    @click="removeFilters(Object.keys(filterOptions.Reviewers).map((k) => `reviewer_${k}`))"
+                    :disabled="!filterOptions.Reviewers.some(id => filterBy.includes(`reviewer_${id}`))"
+                    @click="removeFilters(filterOptions.Reviewers.map((id) => `reviewer_${id}`))"
                   >
                     <i
                       class="icon-minus-squared"
@@ -1084,7 +1087,7 @@ export default Vue.extend({
                       </div>
                     </li>
                     <li
-                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                      v-for="key in filterOptions.Labelers"
                       :key="`comp_labeler_${key}`"
                     >
                       <div class="radio">
@@ -1099,12 +1102,12 @@ export default Vue.extend({
                             :value="`label_${key}`"
                             class="hidden-radio"
                           >
-                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }} Labels
+                          {{ userNames[key] }} Labels
                         </label>
                       </div>
                     </li>
                     <li
-                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                      v-for="key in filterOptions.Reviewers"
                       :key="`comp_reviewer_${key}`"
                     >
                       <div class="radio">
@@ -1119,7 +1122,7 @@ export default Vue.extend({
                             :value="`review_${key}`"
                             class="hidden-radio"
                           >
-                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }} Reviews
+                          {{ userNames[key] }} Reviews
                         </label>
                       </div>
                     </li>
@@ -1247,7 +1250,7 @@ export default Vue.extend({
                       </div>
                     </li>
                     <li
-                      v-for="[key, value] in Object.entries(filterOptions.Labelers)"
+                      v-for="key in filterOptions.Labelers"
                       :key="`comp_labeler_${key}_2`"
                     >
                       <div class="radio">
@@ -1262,12 +1265,12 @@ export default Vue.extend({
                             :value="`label_${key}`"
                             class="hidden-radio"
                           >
-                          {{ value[0].labeler.firstName }} {{ value[0].labeler.lastName }} Labels
+                          {{ userNames[key] }} Labels
                         </label>
                       </div>
                     </li>
                     <li
-                      v-for="[key, value] in Object.entries(filterOptions.Reviewers)"
+                      v-for="key in filterOptions.Reviewers"
                       :key="`comp_reviewer_${key}_2`"
                     >
                       <div class="radio">
@@ -1282,7 +1285,7 @@ export default Vue.extend({
                             :value="`review_${key}`"
                             class="hidden-radio"
                           >
-                          {{ value[0].reviewer.firstName }} {{ value[0].reviewer.lastName }} Reviews
+                          {{ userNames[key] }} Reviews
                         </label>
                       </div>
                     </li>

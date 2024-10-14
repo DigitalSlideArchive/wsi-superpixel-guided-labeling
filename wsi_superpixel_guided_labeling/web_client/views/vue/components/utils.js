@@ -46,6 +46,5 @@ export const updateMetadata = (superpixel, newValue, isReview) => {
 
     if (isReview) {
         superpixel.reviewValue = newCategory;
-        superpixel.meta.reviewer = store.currentUser;
     }
 };
