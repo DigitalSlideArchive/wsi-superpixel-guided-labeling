@@ -534,6 +534,18 @@ export default Vue.extend({
                   <td>{{ selectedSuperpixel.labelCategories[selectedSuperpixel.selectedCategory].label }}</td>
                 </tr>
                 <tr>
+                  <td>Labeler</td>
+                  <td>{{ userNames[currentMetadata.labeler] }}</td>
+                </tr>
+                <tr>
+                  <td>Date</td>
+                  <td>{{ currentMetadata.labelDate }}</td>
+                </tr>
+                <tr>
+                  <td>Epoch</td>
+                  <td>{{ currentMetadata.labelEpoch }}</td>
+                </tr>
+                <tr>
                   <td>Certainty</td>
                   <td>{{ selectedSuperpixel.certainty }}</td>
                 </tr>
@@ -574,6 +586,10 @@ export default Vue.extend({
                 <tr>
                   <td>Date</td>
                   <td>{{ currentMetadata.reviewDate }}</td>
+                </tr>
+                <tr>
+                  <td>Epoch</td>
+                  <td>{{ currentMetadata.reviewEpoch }}</td>
                 </tr>
               </tbody>
             </table>
