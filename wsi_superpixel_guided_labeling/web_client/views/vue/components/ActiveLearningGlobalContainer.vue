@@ -112,11 +112,11 @@ export default Vue.extend({
         mergeCategory(label, color) {
             this.activeLearningLabeling.mergeCategory(label, color);
         },
-        saveAnnotations(imageIds) {
+        saveAnnotations(imageIds, savePredictions) {
             const idsToSave = !imageIds ? Object.keys(store.annotationsByImageId) : imageIds;
-            store.backboneParent.saveAnnotations(idsToSave);
+            store.backboneParent.saveAnnotations(idsToSave, savePredictions);
         },
-        synchronizeCategories(imageIds) {
+        synchronizeCategories(imageIds, savePredictions) {
             // Keep the save annotations in sync with the local state
             if (store.currentCategoryFormValid) {
                 _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
@@ -128,7 +128,7 @@ export default Vue.extend({
                         }
                     }
                 });
-                this.saveAnnotations(imageIds);
+                this.saveAnnotations(imageIds, savePredictions);
                 updatePixelmapLayerStyle();
                 store.backboneParent.updateHistomicsYamlConfig();
             }

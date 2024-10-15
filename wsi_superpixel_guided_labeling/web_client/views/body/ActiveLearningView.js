@@ -477,7 +477,7 @@ const ActiveLearningView = View.extend({
                 this.updateCategoriesAndData(labelPixelmapElement, imageId);
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId));
+        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
     },
 
     /**
@@ -604,7 +604,11 @@ const ActiveLearningView = View.extend({
      * simultaneously.
      * @param {string[]} imageIds
      */
-    saveAnnotations(imageIds) {
+    saveAnnotations(imageIds, savePredictions) {
+        // We need to keep prediction names and details in sync with the labels,
+        // so typically we want to save both annotations. Default to true.
+        savePredictions = _.isBoolean(savePredictions) ? savePredictions : true;
+
         _.forEach(imageIds, (id) => {
             this._saveAnnotationsForIds.add(id);
         });
@@ -621,7 +625,7 @@ const ActiveLearningView = View.extend({
                 promises.push(promise);
             }
             const predictionAnnotation = this.annotationsByImageId[imageId].predictions;
-            if (predictionAnnotation) {
+            if (predictionAnnotation && savePredictions) {
                 const promise = predictionAnnotation.save();
                 promises.push(promise);
             }
@@ -647,7 +651,7 @@ const ActiveLearningView = View.extend({
                 });
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId));
+        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
     },
 
     retrain(goToNextStep) {

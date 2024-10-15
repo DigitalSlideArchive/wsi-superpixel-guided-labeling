@@ -369,7 +369,7 @@ export default Vue.extend({
         },
         synchronizeCategories(imageIds) {
             store.categories = this.allNewCategories;
-            this.$emit('synchronize', imageIds);
+            this.$emit('synchronize', imageIds, true);
         },
         keydownListener(event) {
             if (event.target.type === 'text' && event.target.id !== 'category-hotkey') {
