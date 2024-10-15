@@ -36,7 +36,7 @@ export default Vue.extend({
             openMenu: null,
             labelFlag: false,
             showFlags: false,
-            currentMetadata: null,
+            currentMetadata: null
         };
     },
     computed: {
@@ -150,7 +150,7 @@ export default Vue.extend({
         },
         userNames() {
             return store.userNames;
-        },
+        }
     },
     watch: {
         selectedSuperpixel() {
@@ -304,7 +304,7 @@ export default Vue.extend({
             const labelers = this.filterOptions.Labelers;
             if (_.some(labelers, (id) => store.filterBy.includes(`labeler_${id}`))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const id = !!superpixel.meta ? superpixel.meta.labeler : '';
+                    const id = superpixel.meta ? superpixel.meta.labeler : '';
                     return store.filterBy.includes(`labeler_${id}`);
                 }));
             }
@@ -312,7 +312,7 @@ export default Vue.extend({
             const reviewers = this.filterOptions.Reviewers;
             if (_.some(reviewers, (id) => store.filterBy.includes(`reviewer_${id}`))) {
                 results.push(_.filter(data, (superpixel) => {
-                    const id = !!superpixel.meta ? superpixel.meta.reviewer : '';
+                    const id = superpixel.meta ? superpixel.meta.reviewer : '';
                     return store.filterBy.includes(`reviewer_${id}`);
                 }));
             }
@@ -436,7 +436,7 @@ export default Vue.extend({
             if (!selection || selection === 'prediction') {
                 return selection;
             } else {
-                const [key, userID] = selection.split('_');
+                const [, userID] = selection.split('_');
                 let user;
                 if (store.currentUser === userID) {
                     user = store.currentUser;
@@ -451,7 +451,7 @@ export default Vue.extend({
                         return false;
                     });
                     if (!superpixel) {
-                      return '';
+                        return '';
                     }
                     user = superpixel.meta.labeler;
                     if (!!superpixel.meta.reviewer === userID) {
