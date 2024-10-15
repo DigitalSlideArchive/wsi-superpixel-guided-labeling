@@ -586,7 +586,7 @@ export default Vue.extend({
                 v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
                 :key="index"
                 :class="{'h-selected-row': categoryIndex === index && mode === viewMode.Labeling}"
-                :style="[exclusions.includes(index) && {'color': 'red'}]"
+                :style="[exclusions.includes(index) && {'color': 'red', 'font-weight': 'bold'}]"
                 @click="selectCategory(index)"
               >
                 <td v-if="editingHotkey === index">
@@ -667,18 +667,20 @@ export default Vue.extend({
                   />
                 </td>
                 <td>
-                  <button
-                    class="btn btn-xs"
-                    :style="{'background-color': 'transparent'}"
-                    data-toggle="tooltip"
-                    title="Exclude from training"
-                    @click="updateExclusions(index)"
-                  >
-                    <i
-                      class="icon-block"
-                      :style="[exclusions.includes(index) && {'color': 'red'}]"
-                    />
-                  </button>
+                  <div :class="[!exclusions.includes(index) && 'editing-icons']">
+                    <button
+                      class="btn btn-xs"
+                      :style="{'background-color': 'transparent'}"
+                      data-toggle="tooltip"
+                      :title="exclusions.includes(index) ? 'Excluded from training' : 'Exclude from training'"
+                      @click="updateExclusions(index)"
+                    >
+                      <i
+                        class="icon-block"
+                        :style="[exclusions.includes(index) && {'color': 'red'}]"
+                      />
+                    </button>
+                  </div>
                 </td>
                 <td v-if="mode === viewMode.Labeling">
                   <input
