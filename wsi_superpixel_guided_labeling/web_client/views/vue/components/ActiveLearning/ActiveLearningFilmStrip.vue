@@ -70,7 +70,7 @@ export default {
                 superpixel.selectedCategory = superpixel.prediction + 1;
                 updateMetadata(superpixel, superpixel.prediction + 1, false);
             });
-            store.backboneParent.saveAnnotationReviews(store.currentImageId);
+            store.backboneParent.updateAnnotationMetadata(store.currentImageId);
         },
         resetAll() {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {

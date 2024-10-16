@@ -378,7 +378,7 @@ const ActiveLearningView = View.extend({
                             if (!_.has(annotation.attributes, 'metadata')) {
                                 annotation.attributes.metadata = {};
                             }
-                            this.saveAnnotationReviews(imageId);
+                            this.updateAnnotationMetadata(imageId);
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
                             }
@@ -477,7 +477,7 @@ const ActiveLearningView = View.extend({
                 this.updateCategoriesAndData(labelPixelmapElement, imageId);
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId));
+        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
     },
 
     /**
@@ -604,7 +604,11 @@ const ActiveLearningView = View.extend({
      * simultaneously.
      * @param {string[]} imageIds
      */
-    saveAnnotations(imageIds) {
+    saveAnnotations(imageIds, savePredictions) {
+        // We need to keep prediction names and details in sync with the labels,
+        // so typically we want to save both annotations. Default to true.
+        savePredictions = _.isBoolean(savePredictions) ? savePredictions : true;
+
         _.forEach(imageIds, (id) => {
             this._saveAnnotationsForIds.add(id);
         });
@@ -621,7 +625,7 @@ const ActiveLearningView = View.extend({
                 promises.push(promise);
             }
             const predictionAnnotation = this.annotationsByImageId[imageId].predictions;
-            if (predictionAnnotation) {
+            if (predictionAnnotation && savePredictions) {
                 const promise = predictionAnnotation.save();
                 promises.push(promise);
             }
@@ -647,7 +651,7 @@ const ActiveLearningView = View.extend({
                 });
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId));
+        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
     },
 
     retrain(goToNextStep) {
@@ -810,9 +814,21 @@ const ActiveLearningView = View.extend({
     /**
      * Update the annotation metadata
      */
-    saveAnnotationReviews(imageId) {
+    updateAnnotationMetadata(imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
-        const metadata = annotation.get('annotation').attributes.metadata;
+        let metadata = annotation.get('annotation').attributes.metadata;
+        // We used to store the entire user object but now expect to only store
+        // the user id string. Update old metadata to maintain compatability.
+        metadata = _.mapObject(metadata, (meta) => {
+            if (meta) {
+                if (_.isObject(meta.labeler)) {
+                    meta.labeler = meta.labeler._id;
+                }
+                if (_.isObject(meta.reviewer)) {
+                    meta.reviewer = meta.reviewer._id;
+                }
+            }
+        });
         restRequest({
             type: 'PUT',
             url: `annotation/${annotation.id}/metadata`,
@@ -828,8 +844,28 @@ const ActiveLearningView = View.extend({
         restRequest({
             url: 'user/me'
         }).then((user) => {
-            store.currentUser = user;
+            store.currentUser = user._id;
+            store.userNames[user._id] = `${user.firstName} ${user.lastName}`;
             return store.currentUser;
+        });
+    },
+
+    /**
+     * Get the requested user.
+     * @param {string} userId
+     * @returns user's first and last name
+     */
+    getUser(userId) {
+        if (userId in store.userNames) {
+            return;
+        }
+
+        restRequest({
+            url: `user/${userId}`
+        }).then((user) => {
+            // This is the first time we've fetched this user, cache their name
+            store.userNames[userId] = `${user.firstName} ${user.lastName}`;
+            return store.userNames[userId];
         });
     }
 });

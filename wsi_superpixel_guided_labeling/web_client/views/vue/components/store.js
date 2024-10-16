@@ -25,6 +25,7 @@ const store = Vue.observable({
     reviewSuperpixel: null,
     currentUser: null,
     epoch: -1,
+    userNames: {},
     /*********
      * UI
      *********/

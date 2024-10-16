@@ -121,8 +121,7 @@ export default Vue.extend({
                 if (!store.changeLog.length) {
                     return;
                 }
-                const change = store.changeLog.pop();
-                store.backboneParent.saveAnnotations([change.imageId]);
+                this.changeLog.pop();
                 this.drawPixelmapAnnotation();
             },
             deep: true
@@ -247,7 +246,7 @@ export default Vue.extend({
             this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
             this.updateActionModifiers();
-            this.$emit('synchronize');
+            this.$emit('synchronize', [store.currentImageId], false);
         },
         updateMapBoundsForSelection() {
             if (!this.viewerWidget || !this.viewerWidget.viewer || !store.superpixelsToDisplay.length) {
@@ -442,7 +441,7 @@ export default Vue.extend({
                 };
             }
             updateMetadata(superpixel, newLabel, false);
-            store.backboneParent.saveAnnotationReviews(store.currentImageId);
+            store.backboneParent.updateAnnotationMetadata(store.currentImageId);
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);
@@ -454,7 +453,7 @@ export default Vue.extend({
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
             superpixelElement.values = data;
-            this.$emit('save-annotations');
+            this.$emit('save-annotations', [store.currentImageId], false);
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
@@ -495,7 +494,7 @@ export default Vue.extend({
         },
         combineCategoriesHandler() {
             this.drawPixelmapAnnotation();
-            this.$emit('save-annotations', true);
+            this.$emit('save-annotations', [], true);
             this.updateConfig();
             store.backboneParent.getSortedSuperpixelIndices();
         },

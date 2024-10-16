@@ -176,7 +176,6 @@ export default Vue.extend({
                     }
                 });
             });
-            this.synchronizeCategories();
         },
         categoryIndex(index) {
             if (index < 0 || index >= store.categoriesAndIndices.length) {
@@ -368,9 +367,9 @@ export default Vue.extend({
         selectCategory(index) {
             store.categoryIndex = index;
         },
-        synchronizeCategories() {
+        synchronizeCategories(imageIds) {
             store.categories = this.allNewCategories;
-            this.$emit('synchronize');
+            this.$emit('synchronize', imageIds, true);
         },
         keydownListener(event) {
             if (event.target.type === 'text' && event.target.id !== 'category-hotkey') {

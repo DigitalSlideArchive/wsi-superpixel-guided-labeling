@@ -114,7 +114,7 @@ export default Vue.extend({
             // Force computed values to update
             store.categoriesAndIndices = [...store.categoriesAndIndices];
             updateMetadata(this.superpixelDecision, newValue, false);
-            store.backboneParent.saveAnnotationReviews(store.currentImageId);
+            store.backboneParent.updateAnnotationMetadata(store.currentImageId);
             store.changeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {
@@ -137,9 +137,6 @@ export default Vue.extend({
     methods: {
         selectSuperpixelCard() {
             store.selectedIndex = this.index;
-        },
-        onCategorySelectChange() {
-            store.changeLog.push(this.superpixelDecision);
         },
         /**
          * Have a way to map between different lists of categories so that when we set the category for
