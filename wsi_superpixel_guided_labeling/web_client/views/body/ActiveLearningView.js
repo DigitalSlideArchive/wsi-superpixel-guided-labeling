@@ -514,6 +514,7 @@ const ActiveLearningView = View.extend({
                     prediction: pixelmapValues[index],
                     predictionCategories: superpixelCategories,
                     labelCategories: labels.elements[0].categories,
+                    labelEpoch: metadata[index] ? metadata[index].labelEpoch : null,
                     selectedCategory: labelValues[index],
                     meta: metadata[index],
                     reviewValue: metadata[index] ? metadata[index].reviewValue : null
@@ -521,7 +522,7 @@ const ActiveLearningView = View.extend({
                 this.superpixelPredictionsData.push(prediction);
             });
         });
-        store.sortedSuperpixelIndices = _.sortBy(this.superpixelPredictionsData, 'certainty');
+        store.sortedSuperpixelIndices = _.sortBy(_.sortBy(this.superpixelPredictionsData, 'certainty'), 'labelEpoch');
     },
 
     getJobXmlUrl() {
