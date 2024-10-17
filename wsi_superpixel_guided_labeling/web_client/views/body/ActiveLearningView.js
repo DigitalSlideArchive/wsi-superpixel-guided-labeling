@@ -681,7 +681,7 @@ const ActiveLearningView = View.extend({
                 jobId: this.lastRunJobId,
                 randominput: false,
                 train: true,
-                exclude: excluded
+                exclude: JSON.stringify(excluded)
             }
         }).done((job) => {
             store.page = 0;
