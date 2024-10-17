@@ -237,7 +237,7 @@ export default Vue.extend({
     position: absolute;
     top: 5px;
     left: 5px;
-    width: 400px;
+    width: 415px;
     border-radius: 5px;
     box-shadow: 3px 3px 5px 2px rgba(0,0,0,.5);
     padding: 5px;

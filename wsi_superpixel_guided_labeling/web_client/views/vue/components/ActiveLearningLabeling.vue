@@ -118,6 +118,9 @@ export default Vue.extend({
         },
         activeLearningSteps() {
             return activeLearningSteps;
+        },
+        exclusions() {
+            return store.exclusions;
         }
     },
     watch: {
@@ -207,6 +210,9 @@ export default Vue.extend({
                     this.$nextTick(() => el.focus());
                 }
             }
+        },
+        exclusions() {
+            store.backboneParent.updateHistomicsYamlConfig();
         }
     },
     mounted() {
@@ -488,6 +494,14 @@ export default Vue.extend({
             this.currentHotkeyInput = this.parseUserHotkeys(event);
             this.commitHotkeyChange();
         },
+        updateExclusions(index) {
+            if (store.exclusions.includes(index)) {
+                const pos = store.exclusions.indexOf(index);
+                store.exclusions.splice(pos, 1);
+            } else {
+                store.exclusions.push(index);
+            }
+        },
         /**********************************
          * USE BACKBONE CONTAINER METHODS *
          **********************************/
@@ -572,6 +586,7 @@ export default Vue.extend({
                 v-for="(key, index) in Object.keys(labeledSuperpixelCounts)"
                 :key="index"
                 :class="{'h-selected-row': categoryIndex === index && mode === viewMode.Labeling}"
+                :style="[exclusions.includes(index) && {'color': 'red', 'font-weight': 'bold'}]"
                 @click="selectCategory(index)"
               >
                 <td v-if="editingHotkey === index">
@@ -651,6 +666,22 @@ export default Vue.extend({
                     title="Change label color"
                   />
                 </td>
+                <td>
+                  <div :class="[!exclusions.includes(index) && 'editing-icons']">
+                    <button
+                      class="btn btn-xs"
+                      :style="{'background-color': 'transparent'}"
+                      data-toggle="tooltip"
+                      :title="exclusions.includes(index) ? 'Excluded from training' : 'Exclude from training'"
+                      @click="updateExclusions(index)"
+                    >
+                      <i
+                        class="icon-block"
+                        :style="[exclusions.includes(index) && {'color': 'red'}]"
+                      />
+                    </button>
+                  </div>
+                </td>
                 <td v-if="mode === viewMode.Labeling">
                   <input
                     v-model="checkedCategories"
@@ -701,7 +732,10 @@ export default Vue.extend({
         v-if="!currentCategoryFormValid || !currentLabelsValid"
         class="h-error-messages"
       >
-        <ul v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0">
+        <ul
+          v-if="currentFormErrors.length > 0 || currentLabelingErrors.length > 0"
+          :style="{'padding-left': '10px'}"
+        >
           <li
             v-for="error in currentFormErrors"
             :key="error"
@@ -757,7 +791,7 @@ export default Vue.extend({
     position: absolute;
     top: 60px;
     left: 5px;
-    width: 400px;
+    width: 415px;
     display: flex;
     flex-direction: column;
     background-color: #fff;
@@ -835,7 +869,6 @@ tr:hover .editing-icons {
 }
 
 .h-error-messages {
-    padding-top: 25px;
     height: 100%;
 }
 
