@@ -283,6 +283,12 @@ export default Vue.extend({
                 center.y += offset * height;
                 this.viewerWidget.viewer.center(center);
             }
+            this.viewerWidget.viewer.layers().forEach((l) => {
+                if (l.activeTiles) {
+                    l.reset();
+                }
+            });
+            this.viewerWidget.viewer.draw();
             this.boundingBoxFeature.data([[
                 [bbox[0], bbox[1]], [bbox[2], bbox[1]], [bbox[2], bbox[3]], [bbox[0], bbox[3]]
             ]]);
