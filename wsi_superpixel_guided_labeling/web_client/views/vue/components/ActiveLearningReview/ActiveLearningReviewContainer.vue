@@ -693,7 +693,7 @@ export default Vue.extend({
               <button
                 class="btn btn-danger btn-xs"
                 :disabled="groupBy === 0"
-                @click="groupBy === 0"
+                @click="groupBy = 0"
               >
                 <i
                   class="icon-minus-squared"
