@@ -744,7 +744,7 @@ export default Vue.extend({
                 class="btn btn-danger btn-xs"
                 :style="{'margin-right': '3px'}"
                 :disabled="sortBy === 0"
-                @click="sortBy === 0"
+                @click="sortBy = 0"
               >
                 <i
                   class="icon-minus-squared"
