@@ -142,7 +142,7 @@ export default Vue.extend({
             deep: true
         },
         currentCategoryLabel(newLabel, oldLabel) {
-            if (newLabel === oldLabel) {
+            if (newLabel === oldLabel || _.isEmpty(newLabel)) {
                 return;
             }
             store.categoriesAndIndices[store.categoryIndex].category.label = this.currentCategoryLabel;
