@@ -16,6 +16,7 @@ import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGloba
 import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
 import { activeLearningSteps } from '../vue/components/constants.js';
+import { debounce } from '../vue/components/utils.js';
 
 import '../../stylesheets/body/learning.styl';
 
@@ -123,7 +124,7 @@ const ActiveLearningView = View.extend({
         });
     },
 
-    updateHistomicsYamlConfig() {
+    updateHistomicsYamlConfig: debounce(function () {
         const groups = new Map();
         this.categoryMap.clear(); // Keep the internal categoryMap in sync with changes
         _.forEach(store.categories, (category, index) => {
@@ -148,7 +149,7 @@ const ActiveLearningView = View.extend({
             data: yaml.dump(this.histomicsUIConfig),
             contentType: 'application/json'
         });
-    },
+    }, 500),
 
     /**
      * The first of many rest requests needed to get data from the girder server for
@@ -616,41 +617,19 @@ const ActiveLearningView = View.extend({
      * simultaneously.
      * @param {string[]} imageIds
      */
-    saveAnnotations(imageIds, savePredictions) {
+    saveAnnotations: debounce(function (imageIds, savePredictions) {
         // We need to keep prediction names and details in sync with the labels,
         // so typically we want to save both annotations. Default to true.
         savePredictions = _.isBoolean(savePredictions) ? savePredictions : true;
 
-        _.forEach(imageIds, (id) => {
-            this._saveAnnotationsForIds.add(id);
-        });
-        if (this._isSaving) {
-            return;
-        }
-        this._isSaving = true;
-        const promises = [];
-        _.forEach(Array.from(this._saveAnnotationsForIds), (imageId) => {
+        _.forEach(imageIds, (imageId) => {
             const labelAnnotation = this.annotationsByImageId[imageId].labels;
-            if (labelAnnotation) {
-                // Images added without re-train have no labels yet
-                const promise = labelAnnotation.save();
-                promises.push(promise);
-            }
+            // Images added without re-train have no labels yet
+            labelAnnotation && labelAnnotation.save();
             const predictionAnnotation = this.annotationsByImageId[imageId].predictions;
-            if (predictionAnnotation && savePredictions) {
-                const promise = predictionAnnotation.save();
-                promises.push(promise);
-            }
+            (predictionAnnotation && savePredictions) && predictionAnnotation.save();
         });
-        this._saveAnnotationsForIds = new Set();
-        $.when(...promises).then(() => {
-            this._isSaving = false;
-            if (this._saveAnnotationsForIds.size > 0) {
-                this.saveAnnotations([]);
-            }
-            return true;
-        });
-    },
+    }, 500, true),
 
     applyReviews() {
         _.forEach(_.values(this.annotationsByImageId), (values) => {
@@ -828,7 +807,7 @@ const ActiveLearningView = View.extend({
     /**
      * Update the annotation metadata
      */
-    updateAnnotationMetadata(imageId) {
+    updateAnnotationMetadata: debounce(function (imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
         let metadata = annotation.get('annotation').attributes.metadata;
         // We used to store the entire user object but now expect to only store
@@ -849,7 +828,7 @@ const ActiveLearningView = View.extend({
             data: JSON.stringify({ metadata }),
             contentType: 'application/json'
         });
-    },
+    }, 500),
 
     /**
      * Get the currently logged in user.
