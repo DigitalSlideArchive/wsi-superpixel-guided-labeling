@@ -55,7 +55,7 @@ const store = Vue.observable({
     firstComparison: null,
     secondComparison: null,
     booleanOperator: null,
-    predictionCounts: [],
+    predictionCounts: []
 });
 
 const previousCard = () => {

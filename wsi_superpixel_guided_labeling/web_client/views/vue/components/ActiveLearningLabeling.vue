@@ -44,8 +44,9 @@ export default Vue.extend({
         },
         selectedLabels() {
             return new Map(_.map(this.checkedCategories, (i) => {
-                const label = store.categoriesAndIndices[i].category.label;
-                return [i, this.labeledSuperpixelCounts[`${i}_${label}`]];
+                const label = store.categories[i].label;
+                // Offset by one; labeledSuperpixelCounts does not include the default category
+                return [i - 1, this.labeledSuperpixelCounts[`${i - 1}_${label}`]];
             }));
         },
         currentLabelingErrors() {
@@ -244,98 +245,108 @@ export default Vue.extend({
             });
             store.categoryIndex = store.categoriesAndIndices.length - 1;
         },
-        combineCategories(indices, isMerge) {
+        combineCategories(isMerge) {
             // Separate the removed categories from the remaining
-            const [oldCats, newCats] = _.partition(store.categoriesAndIndices,
-                (_, i) => indices.includes(i));
-            store.categoriesAndIndices = [...newCats];
+            const newCats = store.categories.filter((_, i) => !this.checkedCategories.includes(i));
 
-            _.forEach(Object.keys(store.annotationsByImageId), (imageId) => {
-                if (!_.has(store.annotationsByImageId[imageId], 'labels')) {
+            // Map old values to new
+            const newValues = store.categories.map((category) => {
+                const index = _.findIndex(newCats, (cat) => cat.label === category.label);
+                if (index === -1) {
+                    return isMerge ? newCats.length - 1 : 0;
+                }
+                return index;
+            });
+
+            // Grab the indices we need
+            const labelIndices = {};
+            store.categoriesAndIndices.map((catAndIdxs) => {
+                return Object.keys(catAndIdxs.indices).forEach((imageId) => {
+                    const oldIndices = labelIndices[imageId] || new Set();
+                    const newIndices = catAndIdxs.indices[imageId] || new Set();
+                    labelIndices[imageId] = new Set([...oldIndices, ...newIndices]);
+                });
+            });
+            const [catsAndInds, oldCatsAndInds] = _.partition(store.categoriesAndIndices,
+                (_, i) => !this.checkedCategories.includes(i + 1));
+            store.categoriesAndIndices = catsAndInds;
+
+            // Update the exclusions list
+            store.exclusions = store.exclusions.filter((ex) => this.checkedCategories.includes(ex - 1));
+
+            // Map superpixels by index and image id for faster lookup
+            const superpixelMap = new Map(store.sortedSuperpixelIndices.map((sp) => [`${sp.imageId}_${sp.index}`, sp]));
+
+            Object.keys(store.annotationsByImageId).forEach((imageId) => {
+                if (!('labels' in store.annotationsByImageId[imageId])) {
                     return;
                 }
 
                 // Update the label categories list
                 const annotations = store.annotationsByImageId[imageId].labels;
                 const pixelmapElement = annotations.get('annotation').elements[0];
-                pixelmapElement.categories = [...this.allNewCategories];
+                pixelmapElement.categories = [...newCats];
 
                 // Update the metadata
                 const meta = annotations.get('annotation').attributes.metadata;
+                const metaIndices = Object.entries(meta).filter(([, v]) => !!v.reviewValue).map(([k]) => Number(k));
 
-                // Removing categories changes indices of the remaining categories.
-                // Make sure that the values are kept in sync with these new values.
-                _.forEach(newCats, (catsAndInds, newValue) => {
-                    const labelIndices = catsAndInds.indices[imageId] || new Set();
-                    const indices = labelIndices.union(new Set(_.map(_.keys(meta), (k) => Number(k))));
-                    // The newCats list does not include the "default" category
-                    // so we offset the new value by one to account for this.
-                    _.forEach([...indices], (index) => {
-                        const oldValue = pixelmapElement.values[index];
-                        let superpixel = _.findWhere(store.sortedSuperpixelIndices, { index, imageId });
-                        if (!superpixel) {
-                            // If we don't can't find the superpixels build our own.
-                            superpixel = { imageId, selectedCategory: newValue, index };
-                        }
-                        if (index in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
-                            // A review is affected, update the metadata
-                            updateMetadata(superpixel, newValue + 1, true);
-                        }
-                        if (labelIndices.has(index)) {
-                            // A label is affected, update the value and the metadata
-                            pixelmapElement.values[index] = (newValue + 1);
-                            updateMetadata(superpixel, newValue + 1, false);
-                        }
-                    });
-                });
+                const allIndices = new Set([...labelIndices[imageId], ...metaIndices]);
+                allIndices.forEach((index) => {
+                    const oldValue = pixelmapElement.values[index];
+                    const newValue = newValues[oldValue];
 
-                // In the case of merging we need to make sure the old categories labeled
-                // indices are now associated with the new merged category.
-                const newValue = isMerge ? store.categoriesAndIndices.length : 0;
-                _.forEach(oldCats, (catsAndInds) => {
-                    const labelIndices = catsAndInds.indices[imageId] || new Set();
-                    const indices = labelIndices.union(new Set(_.map(_.keys(meta), (k) => Number(k))));
-                    _.forEach([...indices], (i) => {
-                        const oldValue = pixelmapElement.values[i];
-                        let superpixel = _.findWhere(store.sortedSuperpixelIndices, { index: i, imageId });
-                        if (!superpixel) {
-                            // If we don't can't find the superpixels build our own.
-                            superpixel = { imageId, selectedCategory: newValue, index: i };
-                        }
-                        if (i in _.keys(meta) && meta[superpixel.index].reviewValue === oldValue) {
-                            // A review is affected, update the metadata
-                            updateMetadata(superpixel, newValue, true);
-                        }
-                        if (labelIndices.has(i)) {
-                            // A label is affected, update the value and the metadata
-                            pixelmapElement.values[i] = newValue;
-                            updateMetadata(superpixel, newValue, false);
-                        }
-                    });
-                    if (isMerge) {
-                        const mergedCategory = _.last(store.categoriesAndIndices);
-                        const mergedIndices = mergedCategory.indices[imageId] || new Set();
-                        mergedCategory.indices[imageId] = new Set([...mergedIndices, ...indices]);
+                    let superpixel = superpixelMap.get(`${imageId}_${index}`);
+                    if (!superpixel) {
+                        // If we can't find the superpixel, build our own.
+                        superpixel = { imageId, selectedCategory: newValue, index };
+                    }
+
+                    if (labelIndices[imageId].has(index)) {
+                        // A label is affected, update the value and the metadata
+                        pixelmapElement.values[index] = newValue;
+                        // meta[index]['LabelValue'] = newValue;
+                        updateMetadata(superpixel, newValue, false);
+                    }
+
+                    if (meta[index] && meta[index].reviewValue === oldValue) {
+                        // A review is affected, update the metadata
+                        const newValue = newValues[index];
+                        // meta[index]['ReviewValue'] = newValue;
+                        updateMetadata(superpixel, newValue, true);
                     }
                 });
+
+                if (isMerge) {
+                    const mergedCategory = store.categoriesAndIndices[store.categoriesAndIndices.length - 1];
+                    oldCatsAndInds.forEach((catAndInd) => {
+                        const mergedIndices = mergedCategory.indices[imageId] || new Set();
+                        const indices = catAndInd.indices[imageId] || new Set();
+                        mergedCategory.indices[imageId] = new Set([...mergedIndices, ...indices]);
+                    });
+                }
             });
+
             this.checkedCategories = [];
-            store.categories = this.allNewCategories;
+            store.categories = [...newCats];
             store.categoryIndex = store.categoriesAndIndices.length - 1;
+            // Force computed values to update
+            store.categoriesAndIndices = [...store.categoriesAndIndices];
             this.$emit('combine');
         },
         mergeCategory(newLabel, newFillColor) {
             this.addCategory('Merged Labels', newFillColor);
-            this.combineCategories(this.checkedCategories, true);
+            store.categories = this.allNewCategories;
+            this.combineCategories(true);
             _.last(store.categoriesAndIndices).category.label = this.enforceUniqueName(newLabel);
         },
-        deleteCategory(indices) {
+        deleteCategory() {
             const labelCounts = _.reduce([...this.selectedLabels.values()], (acc, selected) => {
                 return acc + selected.count;
             }, 0);
             if (labelCounts === 0) {
                 // If nothing was labeled we don't need a warning dialog
-                this.combineCategories(indices, false);
+                this.combineCategories(false);
                 return;
             }
 
@@ -351,9 +362,9 @@ export default Vue.extend({
             confirm({
                 title: 'Warning',
                 text: message,
-                yesText: `Delete Selected${ hasPredictions ? ' and Retrain' : ''}`,
+                yesText: `Delete Selected${hasPredictions ? ' and Retrain' : ''}`,
                 confirmCallback: () => {
-                    this.combineCategories(indices, false);
+                    this.combineCategories(false);
                     if (hasPredictions) {
                         this.beginTraining();
                     }
@@ -676,7 +687,7 @@ export default Vue.extend({
                   <input
                     v-model="checkedCategories"
                     type="checkbox"
-                    :value="index"
+                    :value="index + 1"
                   >
                 </td>
               </tr>
@@ -690,7 +701,7 @@ export default Vue.extend({
                 :disabled="checkedCategories.length < 1"
                 data-toggle="tooltip"
                 title="Delete label"
-                @click="() => deleteCategory(checkedCategories)"
+                @click="() => deleteCategory()"
               >
                 <i class="icon-trash" />
               </button>
