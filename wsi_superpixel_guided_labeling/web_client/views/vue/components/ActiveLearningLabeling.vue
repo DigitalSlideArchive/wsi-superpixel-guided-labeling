@@ -341,17 +341,7 @@ export default Vue.extend({
 
             // We need to determine if any of the deleted categories have predictions associated with them.
             // If they do this will automatically trigger retraining so the user needs to be warned.
-            let hasPredictions = false;
-            _.forEach(Object.values(store.annotationsByImageId), (annotation) => {
-                if (!_.has(annotation, 'predictions')) {
-                    return;
-                }
-                const labels = annotation.labels.get('annotation').elements[0].categories;
-                const predictions = _.pluck(annotation.predictions.get('annotation').elements[0].categories, 'label');
-                hasPredictions = _.some(indices, (i) => {
-                    return _.contains(predictions, labels[i + 1].label);
-                });
-            });
+            const hasPredictions = this.checkedCategories.some((i) => store.predictionCounts[i - 1] > 0);
             const predictionsWarning = `Deleting a label with predictions will
                                         immediately force retraining to run.`;
             const labelingWarning = `Deleting labels cannot be undone.`;
@@ -361,7 +351,7 @@ export default Vue.extend({
             confirm({
                 title: 'Warning',
                 text: message,
-                yesText: 'Delete Selected',
+                yesText: `Delete Selected${ hasPredictions ? ' and Retrain' : ''}`,
                 confirmCallback: () => {
                     this.combineCategories(indices, false);
                     if (hasPredictions) {

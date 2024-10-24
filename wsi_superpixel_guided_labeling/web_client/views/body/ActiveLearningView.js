@@ -496,6 +496,7 @@ const ActiveLearningView = View.extend({
      */
     getSortedSuperpixelIndices() {
         this.superpixelPredictionsData = [];
+        store.predictionCounts = new Array(this.categoryMap.size - 1).fill(0);
         _.forEach(Object.keys(this.annotationsByImageId), (imageId) => {
             if (!this.annotationsByImageId[imageId].predictions) {
                 // New images may not have any predictions
@@ -530,6 +531,7 @@ const ActiveLearningView = View.extend({
                     meta: metadata[index],
                     reviewValue: metadata[index] ? metadata[index].reviewValue : null
                 };
+                store.predictionCounts[prediction.prediction] += 1;
                 this.superpixelPredictionsData.push(prediction);
             });
         });
