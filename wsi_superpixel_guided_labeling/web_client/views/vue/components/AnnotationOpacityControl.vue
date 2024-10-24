@@ -68,12 +68,12 @@ export default {
                 store.opacitySlider = uiSettings.borderOpacity;
             }
         },
-        updateConfigData: _.debounce(function () {
+        updateConfigData() {
             const uiSettings = this.config.guidedLabelingUI || {};
             uiSettings.borderOpacity = parseFloat(store.opacitySlider);
             store.backboneParent.histomicsUIConfig.guidedLabelingUI = uiSettings;
             store.backboneParent.updateHistomicsYamlConfig();
-        }, 500)
+        }
     }
 };
 </script>
