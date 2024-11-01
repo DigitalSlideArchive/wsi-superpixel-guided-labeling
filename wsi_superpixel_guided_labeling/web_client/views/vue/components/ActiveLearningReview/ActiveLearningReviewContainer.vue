@@ -693,7 +693,7 @@ export default Vue.extend({
               <button
                 class="btn btn-danger btn-xs"
                 :disabled="groupBy === 0"
-                @click="groupBy === 0"
+                @click="groupBy = 0"
               >
                 <i
                   class="icon-minus-squared"
@@ -744,7 +744,7 @@ export default Vue.extend({
                 class="btn btn-danger btn-xs"
                 :style="{'margin-right': '3px'}"
                 :disabled="sortBy === 0"
-                @click="sortBy === 0"
+                @click="sortBy = 0"
               >
                 <i
                   class="icon-minus-squared"
