@@ -1,3 +1,5 @@
+import _ from 'underscore';
+
 import { schemeTableau10 } from './constants';
 import { store } from './store';
 
@@ -47,4 +49,38 @@ export const updateMetadata = (superpixel, newValue, isReview) => {
     if (isReview) {
         superpixel.reviewValue = newCategory;
     }
+};
+
+/**
+ * Prevent multiple requests from being sent to the server
+ * simultaneously. Ensures that the last call is always made.
+ * @param {Function} fn
+ * @param {int} wait
+ * @returns Debounced function
+ */
+export const debounce = (fn, wait, immediate = false) => {
+    let lastArgs = null;
+    let lastTimeout = null;
+
+    const debouncedFn = _.debounce(function (...args) {
+        if (lastTimeout) {
+            clearTimeout(lastTimeout);
+            lastTimeout = null;
+        }
+        fn.apply(this, args);
+    }, wait, { leading: immediate });
+
+    return function (...args) {
+        lastArgs = args;
+        debouncedFn.apply(this, args);
+
+        if (!lastTimeout) {
+            lastTimeout = setTimeout(() => {
+                if (lastArgs) {
+                    fn.apply(this, lastArgs);
+                    lastArgs = null;
+                }
+            }, wait);
+        }
+    };
 };

@@ -113,7 +113,7 @@ export default Vue.extend({
             this.activeLearningLabeling.mergeCategory(label, color);
         },
         saveAnnotations(imageIds, savePredictions) {
-            const idsToSave = !imageIds ? Object.keys(store.annotationsByImageId) : imageIds;
+            const idsToSave = _.isEmpty(imageIds) ? Object.keys(store.annotationsByImageId) : imageIds;
             store.backboneParent.saveAnnotations(idsToSave, savePredictions);
         },
         synchronizeCategories(imageIds, savePredictions) {
