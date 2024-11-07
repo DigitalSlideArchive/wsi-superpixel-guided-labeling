@@ -66,8 +66,8 @@ export default Vue.extend({
         categories() {
             return store.categories;
         },
-        predictionCategoryLabels() {
-            return _.rest(_.pluck(store.categories, 'label'));
+        categoryLabels() {
+            return _.pluck(store.categories, 'label');
         },
         selectedReviewSuperpixels: {
             get() {
@@ -1582,7 +1582,7 @@ export default Vue.extend({
                   </div>
                 </li>
                 <li
-                  v-for="category, index in predictionCategoryLabels"
+                  v-for="category, index in categoryLabels"
                   :key="index"
                 >
                   <div class="radio">
@@ -1590,7 +1590,7 @@ export default Vue.extend({
                       <input
                         type="radio"
                         class="hidden-radio"
-                        @click="() => applyBulkReview(index + 1)"
+                        @click="() => applyBulkReview(index)"
                       >
                       {{ category }}
                     </label>
