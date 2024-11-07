@@ -49,16 +49,11 @@ export default Vue.extend({
         backboneParent() {
             return store.backboneParent;
         },
-        predictionsData() {
+        superpixelsForReview() {
             if (store.backboneParent) {
                 return store.backboneParent.superpixelPredictionsData;
             }
             return [];
-        },
-        superpixelsForReview() {
-            return _.filter(this.predictionsData, (superpixel) => {
-                return superpixel.selectedCategory !== 0;
-            });
         },
         annotationsByImageId() {
             return store.annotationsByImageId;
@@ -78,9 +73,8 @@ export default Vue.extend({
             }
         },
         filterOptions() {
-            const categories = _.pluck(_.filter(this.categories,
-                (cat) => cat.label !== 'default'), 'label');
-            const slides = _.map(Object.keys(this.annotationsByImageId), (imageId) => {
+            const categories = _.pluck(store.categories, 'label');
+            const slides = _.map(Object.keys(store.annotationsByImageId), (imageId) => {
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
@@ -276,7 +270,7 @@ export default Vue.extend({
                 }));
             }
             // Filter by selected category(ies)
-            const labels = _.rest(_.pluck(this.categories, 'label'));
+            const labels = _.pluck(this.categories, 'label');
             // Filter by label categories
             if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
                 results.push(_.filter(data, (superpixel) => {
@@ -889,7 +883,7 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`label_${cat}`"
                           >
-                          {{ cat }}
+                          {{ index === 0 ? 'No Label' : cat }}
                         </label>
                       </li>
                     </ul>
@@ -949,7 +943,7 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`review_${cat}`"
                           >
-                          {{ cat }}
+                          {{ index === 0 ? 'Unlabeled' : cat }}
                         </label>
                       </li>
                     </ul>
