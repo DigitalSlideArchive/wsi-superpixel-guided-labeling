@@ -6,7 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
-import { updateMetadata } from '../utils.js';
+import { updateMetadata, rgbStringToArray } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -376,7 +376,13 @@ export default Vue.extend({
             return _.findWhere(store.categories, { label }).fillColor;
         },
         catColorByIndex(index) {
-            return store.categories[index].fillColor;
+            const color = store.categories[index].fillColor;
+            const rgba = rgbStringToArray(color);
+            if (_.last(rgba) === 0) {
+                // If the color is transparent we should make it more opaque
+                return `rgba(${rgba.slice(0, 3).join(', ')}, 0.5)`;
+            }
+            return color;
         },
         predColorByIndex(superpixel) {
             const prediction = superpixel.prediction;
