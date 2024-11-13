@@ -574,7 +574,7 @@ export default Vue.extend({
               />
             </div>
             <table
-              v-if="!!selectedSuperpixel.reviewValue && reviewTable"
+              v-if="((!!selectedSuperpixel.reviewValue) || selectedSuperpixel.reviewValue === 0) && reviewTable"
               id="reviewTable"
               class="table table-striped"
             >
@@ -598,7 +598,7 @@ export default Vue.extend({
               </tbody>
             </table>
             <h6
-              v-if="!selectedSuperpixel.reviewValue && reviewTable"
+              v-if="(!selectedSuperpixel.reviewValue && selectedSuperpixel !== 0) && reviewTable"
               id="reviewTable"
               :style="{'text-align': 'center'}"
             >
@@ -1642,7 +1642,7 @@ export default Vue.extend({
                 @click.native="selectedSuperpixel = superpixel"
               />
               <i
-                v-if="!!superpixel.reviewValue"
+                v-if="(!!superpixel.reviewValue) || superpixel.reviewValue === 0"
                 class="flag-top-left icon-user"
                 :style="{'background-color': catColorByIndex(superpixel.reviewValue)}"
                 data-toggle="tooltip"

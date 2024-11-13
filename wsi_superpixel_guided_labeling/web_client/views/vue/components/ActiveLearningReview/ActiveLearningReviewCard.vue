@@ -154,7 +154,7 @@ export default Vue.extend({
         class="categories-selector"
       >
         <option :value="-1">
-          {{ !superpixel.reviewValue ? 'Approve' : 'Clear Review' }}
+          {{ !!superpixel.reviewValue || superpixel.reviewValue === 0 ? 'Clear Review' : 'Approve' }}
         </option>
         <option
           v-for="(category, index) in categories"

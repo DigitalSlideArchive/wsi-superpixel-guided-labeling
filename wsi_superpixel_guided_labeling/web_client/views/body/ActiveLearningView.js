@@ -636,7 +636,7 @@ const ActiveLearningView = View.extend({
             const annotation = values.labels.get('annotation');
             if (annotation) {
                 _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
-                    if (v.reviewValue && v.reviewEpoch >= v.labelEpoch) {
+                    if (_.isNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
                         annotation.elements[0].values[k] = v.reviewValue;
                     }
                 });
