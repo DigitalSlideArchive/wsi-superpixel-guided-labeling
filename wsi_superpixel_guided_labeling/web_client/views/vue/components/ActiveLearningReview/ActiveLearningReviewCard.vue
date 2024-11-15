@@ -68,7 +68,7 @@ export default Vue.extend({
             }
         },
         categories() {
-            return _.rest(this.superpixel.labelCategories);
+            return this.superpixel.labelCategories;
         },
         agree() {
             const predicted = this.superpixel.predictionCategories[this.superpixel.prediction];
@@ -91,11 +91,11 @@ export default Vue.extend({
                     return;
                 }
 
-                if (newCategory === 0) {
-                    // Index (newCategory) 0 indicates "Approve" or "Clear Review". If we are approving
+                if (newCategory === -1) {
+                    // Index (newCategory) -1 indicates "Approve" or "Clear Review". If we are approving
                     // then we are setting the reviewValue to the selectedCategory. If we are clearing the
                     // review we are setting the reviewValue to null.
-                    newCategory = this.superpixel.reviewValue ? null : this.superpixel.selectedCategory;
+                    newCategory = _.isNumber(this.superpixel.reviewValue) ? null : this.superpixel.selectedCategory;
                 }
 
                 updateMetadata(this.superpixel, newCategory, true);
@@ -153,15 +153,15 @@ export default Vue.extend({
         v-model="reviewerCategorySelection"
         class="categories-selector"
       >
-        <option :value="0">
-          {{ !superpixel.reviewValue ? 'Approve' : 'Clear Review' }}
+        <option :value="-1">
+          {{ !!superpixel.reviewValue || superpixel.reviewValue === 0 ? 'Clear Review' : 'Approve' }}
         </option>
         <option
           v-for="(category, index) in categories"
           :key="index"
-          :value="index + 1"
+          :value="index"
         >
-          {{ category.label }}
+          {{ index === 0 ? 'No Label' : category.label }}
         </option>
       </select>
     </div>

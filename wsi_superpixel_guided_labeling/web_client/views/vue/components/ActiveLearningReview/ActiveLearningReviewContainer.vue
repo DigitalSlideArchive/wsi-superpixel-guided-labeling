@@ -6,7 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
-import { updateMetadata } from '../utils.js';
+import { updateMetadata, rgbStringToArray } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -49,16 +49,11 @@ export default Vue.extend({
         backboneParent() {
             return store.backboneParent;
         },
-        predictionsData() {
+        superpixelsForReview() {
             if (store.backboneParent) {
                 return store.backboneParent.superpixelPredictionsData;
             }
             return [];
-        },
-        superpixelsForReview() {
-            return _.filter(this.predictionsData, (superpixel) => {
-                return superpixel.selectedCategory !== 0;
-            });
         },
         annotationsByImageId() {
             return store.annotationsByImageId;
@@ -66,8 +61,8 @@ export default Vue.extend({
         categories() {
             return store.categories;
         },
-        predictionCategoryLabels() {
-            return _.rest(_.pluck(store.categories, 'label'));
+        categoryLabels() {
+            return _.pluck(store.categories, 'label');
         },
         selectedReviewSuperpixels: {
             get() {
@@ -78,9 +73,8 @@ export default Vue.extend({
             }
         },
         filterOptions() {
-            const categories = _.pluck(_.filter(this.categories,
-                (cat) => cat.label !== 'default'), 'label');
-            const slides = _.map(Object.keys(this.annotationsByImageId), (imageId) => {
+            const categories = _.pluck(store.categories, 'label');
+            const slides = _.map(Object.keys(store.annotationsByImageId), (imageId) => {
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
@@ -276,7 +270,7 @@ export default Vue.extend({
                 }));
             }
             // Filter by selected category(ies)
-            const labels = _.rest(_.pluck(this.categories, 'label'));
+            const labels = _.pluck(this.categories, 'label');
             // Filter by label categories
             if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
                 results.push(_.filter(data, (superpixel) => {
@@ -382,7 +376,13 @@ export default Vue.extend({
             return _.findWhere(store.categories, { label }).fillColor;
         },
         catColorByIndex(index) {
-            return store.categories[index].fillColor;
+            const color = store.categories[index].fillColor;
+            const rgba = rgbStringToArray(color);
+            if (_.last(rgba) === 0) {
+                // If the color is transparent we should make it more opaque
+                return `rgba(${rgba.slice(0, 3).join(', ')}, 0.5)`;
+            }
+            return color;
         },
         predColorByIndex(superpixel) {
             const prediction = superpixel.prediction;
@@ -580,7 +580,7 @@ export default Vue.extend({
               />
             </div>
             <table
-              v-if="!!selectedSuperpixel.reviewValue && reviewTable"
+              v-if="((!!selectedSuperpixel.reviewValue) || selectedSuperpixel.reviewValue === 0) && reviewTable"
               id="reviewTable"
               class="table table-striped"
             >
@@ -604,7 +604,7 @@ export default Vue.extend({
               </tbody>
             </table>
             <h6
-              v-if="!selectedSuperpixel.reviewValue && reviewTable"
+              v-if="(!selectedSuperpixel.reviewValue && selectedSuperpixel !== 0) && reviewTable"
               id="reviewTable"
               :style="{'text-align': 'center'}"
             >
@@ -889,7 +889,7 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`label_${cat}`"
                           >
-                          {{ cat }}
+                          {{ index === 0 ? 'No Label' : cat }}
                         </label>
                       </li>
                     </ul>
@@ -949,7 +949,7 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`review_${cat}`"
                           >
-                          {{ cat }}
+                          {{ index === 0 ? 'Unlabeled' : cat }}
                         </label>
                       </li>
                     </ul>
@@ -1582,7 +1582,7 @@ export default Vue.extend({
                   </div>
                 </li>
                 <li
-                  v-for="category, index in predictionCategoryLabels"
+                  v-for="category, index in categoryLabels"
                   :key="index"
                 >
                   <div class="radio">
@@ -1590,7 +1590,7 @@ export default Vue.extend({
                       <input
                         type="radio"
                         class="hidden-radio"
-                        @click="() => applyBulkReview(index + 1)"
+                        @click="() => applyBulkReview(index)"
                       >
                       {{ category }}
                     </label>
@@ -1648,7 +1648,7 @@ export default Vue.extend({
                 @click.native="selectedSuperpixel = superpixel"
               />
               <i
-                v-if="!!superpixel.reviewValue"
+                v-if="(!!superpixel.reviewValue) || superpixel.reviewValue === 0"
                 class="flag-top-left icon-user"
                 :style="{'background-color': catColorByIndex(superpixel.reviewValue)}"
                 data-toggle="tooltip"

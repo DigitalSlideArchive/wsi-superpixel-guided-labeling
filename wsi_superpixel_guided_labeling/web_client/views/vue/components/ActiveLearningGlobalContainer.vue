@@ -102,6 +102,10 @@ export default Vue.extend({
         store.categories = [...this.categoryMap.values()];
         store.currentImageId = Object.keys(this.imageNamesById)[0];
 
+        // Default to filtering out unlabeled superpixels
+        const cats = _.map(_.rest(store.categories), (cat) => `label_${cat.label}`);
+        store.filterBy = [...store.filterBy, ...cats];
+
         // We don't want to mount child components until the store has been updated
         this.storeReady = true;
     },
