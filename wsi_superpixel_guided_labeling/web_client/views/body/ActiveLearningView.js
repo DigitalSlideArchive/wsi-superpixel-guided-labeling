@@ -454,6 +454,7 @@ const ActiveLearningView = View.extend({
 
         // Replace categories
         pixelmapElement.categories = categories;
+        this.saveAnnotations([imageId], false);
     },
 
     /**
@@ -489,7 +490,6 @@ const ActiveLearningView = View.extend({
                 this.updateCategoriesAndData(labelPixelmapElement, imageId);
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
     },
 
     /**
@@ -634,6 +634,7 @@ const ActiveLearningView = View.extend({
     }, 500, true),
 
     applyReviews() {
+        const imageIds = [];
         _.forEach(_.values(this.annotationsByImageId), (values) => {
             if (!values.labels) {
                 // Newly added images may not have labels yet
@@ -644,11 +645,14 @@ const ActiveLearningView = View.extend({
                 _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
                     if (_.isNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
                         annotation.elements[0].values[k] = v.reviewValue;
+                        if (!imageIds.includes(annotation.itemId)) {
+                            imageIds.push(annotation.itemId);
+                        }
                     }
                 });
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
+        this.saveAnnotations(imageIds, false);
     },
 
     retrain(goToNextStep) {

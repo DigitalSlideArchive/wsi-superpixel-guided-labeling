@@ -246,7 +246,7 @@ export default Vue.extend({
             this.viewerWidget.on('g:mouseUpAnnotationOverlay', this.clearPixelmapPaintValue);
             this.viewerWidget.viewer.interactor().removeAction(geo.geo_action.zoomselect);
             this.updateActionModifiers();
-            this.$emit('synchronize', [store.currentImageId], false);
+            updatePixelmapLayerStyle();
         },
         updateMapBoundsForSelection() {
             if (!this.viewerWidget || !this.viewerWidget.viewer || !store.superpixelsToDisplay.length) {
@@ -464,7 +464,7 @@ export default Vue.extend({
                 data = _.filter(data, (d, i) => i % 2 === 0);
             }
             superpixelElement.values = data;
-            this.$emit('save-annotations', [store.currentImageId], false);
+            store.backboneParent.saveAnnotations([store.currentImageId], false);
         },
         updateRunningLabelCounts(boundaries, index, newLabel, oldLabel) {
             const elementValueIndex = boundaries ? index / 2 : index;
@@ -505,7 +505,7 @@ export default Vue.extend({
         },
         combineCategoriesHandler() {
             this.drawPixelmapAnnotation();
-            this.$emit('save-annotations', [], true);
+            store.backboneParent.saveAnnotations(Object.keys(store.annotationsByImageId), true);
             this.updateConfig();
             store.backboneParent.getSortedSuperpixelIndices();
         },

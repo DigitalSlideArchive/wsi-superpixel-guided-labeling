@@ -115,27 +115,6 @@ export default Vue.extend({
         },
         mergeCategory(label, color) {
             this.activeLearningLabeling.mergeCategory(label, color);
-        },
-        saveAnnotations(imageIds, savePredictions) {
-            const idsToSave = _.isEmpty(imageIds) ? Object.keys(store.annotationsByImageId) : imageIds;
-            store.backboneParent.saveAnnotations(idsToSave, savePredictions);
-        },
-        synchronizeCategories(imageIds, savePredictions) {
-            // Keep the save annotations in sync with the local state
-            if (store.currentCategoryFormValid) {
-                _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
-                    if (_.has(annotations, 'labels')) {
-                        const superpixelElement = annotations.labels.get('annotation').elements[0];
-                        if (superpixelElement) {
-                            const updatedCategories = JSON.parse(JSON.stringify(store.categories));
-                            superpixelElement.categories = updatedCategories;
-                        }
-                    }
-                });
-                this.saveAnnotations(imageIds, savePredictions);
-                updatePixelmapLayerStyle();
-                store.backboneParent.updateHistomicsYamlConfig();
-            }
         }
     }
 });
@@ -158,8 +137,6 @@ export default Vue.extend({
         ref="activeLearningSlideViewer"
         class="slide-viewer"
         :available-images="availableImages"
-        @synchronize="synchronizeCategories"
-        @save-annotations="saveAnnotations"
       />
       <!-- Current Slide Name -->
       <div class="h-category-form slide-name-container">
@@ -200,7 +177,6 @@ export default Vue.extend({
       <active-learning-labeling
         v-if="mode !== viewMode.Review"
         ref="activeLearningLabeling"
-        @synchronize="synchronizeCategories"
         @combine="combineCategories"
       />
       <!-- Merge Confirmation Dialog -->
