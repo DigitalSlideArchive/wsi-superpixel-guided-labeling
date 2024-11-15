@@ -60,6 +60,7 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
 export const debounce = (fn, wait, immediate = false) => {
     let lastArgs = null;
     let lastTimeout = null;
+    let lastCallTime = null;
 
     const debouncedFn = _.debounce(function (...args) {
         if (lastTimeout) {
@@ -67,13 +68,17 @@ export const debounce = (fn, wait, immediate = false) => {
             lastTimeout = null;
         }
         fn.apply(this, args);
+        lastCallTime = Date.now(); // Update last call timestamp
     }, wait, { leading: immediate });
 
     return function (...args) {
+        const now = Date.now();
+        const shouldRememberLastCall = lastCallTime && now - lastCallTime < wait;
+
         lastArgs = args;
         debouncedFn.apply(this, args);
 
-        if (!lastTimeout) {
+        if (!lastTimeout && shouldRememberLastCall) {
             lastTimeout = setTimeout(() => {
                 if (lastArgs) {
                     fn.apply(this, lastArgs);
