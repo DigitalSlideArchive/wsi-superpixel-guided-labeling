@@ -112,6 +112,11 @@ const ActiveLearningView = View.extend({
                 const newKey = JSON.parse(JSON.stringify(group.hotKey || oldKey));
                 assignHotkey(oldKey, newKey);
             });
+
+            // Create the guidedLabeleling object if it does not exist
+            'guidedLabelingUI' in this.histomicsUIConfig || (this.histomicsUIConfig.guidedLabelingUI = {});
+            store.strokeOpacity = this.histomicsUIConfig.guidedLabelingUI.borderOpacity || 1.0;
+
             // Map excluded label names to indices for internal use
             let excluded = this.configAnnotationGroups.exclusions || [];
             excluded = _.map(excluded, (l) => {
@@ -138,6 +143,10 @@ const ActiveLearningView = View.extend({
             this.categoryMap.set(category.label, category);
         });
         this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
+
+        // Write the opacity value as a float
+        this.histomicsUIConfig.guidedLabelingUI.borderOpacity = parseFloat(store.strokeOpacity);
+
         // Map excluded label indices to string names for readability
         const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
         this.histomicsUIConfig.annotationGroups.exclusions = excluded;

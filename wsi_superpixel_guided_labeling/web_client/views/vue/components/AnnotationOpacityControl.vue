@@ -6,72 +6,47 @@ import { store, updatePixelmapLayerStyle } from './store.js';
 export default {
     data() {
         return {
-            fillColor: 'rgba(0, 0, 0, 1)',
-            opacity: 1
+            fillColor: 'rgba(0, 0, 0, 1)'
         };
     },
     computed: {
-        config() {
-            if (store.backboneParent) {
-                return store.backboneParent.histomicsUIConfig || {};
-            }
-            return {};
-        },
-        folderId() {
-            if (store.backboneParent) {
-                return store.backboneParent.trainingDataFolderId;
-            }
-            return '';
-        },
-        opacitySlider() {
-            return store.strokeOpacity;
-        },
         categoryIndex() {
             return store.categoryIndex;
         },
         noOverlay() {
             return _.isNull(store.labelsOverlayLayer);
+        },
+        opacity: {
+            get() {
+                return store.strokeOpacity;
+            },
+            set(value) {
+                store.strokeOpacity = parseFloat(value);
+            }
         }
     },
     watch: {
-        opacitySlider() {
-            this.updateConfigData();
-            updatePixelmapLayerStyle();
-        },
         categoryIndex() {
             this.fillColor = store.categoriesAndIndices[this.categoryIndex].category.fillColor;
         },
         fillColor() {
-            if (store.opacitySlider === 0) {
+            if (store.strokeOpacity === 0) {
                 updatePixelmapLayerStyle();
             }
         },
-        folderId: {
-            handler(newId, oldId) {
-                if (newId && newId !== oldId) {
-                    this.getConfigData();
+        opacity: {
+            handler(newValue, oldValue) {
+                if (newValue === oldValue) {
+                    return;
                 }
+                this.updateConfigData();
+                updatePixelmapLayerStyle();
             },
             immediate: true
-        },
-        opacity(value) {
-            store.strokeOpacity = parseFloat(value);
         }
     },
     methods: {
-        getConfigData() {
-            if (!this.folderId) {
-                return;
-            }
-            const uiSettings = this.config.guidedLabelingUI || {};
-            if (uiSettings.borderOpacity) {
-                store.opacitySlider = uiSettings.borderOpacity;
-            }
-        },
         updateConfigData() {
-            const uiSettings = this.config.guidedLabelingUI || {};
-            uiSettings.borderOpacity = parseFloat(store.opacitySlider);
-            store.backboneParent.histomicsUIConfig.guidedLabelingUI = uiSettings;
             store.backboneParent.updateHistomicsYamlConfig();
         }
     }
