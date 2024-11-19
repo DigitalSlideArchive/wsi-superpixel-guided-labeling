@@ -369,12 +369,21 @@ export default Vue.extend({
          * Ensure that the label annotation is drawn correctly by keeping the geojs layer
          * up to date with the most recent category list
          */
-        handlePixelmapClicked(overlayElement, overlayLayer, event) {
+        isValidInteraction(overlayElement, overlayLayer, event) {
             if (
+                !_.isEqual(overlayLayer, store.labelsOverlayLayer) || // Not a label pixelmap event
                 store.mode !== viewMode.Labeling || // We can only paint in labeling mode
                 overlayElement.get('type') !== 'pixelmap' || // Not a pixelmap event
-                !event.mouse.buttonsDown.left || // Not a left click
-                !store.currentCategoryFormValid || // no valid category selected
+                !store.currentCategoryFormValid // no valid category selected
+            ) {
+                return false;
+            }
+            return true;
+        },
+        handlePixelmapClicked(overlayElement, overlayLayer, event) {
+            const isValid = this.isValidInteraction(overlayElement, overlayLayer, event);
+            if (
+                !isValid || !event.mouse.buttonsDown.left || // Not a left click
                 (store.pixelmapPaintBrush && event.mouse.modifiers.shift)
             ) {
                 return;
@@ -382,24 +391,20 @@ export default Vue.extend({
             this.updatePixelmapData(overlayElement, event);
         },
         handleMouseOverPixelmap(overlayElement, overlayLayer, event) {
+            const isValid = this.isValidInteraction(overlayElement, overlayLayer, event);
             if (
-                store.mode !== viewMode.Labeling || // We can only paint in labeling mode
-                overlayElement.get('type') !== 'pixelmap' ||
-                !event.mouse.buttons.left ||
-                (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
-                !store.currentCategoryFormValid
+                !isValid || !event.mouse.buttons.left || // Not a left click
+                (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift)
             ) {
                 return;
             }
             this.updatePixelmapData(overlayElement, event);
         },
         handleMouseDownPixelmap(overlayElement, overlayLayer, event) {
+            const isValid = this.isValidInteraction(overlayElement, overlayLayer, event);
             if (
-                store.mode !== viewMode.Labeling || // We can only paint in labeling mode
-                overlayElement.get('type') !== 'pixelmap' ||
-                !event.mouse.buttons.left ||
-                (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift) ||
-                !store.currentCategoryFormValid
+                !isValid || !event.mouse.buttons.left || // Not a left click
+                (!store.pixelmapPaintBrush && !event.mouse.modifiers.shift)
             ) {
                 return;
             }
