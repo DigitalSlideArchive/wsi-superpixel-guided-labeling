@@ -83,9 +83,7 @@ export default Vue.extend({
             updateSelectedPage();
         },
         mode() {
-            if (store.mode === viewMode.Review) {
-                store.backboneParent.getSortedSuperpixelIndices();
-            } else if (store.mode === viewMode.Labeling) {
+            if (store.mode === viewMode.Labeling) {
                 store.labels = true;
             }
         }
