@@ -1,6 +1,5 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
 
 import ActiveLearningInitialSuperpixels from './ActiveLearningSetup/ActiveLearningInitialSuperpixels.vue';
 import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
@@ -12,7 +11,7 @@ import MouseAndKeyboardControls from './MouseAndKeyboardControls.vue';
 import ActiveLearningSlideViewer from './ActiveLearningSlideViewer.vue';
 
 import { viewMode, activeLearningSteps } from './constants';
-import { store, updatePixelmapLayerStyle, updateSelectedPage } from './store.js';
+import { store, updateSelectedPage } from './store.js';
 
 export default Vue.extend({
     components: {
