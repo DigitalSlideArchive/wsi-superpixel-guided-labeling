@@ -398,23 +398,32 @@ export default Vue.extend({
         /**********************************************************************
          * Group superpixels based on the selected grouping options
          *********************************************************************/
+        groupBySlideName(data) {
+            return _.groupBy(data, (superpixel) => {
+                return this.imageItemsById[superpixel.imageId].name;
+            });
+        },
+        groupByLabelCategory(data) {
+            return _.groupBy(data, (superpixel) => {
+                return store.categories[superpixel.selectedCategory].label;
+            });
+        },
+        groupByLabelPredictionAgreement(data) {
+            return _.groupBy(data, (superpixel) => {
+                const { selectedCategory, prediction } = superpixel;
+                const selection = superpixel.labelCategories[selectedCategory].label;
+                const predicted = superpixel.predictionCategories[prediction].label;
+                return selection === predicted ? 'Agree' : 'Disagree';
+            });
+        },
         groupSuperpixels(data) {
             switch (store.groupBy) {
                 case 1:
-                    return _.groupBy(data, (superpixel) => {
-                        return this.imageItemsById[superpixel.imageId].name;
-                    });
+                    return this.groupBySlideName(data);
                 case 2:
-                    return _.groupBy(data, (superpixel) => {
-                        return store.categories[superpixel.selectedCategory].label;
-                    });
+                    return this.groupByLabelCategory(data);
                 case 3:
-                    return _.groupBy(data, (superpixel) => {
-                        const { selectedCategory, prediction } = superpixel;
-                        const selection = superpixel.labelCategories[selectedCategory].label;
-                        const predicted = superpixel.predictionCategories[prediction].label;
-                        return selection === predicted ? 'Agree' : 'Disagree';
-                    });
+                    return this.groupByLabelPredictionAgreement(data);
                 default:
                     return { data };
             }
