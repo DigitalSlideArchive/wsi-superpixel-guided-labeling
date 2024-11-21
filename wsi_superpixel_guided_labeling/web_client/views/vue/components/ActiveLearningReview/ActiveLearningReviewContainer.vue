@@ -280,16 +280,16 @@ export default Vue.extend({
                 }));
             }
             // Filter by review categories
-            const reviewResults = [];
+            let reviewResults = [];
             if (_.some(labels, (label) => store.filterBy.includes(`review_${label}`))) {
-                reviewResults.push(..._.filter(data, (superpixel) => {
+                reviewResults = reviewResults.concat(_.filter(data, (superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
                     const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
                     return store.filterBy.includes(`review_${label}`);
                 }));
             }
             if (store.filterBy.includes('no review')) {
-                reviewResults.push(..._.filter(data, (superpixel) => {
+                reviewResults = reviewResults.concat(_.filter(data, (superpixel) => {
                     return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
