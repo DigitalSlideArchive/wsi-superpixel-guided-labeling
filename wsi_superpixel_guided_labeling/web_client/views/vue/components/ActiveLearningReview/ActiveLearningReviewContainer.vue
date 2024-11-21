@@ -230,28 +230,43 @@ export default Vue.extend({
         /**********************************************************************
          * Sort superpixels based on the selected sorting options
          *********************************************************************/
+        sortBySlideName(sorted) {
+            return _.sortBy(sorted, (superpixel) => {
+                return this.imageItemsById[superpixel.imageId].name;
+            });
+        },
+        sortByLabelCategory(sorted) {
+            return _.sortBy(sorted, 'selectedCategory');
+        },
+        sortByLabelPredictionAgreement(sorted) {
+            _.sortBy(sorted, (superpixel) => {
+                const selected = superpixel.labelCategories[superpixel.selectedCategory];
+                const predicted = superpixel.predictionCategories[superpixel.prediction];
+                return selected.label === predicted.label;
+            });
+        },
+        sortByConfidence(sorted) {
+            return _.sortBy(sorted, 'confidence');
+        },
+        sortByCertainty(sorted) {
+            return _.sortBy(sorted, 'certainty');
+        },
         sortSuperpixels(sorted) {
             switch (store.sortBy) {
                 case 1:
-                    sorted = _.sortBy(sorted, (superpixel) => {
-                        return this.imageItemsById[superpixel.imageId].name;
-                    });
+                    sorted = this.sortBySlideName(sorted);
                     break;
                 case 2:
-                    sorted = _.sortBy(sorted, 'selectedCategory');
+                    sorted = this.sortByLabelCategory(sorted);
                     break;
                 case 3:
-                    sorted = _.sortBy(sorted, (superpixel) => {
-                        const selected = superpixel.labelCategories[superpixel.selectedCategory];
-                        const predicted = superpixel.predictionCategories[superpixel.prediction];
-                        return selected.label === predicted.label;
-                    });
+                    sorted = this.sortByLabelPredictionAgreement(sorted);
                     break;
                 case 4:
-                    sorted = _.sortBy(sorted, 'confidence');
+                    sorted = this.sortByConfidence(sorted);
                     break;
                 case 5:
-                    sorted = _.sortBy(sorted, 'certainty');
+                    sorted = this.sortByCertainty(sorted);
                     break;
                 default:
                     sorted = _.sortBy(sorted, 'index');
