@@ -227,6 +227,9 @@ export default Vue.extend({
         document.removeEventListener('mouseup', () => { this.isResizing = false; });
     },
     methods: {
+        /**********************************************************************
+         * Sort superpixels based on the selected sorting options
+         *********************************************************************/
         sortSuperpixels(sorted) {
             switch (store.sortBy) {
                 case 1:
@@ -259,26 +262,33 @@ export default Vue.extend({
             }
             return sorted;
         },
-        filterSuperpixels(data) {
-            const results = [];
+        /**********************************************************************
+         * Filter superpixels based on the selected filter options
+         *********************************************************************/
+        filterBySlideName(data) {
             // Filter by selected slide(s)
             const slideNames = _.pluck(this.imageItemsById, 'name');
             if (_.some(slideNames, (name) => store.filterBy.includes(name))) {
-                results.push(_.filter(data, (superpixel) => {
+                return _.filter(data, (superpixel) => {
                     const name = this.imageItemsById[superpixel.imageId].name;
                     return store.filterBy.includes(name);
-                }));
+                });
             }
-            // Filter by selected category(ies)
+            return [];
+        },
+        filterByLabelCategory(data) {
+            // Filter by selected label categories
             const labels = _.pluck(this.categories, 'label');
-            // Filter by label categories
             if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
-                results.push(_.filter(data, (superpixel) => {
+                return _.filter(data, (superpixel) => {
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
                     return store.filterBy.includes(`label_${label}`);
-                }));
+                });
             }
+            return [];
+        },
+        filterByReviewCategory(data) {
             // Filter by review categories
             let reviewResults = [];
             if (_.some(labels, (label) => store.filterBy.includes(`review_${label}`))) {
@@ -293,23 +303,31 @@ export default Vue.extend({
                     return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
-            reviewResults.length && results.push(reviewResults);
+            return reviewResults;
+        },
+        filterByLabeler(data) {
             // Filter by labeler
             const labelers = this.filterOptions.Labelers;
             if (_.some(labelers, (id) => store.filterBy.includes(`labeler_${id}`))) {
-                results.push(_.filter(data, (superpixel) => {
+                return _.filter(data, (superpixel) => {
                     const id = superpixel.meta ? superpixel.meta.labeler : '';
                     return store.filterBy.includes(`labeler_${id}`);
-                }));
+                });
             }
+            return [];
+        },
+        filterByReviewer(data) {
             // Filter by reviewer
             const reviewers = this.filterOptions.Reviewers;
             if (_.some(reviewers, (id) => store.filterBy.includes(`reviewer_${id}`))) {
-                results.push(_.filter(data, (superpixel) => {
+                return _.filter(data, (superpixel) => {
                     const id = superpixel.meta ? superpixel.meta.reviewer : '';
                     return store.filterBy.includes(`reviewer_${id}`);
-                }));
+                });
             }
+            return [];
+        },
+        filterByComparison(data) {
             // Filter by comparison
             if (!!this.firstComparison && !!this.booleanOperator) {
                 // Select the appropriate comparison function
@@ -322,7 +340,7 @@ export default Vue.extend({
                     [key1, userID1, key2] = this.secondComparison.split('_');
                 }
 
-                results.push(_.filter(data, (superpixel) => {
+                return _.filter(data, (superpixel) => {
                     const values = [null, null, null];
                     _.forEach([key0, key1, key2], (key, idx) => {
                         const userID = idx === 0 ? userID0 : userID1;
@@ -344,13 +362,27 @@ export default Vue.extend({
                     });
                     return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
                            (!!values[0] && !!values[2] && op(values[0], values[2]));
-                }));
+                });
             }
+            return [];
+        },
+        filterSuperpixels(data) {
+            let results = [];
+            results.push(this.filterBySlideName(data));
+            results.push(this.filterByLabelCategory(data));
+            results.push(this.filterByReviewCategory(data));
+            results.push(this.filterByLabeler(data));
+            results.push(this.filterByReviewer(data));
+            results.push(this.filterByComparison(data));
 
+            results = results.filter((result) => result.length);
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
         },
+        /**********************************************************************
+         * Group superpixels based on the selected grouping options
+         *********************************************************************/
         groupSuperpixels(data) {
             switch (store.groupBy) {
                 case 1:
