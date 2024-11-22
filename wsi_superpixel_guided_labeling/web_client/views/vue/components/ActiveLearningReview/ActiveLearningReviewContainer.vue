@@ -74,7 +74,7 @@ export default Vue.extend({
         },
         filterOptions() {
             const categories = _.pluck(store.categories, 'label');
-            const slides = _.map(Object.keys(store.annotationsByImageId), (imageId) => {
+            const slides = Object.keys(store.annotationsByImageId).map((imageId) => {
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
@@ -159,7 +159,7 @@ export default Vue.extend({
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
             if (!filteredContainsSelected) {
                 // If the selected superpixel has been filtered out fall back to the first available
-                this.selectedSuperpixel = _.values(data)[0][0];
+                this.selectedSuperpixel = Object.values(data)[0][0];
             }
             this.$nextTick(() => this.updateObserved());
         },
@@ -218,7 +218,7 @@ export default Vue.extend({
         // Pre-fetch all user names
         this.backboneParent.getCurrentUser();
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
-        _.forEach(_.uniq(allUsers), (id) => store.backboneParent.getUser(id));
+        _.uniq(allUsers).forEach((id) => store.backboneParent.getUser(id));
     },
     destroyed() {
         const resizeHandle = document.querySelector('.resize-handle');
@@ -239,7 +239,7 @@ export default Vue.extend({
             return _.sortBy(sorted, 'selectedCategory');
         },
         sortByLabelPredictionAgreement(sorted) {
-            _.sortBy(sorted, (superpixel) => {
+            return _.sortBy(sorted, (superpixel) => {
                 const selected = superpixel.labelCategories[superpixel.selectedCategory];
                 const predicted = superpixel.predictionCategories[superpixel.prediction];
                 return selected.label === predicted.label;
@@ -283,8 +283,8 @@ export default Vue.extend({
         filterBySlideName(data) {
             // Filter by selected slide(s)
             const slideNames = _.pluck(this.imageItemsById, 'name');
-            if (_.some(slideNames, (name) => store.filterBy.includes(name))) {
-                return _.filter(data, (superpixel) => {
+            if (slideNames.some((name) => store.filterBy.includes(name))) {
+                return data.filter((superpixel) => {
                     const name = this.imageItemsById[superpixel.imageId].name;
                     return store.filterBy.includes(name);
                 });
@@ -294,8 +294,8 @@ export default Vue.extend({
         filterByLabelCategory(data) {
             // Filter by selected label categories
             const labels = _.pluck(this.categories, 'label');
-            if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
-                return _.filter(data, (superpixel) => {
+            if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
+                return data.filter((superpixel) => {
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
                     return store.filterBy.includes(`label_${label}`);
@@ -306,15 +306,16 @@ export default Vue.extend({
         filterByReviewCategory(data) {
             // Filter by review categories
             let reviewResults = [];
-            if (_.some(labels, (label) => store.filterBy.includes(`review_${label}`))) {
-                reviewResults = reviewResults.concat(_.filter(data, (superpixel) => {
+            const labels = _.pluck(this.categories, 'label');
+            if (labels.some((label) => store.filterBy.includes(`review_${label}`))) {
+                reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
                     const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
                     return store.filterBy.includes(`review_${label}`);
                 }));
             }
             if (store.filterBy.includes('no review')) {
-                reviewResults = reviewResults.concat(_.filter(data, (superpixel) => {
+                reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
@@ -323,8 +324,8 @@ export default Vue.extend({
         filterByLabeler(data) {
             // Filter by labeler
             const labelers = this.filterOptions.Labelers;
-            if (_.some(labelers, (id) => store.filterBy.includes(`labeler_${id}`))) {
-                return _.filter(data, (superpixel) => {
+            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
+                return data.filter((superpixel) => {
                     const id = superpixel.meta ? superpixel.meta.labeler : '';
                     return store.filterBy.includes(`labeler_${id}`);
                 });
@@ -334,8 +335,8 @@ export default Vue.extend({
         filterByReviewer(data) {
             // Filter by reviewer
             const reviewers = this.filterOptions.Reviewers;
-            if (_.some(reviewers, (id) => store.filterBy.includes(`reviewer_${id}`))) {
-                return _.filter(data, (superpixel) => {
+            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
+                return data.filter((superpixel) => {
                     const id = superpixel.meta ? superpixel.meta.reviewer : '';
                     return store.filterBy.includes(`reviewer_${id}`);
                 });
@@ -355,9 +356,9 @@ export default Vue.extend({
                     [key1, userID1, key2] = this.secondComparison.split('_');
                 }
 
-                return _.filter(data, (superpixel) => {
+                return data.filter((superpixel) => {
                     const values = [null, null, null];
-                    _.forEach([key0, key1, key2], (key, idx) => {
+                    [key0, key1, key2].forEach((key, idx) => {
                         const userID = idx === 0 ? userID0 : userID1;
                         if (key === 'prediction') {
                             values[idx] = superpixel.predictionCategories[superpixel.prediction];
@@ -462,10 +463,10 @@ export default Vue.extend({
             }
         },
         applyBulkReview(newValue) {
-            _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
+            this.selectedReviewSuperpixels.forEach((superpixel) => {
                 updateMetadata(superpixel, newValue, true);
             });
-            _.forEach(_.keys(store.annotationsByImageId),
+            Object.keys(store.annotationsByImageId).forEach(
                 (imageId) => store.backboneParent.updateAnnotationMetadata(imageId));
             this.selectedReviewSuperpixels = [];
             this.selectingSuperpixels = false;
