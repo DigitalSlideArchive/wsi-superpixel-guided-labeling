@@ -126,7 +126,6 @@ export default Vue.extend({
     },
     watch: {
         editingLabel() {
-            store.categoryIndex = this.editingLabel;
             if (this.editingLabel === -1) {
                 this.synchronizeCategories();
                 return;
