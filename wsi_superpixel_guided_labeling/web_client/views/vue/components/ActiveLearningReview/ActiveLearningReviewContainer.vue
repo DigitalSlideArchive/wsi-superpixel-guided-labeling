@@ -74,6 +74,7 @@ export default Vue.extend({
         },
         filterOptions() {
             const categories = _.pluck(store.categories, 'label');
+            const predictions = categories.slice(1);
             const slides = Object.keys(store.annotationsByImageId).map((imageId) => {
                 return this.imageItemsById[imageId].name;
             });
@@ -82,6 +83,7 @@ export default Vue.extend({
             const reviewers = _.compact(_.uniq(_.pluck(meta, 'reviewer')));
             return {
                 Slides: slides,
+                Predictions: predictions,
                 Labels: categories,
                 Reviews: categories,
                 Labelers: labelers,
@@ -869,51 +871,99 @@ export default Vue.extend({
               </button>
             </div>
             <div id="filterby">
-              <div
-                :style="{'position': 'relative'}"
-                class="dropdown-dropup selector-with-button"
-              >
-                <div class="dropdown-button">
-                  <div
-                    class="btn btn-default btn-block"
-                    @click="toggleOpenMenu('slide')"
-                  >
-                    <span class="multiselect-dropdown-label">
-                      Slide Image
-                      <span class="caret" />
-                    </span>
-                  </div>
-                  <ul :class="['dropdown-menu', openMenu === 'slide' ? 'visible-menu' : 'hidden']">
-                    <li
-                      v-for="(imageName, index) in filterOptions.Slides"
-                      :key="`slide_${index}`"
-                    >
-                      <label
-                        :for="`slide_${index}`"
-                        class="checkboxLabel"
-                      >
-                        <input
-                          :id="`slide_${index}`"
-                          v-model="filterBy"
-                          type="checkbox"
-                          :value="imageName"
-                        >
-                        {{ imageName }}
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  class="btn btn-danger btn-xs"
-                  :disabled="!filterOptions.Slides.some(name => filterBy.includes(name))"
-                  @click="removeFilters(filterOptions.Slides)"
+              <div class="flex">
+                <div
+                  :style="{'position': 'relative', 'margin-right': '3px', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
                 >
-                  <i
-                    class="icon-minus-squared"
-                    data-toggle="tooltip"
-                    title="Clear all filters"
-                  />
-                </button>
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('slide')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Slide Image
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'slide' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="(imageName, index) in filterOptions.Slides"
+                        :key="`slide_${index}`"
+                      >
+                        <label
+                          :for="`slide_${index}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`slide_${index}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="imageName"
+                          >
+                          {{ imageName }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!filterOptions.Slides.some(name => filterBy.includes(name))"
+                    @click="removeFilters(filterOptions.Slides)"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
+                <div
+                  :style="{'position': 'relative', 'width': '50%'}"
+                  class="dropdown-dropup selector-with-button"
+                >
+                  <div class="dropdown-button">
+                    <div
+                      class="btn btn-default btn-block"
+                      @click="toggleOpenMenu('prediction')"
+                    >
+                      <span class="multiselect-dropdown-label">
+                        Predictions
+                        <span class="caret" />
+                      </span>
+                    </div>
+                    <ul :class="['dropdown-menu', openMenu === 'prediction' ? 'visible-menu' : 'hidden']">
+                      <li
+                        v-for="(label, index) in filterOptions.Predictions"
+                        :key="`prediction_${index}`"
+                      >
+                        <label
+                          :for="`prediction_${index}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`prediction_${index}`"
+                            v-model="filterBy"
+                            type="checkbox"
+                            :value="`prediction_${label}`"
+                          >
+                          {{ label }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-xs"
+                    :disabled="!filterOptions.Predictions.some(cat => filterBy.includes(`prediction_${cat}`))"
+                    @click="removeFilters(filterOptions.Labels.map(cat => `prediction_${cat}`))"
+                  >
+                    <i
+                      class="icon-minus-squared"
+                      data-toggle="tooltip"
+                      title="Clear all filters"
+                    />
+                  </button>
+                </div>
               </div>
               <div class="flex">
                 <div
