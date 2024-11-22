@@ -635,6 +635,10 @@ const ActiveLearningView = View.extend({
 
     applyReviews() {
         _.forEach(_.values(this.annotationsByImageId), (values) => {
+            if (!values.labels) {
+                // Newly added images may not have labels yet
+                return;
+            }
             const annotation = values.labels.get('annotation');
             if (annotation) {
                 _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
