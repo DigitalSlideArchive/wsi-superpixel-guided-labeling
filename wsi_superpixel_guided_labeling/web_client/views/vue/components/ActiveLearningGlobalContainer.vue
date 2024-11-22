@@ -1,5 +1,6 @@
 <script>
 import Vue from 'vue';
+import _ from 'underscore';
 
 import ActiveLearningInitialSuperpixels from './ActiveLearningSetup/ActiveLearningInitialSuperpixels.vue';
 import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
