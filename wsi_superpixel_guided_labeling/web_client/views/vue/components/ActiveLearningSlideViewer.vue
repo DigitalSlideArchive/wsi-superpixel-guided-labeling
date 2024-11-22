@@ -121,8 +121,9 @@ export default Vue.extend({
                 if (!store.changeLog.length) {
                     return;
                 }
-                this.changeLog.pop();
+                const superpixel = this.changeLog.pop();
                 this.drawPixelmapAnnotation();
+                store.backboneParent.saveAnnotations([superpixel.imageId], false);
             },
             deep: true
         },
