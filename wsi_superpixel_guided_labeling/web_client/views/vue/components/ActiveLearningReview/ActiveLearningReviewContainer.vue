@@ -383,6 +383,18 @@ export default Vue.extend({
             }
             return [];
         },
+        filterByPredictionLabel(data) {
+            // Filter by selected label categories
+            const predictions = _.rest(_.pluck(this.categories, 'label'));
+            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
+                return data.filter((superpixel) => {
+                    const { prediction, predictionCategories } = superpixel;
+                    const label = predictionCategories[prediction].label;
+                    return store.filterBy.includes(`prediction_${label}`);
+                });
+            }
+            return [];
+        },
         filterSuperpixels(data) {
             let results = [];
             results.push(this.filterBySlideName(data));
@@ -391,6 +403,7 @@ export default Vue.extend({
             results.push(this.filterByLabeler(data));
             results.push(this.filterByReviewer(data));
             results.push(this.filterByComparison(data));
+            results.push(this.filterByPredictionLabel(data));
 
             results = results.filter((result) => result.length);
             const filtered = results.length ? _.intersection(...results) : data;
