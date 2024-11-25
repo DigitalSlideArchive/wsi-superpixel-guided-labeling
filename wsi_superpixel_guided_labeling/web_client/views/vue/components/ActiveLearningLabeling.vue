@@ -5,9 +5,9 @@ import _ from 'underscore';
 import { confirm } from '@girder/core/dialog';
 import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
 
-import { store, assignHotkey, nextCard, previousCard } from './store.js';
+import { store, assignHotkey, nextCard, previousCard, updatePixelmapLayerStyle } from './store.js';
 import { boundaryColor, comboHotkeys, viewMode, activeLearningSteps } from './constants.js';
-import { updateMetadata, getFillColor } from './utils.js';
+import { updateMetadata, getFillColor, debounce } from './utils.js';
 
 // Define some helpful constants for adding categories
 const defaultCategory = {
@@ -161,7 +161,6 @@ export default Vue.extend({
                     });
                 });
             }
-            this.synchronizeCategories();
         },
         currentCategoryFillColor(newColor, oldColor) {
             if (newColor === oldColor || !colorPattern.test(newColor)) {
@@ -175,8 +174,10 @@ export default Vue.extend({
                 }
                 const pixelmapElement = annotations.predictions.get('annotation').elements[0];
                 _.forEach(pixelmapElement.categories, (prediction) => {
-                    if (prediction.label === this.currentCategoryLabel) {
+                    if (prediction.label === this.currentCategoryLabel && prediction.fillColor !== newColor) {
                         prediction.fillColor = newColor;
+                        updatePixelmapLayerStyle();
+                        store.backboneParent.saveAnnotations(Object.keys(store.annotationsByImageId));
                     }
                 });
             });
@@ -244,6 +245,7 @@ export default Vue.extend({
                 indices: {}
             });
             store.categoryIndex = store.categoriesAndIndices.length - 1;
+            this.synchronizeCategories();
         },
         combineCategories(isMerge) {
             // Separate the removed categories from the remaining
@@ -374,10 +376,22 @@ export default Vue.extend({
         selectCategory(index) {
             store.categoryIndex = index;
         },
-        synchronizeCategories(imageIds) {
+        synchronizeCategories: debounce(function () {
             store.categories = this.allNewCategories;
-            this.$emit('synchronize', imageIds, true);
-        },
+            if (store.currentCategoryFormValid) {
+                _.forEach(Object.values(store.annotationsByImageId), (annotations) => {
+                    if (_.has(annotations, 'labels')) {
+                        const superpixelElement = annotations.labels.get('annotation').elements[0];
+                        if (superpixelElement) {
+                            const updatedCategories = JSON.parse(JSON.stringify(store.categories));
+                            superpixelElement.categories = updatedCategories;
+                        }
+                    }
+                });
+                store.backboneParent.updateHistomicsYamlConfig();
+                store.backboneParent.saveAnnotations(Object.keys(store.annotationsByImageId));
+            }
+        }, 500),
         keydownListener(event) {
             if (event.target.type === 'text' && event.target.id !== 'category-hotkey') {
                 // User is typing, not using a hot key selector

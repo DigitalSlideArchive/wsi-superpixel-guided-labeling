@@ -112,6 +112,11 @@ const ActiveLearningView = View.extend({
                 const newKey = JSON.parse(JSON.stringify(group.hotKey || oldKey));
                 assignHotkey(oldKey, newKey);
             });
+
+            // Create the guidedLabeleling object if it does not exist
+            'guidedLabelingUI' in this.histomicsUIConfig || (this.histomicsUIConfig.guidedLabelingUI = {});
+            store.strokeOpacity = this.histomicsUIConfig.guidedLabelingUI.borderOpacity || 1.0;
+
             // Map excluded label names to indices for internal use
             let excluded = this.configAnnotationGroups.exclusions || [];
             excluded = _.map(excluded, (l) => {
@@ -138,6 +143,10 @@ const ActiveLearningView = View.extend({
             this.categoryMap.set(category.label, category);
         });
         this.histomicsUIConfig.annotationGroups.groups = [...groups.values()];
+
+        // Write the opacity value as a float
+        this.histomicsUIConfig.guidedLabelingUI.borderOpacity = parseFloat(store.strokeOpacity);
+
         // Map excluded label indices to string names for readability
         const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
         this.histomicsUIConfig.annotationGroups.exclusions = excluded;
@@ -454,6 +463,7 @@ const ActiveLearningView = View.extend({
 
         // Replace categories
         pixelmapElement.categories = categories;
+        this.saveAnnotations([imageId], false);
     },
 
     /**
@@ -489,7 +499,6 @@ const ActiveLearningView = View.extend({
                 this.updateCategoriesAndData(labelPixelmapElement, imageId);
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
     },
 
     /**
@@ -634,6 +643,7 @@ const ActiveLearningView = View.extend({
     }, 500, true),
 
     applyReviews() {
+        const imageIds = [];
         _.forEach(_.values(this.annotationsByImageId), (values) => {
             if (!values.labels) {
                 // Newly added images may not have labels yet
@@ -644,11 +654,14 @@ const ActiveLearningView = View.extend({
                 _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
                     if (_.isNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
                         annotation.elements[0].values[k] = v.reviewValue;
+                        if (!imageIds.includes(annotation.itemId)) {
+                            imageIds.push(annotation.itemId);
+                        }
                     }
                 });
             }
         });
-        this.saveAnnotations(Object.keys(this.annotationsByImageId), true);
+        this.saveAnnotations(imageIds, false);
     },
 
     retrain(goToNextStep) {
