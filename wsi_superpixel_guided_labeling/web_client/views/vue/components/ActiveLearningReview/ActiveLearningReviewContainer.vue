@@ -74,7 +74,7 @@ export default Vue.extend({
         },
         filterOptions() {
             const categories = _.pluck(store.categories, 'label');
-            const slides = _.map(Object.keys(store.annotationsByImageId), (imageId) => {
+            const slides = Object.keys(store.annotationsByImageId).map((imageId) => {
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
@@ -159,7 +159,7 @@ export default Vue.extend({
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
             if (!filteredContainsSelected) {
                 // If the selected superpixel has been filtered out fall back to the first available
-                this.selectedSuperpixel = _.values(data)[0][0];
+                this.selectedSuperpixel = Object.values(data)[0][0];
             }
             this.$nextTick(() => this.updateObserved());
         },
@@ -217,7 +217,7 @@ export default Vue.extend({
 
         // Pre-fetch all user names
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
-        _.forEach(_.uniq(allUsers), (id) => store.backboneParent.getUser(id));
+        _.uniq(allUsers).forEach((id) => store.backboneParent.getUser(id));
     },
     destroyed() {
         const resizeHandle = document.querySelector('.resize-handle');
@@ -226,28 +226,46 @@ export default Vue.extend({
         document.removeEventListener('mouseup', () => { this.isResizing = false; });
     },
     methods: {
+        /**********************************************************************
+         * Sort superpixels based on the selected sorting options
+         *********************************************************************/
+        sortBySlideName(sorted) {
+            return _.sortBy(sorted, (superpixel) => {
+                return this.imageItemsById[superpixel.imageId].name;
+            });
+        },
+        sortByLabelCategory(sorted) {
+            return _.sortBy(sorted, 'selectedCategory');
+        },
+        sortByLabelPredictionAgreement(sorted) {
+            return _.sortBy(sorted, (superpixel) => {
+                const selected = superpixel.labelCategories[superpixel.selectedCategory];
+                const predicted = superpixel.predictionCategories[superpixel.prediction];
+                return selected.label === predicted.label;
+            });
+        },
+        sortByConfidence(sorted) {
+            return _.sortBy(sorted, 'confidence');
+        },
+        sortByCertainty(sorted) {
+            return _.sortBy(sorted, 'certainty');
+        },
         sortSuperpixels(sorted) {
             switch (store.sortBy) {
                 case 1:
-                    sorted = _.sortBy(sorted, (superpixel) => {
-                        return this.imageItemsById[superpixel.imageId].name;
-                    });
+                    sorted = this.sortBySlideName(sorted);
                     break;
                 case 2:
-                    sorted = _.sortBy(sorted, 'selectedCategory');
+                    sorted = this.sortByLabelCategory(sorted);
                     break;
                 case 3:
-                    sorted = _.sortBy(sorted, (superpixel) => {
-                        const selected = superpixel.labelCategories[superpixel.selectedCategory];
-                        const predicted = superpixel.predictionCategories[superpixel.prediction];
-                        return selected.label === predicted.label;
-                    });
+                    sorted = this.sortByLabelPredictionAgreement(sorted);
                     break;
                 case 4:
-                    sorted = _.sortBy(sorted, 'confidence');
+                    sorted = this.sortByConfidence(sorted);
                     break;
                 case 5:
-                    sorted = _.sortBy(sorted, 'certainty');
+                    sorted = this.sortByCertainty(sorted);
                     break;
                 default:
                     sorted = _.sortBy(sorted, 'index');
@@ -258,57 +276,73 @@ export default Vue.extend({
             }
             return sorted;
         },
-        filterSuperpixels(data) {
-            const results = [];
+        /**********************************************************************
+         * Filter superpixels based on the selected filter options
+         *********************************************************************/
+        filterBySlideName(data) {
             // Filter by selected slide(s)
             const slideNames = _.pluck(this.imageItemsById, 'name');
-            if (_.some(slideNames, (name) => store.filterBy.includes(name))) {
-                results.push(_.filter(data, (superpixel) => {
+            if (slideNames.some((name) => store.filterBy.includes(name))) {
+                return data.filter((superpixel) => {
                     const name = this.imageItemsById[superpixel.imageId].name;
                     return store.filterBy.includes(name);
-                }));
+                });
             }
-            // Filter by selected category(ies)
+            return [];
+        },
+        filterByLabelCategory(data) {
+            // Filter by selected label categories
             const labels = _.pluck(this.categories, 'label');
-            // Filter by label categories
-            if (_.some(labels, (label) => store.filterBy.includes(`label_${label}`))) {
-                results.push(_.filter(data, (superpixel) => {
+            if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
+                return data.filter((superpixel) => {
                     const { selectedCategory, labelCategories } = superpixel;
                     const label = labelCategories[selectedCategory].label;
                     return store.filterBy.includes(`label_${label}`);
-                }));
+                });
             }
+            return [];
+        },
+        filterByReviewCategory(data) {
             // Filter by review categories
             let reviewResults = [];
-            if (_.some(labels, (label) => store.filterBy.includes(`review_${label}`))) {
-                reviewResults = reviewResults.concat(_.filter(data, (superpixel) => {
+            const labels = _.pluck(this.categories, 'label');
+            if (labels.some((label) => store.filterBy.includes(`review_${label}`))) {
+                reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
                     const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
                     return store.filterBy.includes(`review_${label}`);
                 }));
             }
             if (store.filterBy.includes('no review')) {
-                reviewResults = reviewResults.concat(_.filter(data, (superpixel) => {
+                reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
-            reviewResults.length && results.push(reviewResults);
+            return reviewResults;
+        },
+        filterByLabeler(data) {
             // Filter by labeler
             const labelers = this.filterOptions.Labelers;
-            if (_.some(labelers, (id) => store.filterBy.includes(`labeler_${id}`))) {
-                results.push(_.filter(data, (superpixel) => {
+            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
+                return data.filter((superpixel) => {
                     const id = superpixel.meta ? superpixel.meta.labeler : '';
                     return store.filterBy.includes(`labeler_${id}`);
-                }));
+                });
             }
+            return [];
+        },
+        filterByReviewer(data) {
             // Filter by reviewer
             const reviewers = this.filterOptions.Reviewers;
-            if (_.some(reviewers, (id) => store.filterBy.includes(`reviewer_${id}`))) {
-                results.push(_.filter(data, (superpixel) => {
+            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
+                return data.filter((superpixel) => {
                     const id = superpixel.meta ? superpixel.meta.reviewer : '';
                     return store.filterBy.includes(`reviewer_${id}`);
-                }));
+                });
             }
+            return [];
+        },
+        filterByComparison(data) {
             // Filter by comparison
             if (!!this.firstComparison && !!this.booleanOperator) {
                 // Select the appropriate comparison function
@@ -321,9 +355,9 @@ export default Vue.extend({
                     [key1, userID1, key2] = this.secondComparison.split('_');
                 }
 
-                results.push(_.filter(data, (superpixel) => {
+                return data.filter((superpixel) => {
                     const values = [null, null, null];
-                    _.forEach([key0, key1, key2], (key, idx) => {
+                    [key0, key1, key2].forEach((key, idx) => {
                         const userID = idx === 0 ? userID0 : userID1;
                         if (key === 'prediction') {
                             values[idx] = superpixel.predictionCategories[superpixel.prediction];
@@ -343,30 +377,53 @@ export default Vue.extend({
                     });
                     return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
                            (!!values[0] && !!values[2] && op(values[0], values[2]));
-                }));
+                });
             }
+            return [];
+        },
+        filterSuperpixels(data) {
+            let results = [];
+            results.push(this.filterBySlideName(data));
+            results.push(this.filterByLabelCategory(data));
+            results.push(this.filterByReviewCategory(data));
+            results.push(this.filterByLabeler(data));
+            results.push(this.filterByReviewer(data));
+            results.push(this.filterByComparison(data));
 
+            results = results.filter((result) => result.length);
             const filtered = results.length ? _.intersection(...results) : data;
             this.totalSuperpixels = filtered.length;
             return filtered;
         },
+        /**********************************************************************
+         * Group superpixels based on the selected grouping options
+         *********************************************************************/
+        groupBySlideName(data) {
+            return _.groupBy(data, (superpixel) => {
+                return this.imageItemsById[superpixel.imageId].name;
+            });
+        },
+        groupByLabelCategory(data) {
+            return _.groupBy(data, (superpixel) => {
+                return store.categories[superpixel.selectedCategory].label;
+            });
+        },
+        groupByLabelPredictionAgreement(data) {
+            return _.groupBy(data, (superpixel) => {
+                const { selectedCategory, prediction } = superpixel;
+                const selection = superpixel.labelCategories[selectedCategory].label;
+                const predicted = superpixel.predictionCategories[prediction].label;
+                return selection === predicted ? 'Agree' : 'Disagree';
+            });
+        },
         groupSuperpixels(data) {
             switch (store.groupBy) {
                 case 1:
-                    return _.groupBy(data, (superpixel) => {
-                        return this.imageItemsById[superpixel.imageId].name;
-                    });
+                    return this.groupBySlideName(data);
                 case 2:
-                    return _.groupBy(data, (superpixel) => {
-                        return store.categories[superpixel.selectedCategory].label;
-                    });
+                    return this.groupByLabelCategory(data);
                 case 3:
-                    return _.groupBy(data, (superpixel) => {
-                        const { selectedCategory, prediction } = superpixel;
-                        const selection = superpixel.labelCategories[selectedCategory].label;
-                        const predicted = superpixel.predictionCategories[prediction].label;
-                        return selection === predicted ? 'Agree' : 'Disagree';
-                    });
+                    return this.groupByLabelPredictionAgreement(data);
                 default:
                     return { data };
             }
@@ -405,10 +462,10 @@ export default Vue.extend({
             }
         },
         applyBulkReview(newValue) {
-            _.forEach(this.selectedReviewSuperpixels, (superpixel) => {
+            this.selectedReviewSuperpixels.forEach((superpixel) => {
                 updateMetadata(superpixel, newValue, true);
             });
-            _.forEach(_.keys(store.annotationsByImageId),
+            Object.keys(store.annotationsByImageId).forEach(
                 (imageId) => store.backboneParent.updateAnnotationMetadata(imageId));
             this.selectedReviewSuperpixels = [];
             this.selectingSuperpixels = false;
