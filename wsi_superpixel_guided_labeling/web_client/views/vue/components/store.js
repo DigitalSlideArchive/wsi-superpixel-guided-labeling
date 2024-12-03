@@ -27,6 +27,7 @@ const store = Vue.observable({
     epoch: -1,
     userNames: {},
     exclusions: [],
+    tileMetadata: {},
     /*********
      * UI
      *********/

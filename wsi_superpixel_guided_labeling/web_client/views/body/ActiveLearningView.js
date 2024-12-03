@@ -696,9 +696,7 @@ const ActiveLearningView = View.extend({
         }).done((response) => {
             this.lastRunJobId = response._id;
             this.waitForJobCompletion(response._id, goToNextStep);
-            if (store.activeLearningStep === activeLearningSteps.InitialLabeling) {
-                this.watchForSuperpixels();
-            }
+            this.watchForSuperpixels();
         });
     },
 
@@ -800,6 +798,10 @@ const ActiveLearningView = View.extend({
     },
 
     watchForSuperpixels() {
+        if (store.activeLearningStep !== activeLearningSteps.InitialLabeling) {
+            return;
+        }
+
         this.hideSpinner();
         const poll = setInterval(() => {
             restRequest({

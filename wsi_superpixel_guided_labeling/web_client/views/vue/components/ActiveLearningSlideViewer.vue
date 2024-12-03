@@ -156,13 +156,19 @@ export default Vue.extend({
             this.pixelmapPaintValue = null;
         },
         setupViewer() {
-            restRequest({
-                url: `item/${store.currentImageId}/tiles`
-            }).done((resp) => {
-                // TODO: consider caching image metadata for each image the first time this request gets made
-                this.currentImageMetadata = resp;
+            if (!store.tileMetadata[store.currentImageId]) {
+                restRequest({
+                    url: `item/${store.currentImageId}/tiles`
+                }).done((resp) => {
+                    // Cache image metadata for each image the first time this request gets made
+                    store.tileMetadata[store.currentImageId] = resp;
+                    this.currentImageMetadata = store.tileMetadata[store.currentImageId];
+                    this.drawBaseImageLayer();
+                });
+            } else {
+                this.currentImageMetadata = store.tileMetadata[store.currentImageId];
                 this.drawBaseImageLayer();
-            });
+            }
         },
         drawBaseImageLayer() {
             if (this.viewerWidget) {

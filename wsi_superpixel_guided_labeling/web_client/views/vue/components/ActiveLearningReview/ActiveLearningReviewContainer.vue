@@ -216,7 +216,6 @@ export default Vue.extend({
         });
 
         // Pre-fetch all user names
-        this.backboneParent.getCurrentUser();
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
         _.forEach(_.uniq(allUsers), (id) => store.backboneParent.getUser(id));
     },
