@@ -21,6 +21,7 @@ import { debounce } from '../vue/components/utils.js';
 import '../../stylesheets/body/learning.styl';
 
 const yaml = require('js-yaml');
+const Promise = require('bluebird');
 
 const epochRegex = /epoch (\d+)/i;
 

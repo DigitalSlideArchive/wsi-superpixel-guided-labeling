@@ -1,7 +1,7 @@
-import _ from 'underscore';
-
 import { schemeTableau10 } from './constants';
 import { store } from './store';
+
+const Promise = require('bluebird');
 
 /**
  * Find the default color given the index of an item. Uses the
@@ -77,23 +77,23 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
  */
 
 export const debounce = (fn, debounceByArguments = false) => {
-    const inProgress = new Map();      // Track in-progress requests
-    const queuedRequests = new Map();  // Queue to ensure last request is always processed
+    const inProgress = new Map(); // Track in-progress requests
+    const queuedRequests = new Map(); // Queue to ensure last request is always processed
 
     function execute(...args) {
         const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
         Promise.resolve(fn.apply(this, args))
-        .then((response) => response)
-        .finally(() => {
+            .then((response) => response)
+            .finally(() => {
             // Clean up the queue and update in-progress requests
-            inProgress.delete(stringArgs);
-            if (queuedRequests.has(stringArgs)) {
+                inProgress.delete(stringArgs);
+                if (queuedRequests.has(stringArgs)) {
                 // If we have queued requests continue processing them
-                queuedRequests.delete(stringArgs);
-                inProgress.set(stringArgs, true);
-                execute.apply(this, args);
-            }
-        })
+                    queuedRequests.delete(stringArgs);
+                    inProgress.set(stringArgs, true);
+                    execute.apply(this, args);
+                }
+            });
     }
 
     return function (...args) {
@@ -111,4 +111,4 @@ export const debounce = (fn, debounceByArguments = false) => {
             queuedRequests.set(stringArgs);
         }
     };
-}
+};
