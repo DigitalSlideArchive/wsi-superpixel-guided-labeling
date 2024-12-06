@@ -152,13 +152,13 @@ const ActiveLearningView = View.extend({
         this.histomicsUIConfig.annotationGroups.exclusions = excluded;
 
         // Update the config file
-        restRequest({
+        return restRequest({
             type: 'PUT',
             url: `folder/${this.trainingDataFolderId}/yaml_config/.histomicsui_config.yaml`,
             data: yaml.dump(this.histomicsUIConfig),
             contentType: 'application/json'
         });
-    }, 500),
+    }),
 
     /**
      * The first of many rest requests needed to get data from the girder server for
@@ -633,14 +633,20 @@ const ActiveLearningView = View.extend({
         // so typically we want to save both annotations. Default to true.
         savePredictions = _.isBoolean(savePredictions) ? savePredictions : true;
 
+        const promises = [];
         _.forEach(imageIds, (imageId) => {
             const labelAnnotation = this.annotationsByImageId[imageId].labels;
             // Images added without re-train have no labels yet
-            labelAnnotation && labelAnnotation.save();
+            if (labelAnnotation) {
+                promises.push(labelAnnotation.save());
+            }
             const predictionAnnotation = this.annotationsByImageId[imageId].predictions;
-            (predictionAnnotation && savePredictions) && predictionAnnotation.save();
+            if (predictionAnnotation && savePredictions) {
+                promises.push(predictionAnnotation.save());
+            }
         });
-    }, 500, true),
+        return Promise.all(promises);
+    }, true),
 
     applyReviews() {
         const imageIds = [];
@@ -843,13 +849,13 @@ const ActiveLearningView = View.extend({
                 }
             }
         });
-        restRequest({
+        return restRequest({
             type: 'PUT',
             url: `annotation/${annotation.id}/metadata`,
             data: JSON.stringify({ metadata }),
             contentType: 'application/json'
         });
-    }, 500),
+    }),
 
     /**
      * Get the currently logged in user.

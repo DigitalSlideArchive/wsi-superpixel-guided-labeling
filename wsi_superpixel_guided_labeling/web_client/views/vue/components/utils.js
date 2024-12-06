@@ -50,41 +50,51 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
     }
 };
 
-/**
- * Prevent multiple requests from being sent to the server
- * simultaneously. Ensures that the last call is always made.
- * @param {Function} fn
- * @param {int} wait
- * @returns Debounced function
- */
-export const debounce = (fn, wait, immediate = false) => {
-    let lastArgs = null;
-    let lastTimeout = null;
-    let lastCallTime = null;
 
-    const debouncedFn = _.debounce(function (...args) {
-        if (lastTimeout) {
-            clearTimeout(lastTimeout);
-            lastTimeout = null;
+export const debounce = (fn, trackArguments = false) => {
+    const inProgress = new Map();
+    const queuedRequests = new Map();
+
+    function execute(...args) {
+        const stringArgs = trackArguments ? JSON.stringify(args) : '';
+        // add stringArgs to inProgress
+        if (!inProgress.has(stringArgs)) {
+            inProgress.set(stringArgs, true);
         }
-        fn.apply(this, args);
-        lastCallTime = Date.now(); // Update last call timestamp
-    }, wait, { leading: immediate });
+        Promise.resolve(fn.apply(this, args))
+        .then((response) => response)
+        .finally(() => {
+            console.log('completed ', stringArgs);
+            // remove stringargs from in progress
+            inProgress.delete(stringArgs);
+            // get stringArgs from queue
+            if (queuedRequests.has(stringArgs)) {
+                // if request exists remove stringArgs from queue
+                queuedRequests.delete(stringArgs);
+                // call execute w/ args
+                execute.apply(this, args);
+            }
+        })
+    }
 
     return function (...args) {
-        const now = Date.now();
-        const shouldRememberLastCall = lastCallTime && now - lastCallTime < wait;
-
-        lastArgs = args;
-        debouncedFn.apply(this, args);
-
-        if (!lastTimeout && shouldRememberLastCall) {
-            lastTimeout = setTimeout(() => {
-                if (lastArgs) {
-                    fn.apply(this, lastArgs);
-                    lastArgs = null;
-                }
-            }, wait);
+        const stringArgs = trackArguments ? JSON.stringify(args) : '';
+        // if call not in progress
+        if (!inProgress.has(stringArgs)) {
+            // execute
+            inProgress.set(stringArgs, true);
+            console.log('started ', stringArgs);
+            execute.apply(this, args);
+        } else {
+        // if call in progress
+            // if call queued
+            if (queuedRequests.has(stringArgs)) {
+                // remove from queue
+                queuedRequests.delete(stringArgs);
+            }
+            // queue new call
+            queuedRequests.set(stringArgs);
+            console.log('queued ', stringArgs);
         }
     };
-};
+}
