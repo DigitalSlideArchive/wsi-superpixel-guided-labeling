@@ -50,6 +50,31 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
     }
 };
 
+/**
+ * Creates a debounced version of a given function, guaranteeing that only one
+ * instance of the function executes at a time for the same arguments. If a
+ * new call is made with the same arguments while a previous call is still in
+ * progress, the latest call is queued and executed after the in-progress
+ * call finishes. Newer calls replace queued calls so that intermediate calls
+ * are debounced.
+ *
+ * @param {Function} fn - The function to debounce.
+ * @param {boolean} [trackArguments=false] - If true, the function will track
+ *     calls based on arguments, ensuring separate queues for each unique
+ *     argument set. If false, all calls share a single queue regardless of
+ *     arguments.
+ * @returns {Function} - A debounced version of the provided function.
+ *
+ * @example
+ * const simulatedRestRequest = async (arg) => {
+ *     console.log("Processing:", arg);
+ *     await sleep(1000); // Simulate processing delay
+ * };
+ * const debouncedRequest = debounce(simulatedRestRequest, true);
+ * debouncedRequest("A"); // Should process immediately
+ * debouncedRequest("A"); // Should queue, processed after the first completes
+ * debouncedRequest("A"); // Should replace the previous queued request
+ */
 
 export const debounce = (fn, debounceByArguments = false) => {
     const inProgress = new Map();      // Track in-progress requests
