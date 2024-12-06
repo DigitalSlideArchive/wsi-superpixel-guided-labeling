@@ -52,26 +52,20 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
 
 
 export const debounce = (fn, debounceByArguments = false) => {
-    const inProgress = new Map();
-    const queuedRequests = new Map();
+    const inProgress = new Map();      // Track in-progress requests
+    const queuedRequests = new Map();  // Queue to ensure last request is always processed
 
     function execute(...args) {
         const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
-        // add stringArgs to inProgress
-        if (!inProgress.has(stringArgs)) {
-            inProgress.set(stringArgs, true);
-        }
         Promise.resolve(fn.apply(this, args))
         .then((response) => response)
         .finally(() => {
-            console.log('completed ', stringArgs);
-            // remove stringargs from in progress
+            // Clean up the queue and update in-progress requests
             inProgress.delete(stringArgs);
-            // get stringArgs from queue
             if (queuedRequests.has(stringArgs)) {
-                // if request exists remove stringArgs from queue
+                // If we have queued requests continue processing them
                 queuedRequests.delete(stringArgs);
-                // call execute w/ args
+                inProgress.set(stringArgs, true);
                 execute.apply(this, args);
             }
         })
@@ -79,22 +73,17 @@ export const debounce = (fn, debounceByArguments = false) => {
 
     return function (...args) {
         const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
-        // if call not in progress
         if (!inProgress.has(stringArgs)) {
-            // execute
+            // When there's nothing in progress process the request immediately
             inProgress.set(stringArgs, true);
-            console.log('started ', stringArgs);
             execute.apply(this, args);
         } else {
-        // if call in progress
-            // if call queued
+            // If there is a request in process, queue this request to be processed after it completes.
+            // If there was already a queued request it will be removed (debounced).
             if (queuedRequests.has(stringArgs)) {
-                // remove from queue
                 queuedRequests.delete(stringArgs);
             }
-            // queue new call
             queuedRequests.set(stringArgs);
-            console.log('queued ', stringArgs);
         }
     };
 }
