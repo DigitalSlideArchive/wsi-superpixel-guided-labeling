@@ -51,12 +51,12 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
 };
 
 
-export const debounce = (fn, trackArguments = false) => {
+export const debounce = (fn, debounceByArguments = false) => {
     const inProgress = new Map();
     const queuedRequests = new Map();
 
     function execute(...args) {
-        const stringArgs = trackArguments ? JSON.stringify(args) : '';
+        const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
         // add stringArgs to inProgress
         if (!inProgress.has(stringArgs)) {
             inProgress.set(stringArgs, true);
@@ -78,7 +78,7 @@ export const debounce = (fn, trackArguments = false) => {
     }
 
     return function (...args) {
-        const stringArgs = trackArguments ? JSON.stringify(args) : '';
+        const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
         // if call not in progress
         if (!inProgress.has(stringArgs)) {
             // execute
