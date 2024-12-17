@@ -21,6 +21,8 @@ import { debounce } from '../vue/components/utils.js';
 import '../../stylesheets/body/learning.styl';
 
 const yaml = require('js-yaml');
+// Only necessary until we have native support for Promises with es6.
+// Used for Promise.all() and Promise.resolve() support.
 const Promise = require('bluebird');
 
 const epochRegex = /epoch (\d+)/i;

@@ -1,6 +1,8 @@
 import { schemeTableau10 } from './constants';
 import { store } from './store';
 
+// Only necessary until we have native support for Promises with es6.
+// Used for Promise.all() and Promise.resolve() support.
 const Promise = require('bluebird');
 
 /**
