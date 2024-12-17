@@ -390,7 +390,7 @@ export default Vue.extend({
                 store.backboneParent.updateHistomicsYamlConfig();
                 store.backboneParent.saveAnnotations(Object.keys(store.annotationsByImageId));
             }
-        }, 500),
+        }),
         keydownListener(event) {
             if (event.target.type === 'text' && event.target.id !== 'category-hotkey') {
                 // User is typing, not using a hot key selector

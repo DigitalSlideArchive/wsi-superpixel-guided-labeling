@@ -1,7 +1,9 @@
-import _ from 'underscore';
-
 import { schemeTableau10 } from './constants';
 import { store } from './store';
+
+// Only necessary until we have native support for Promises with es6.
+// Used for Promise.all() and Promise.resolve() support.
+const Promise = require('bluebird');
 
 /**
  * Find the default color given the index of an item. Uses the
@@ -51,40 +53,64 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
 };
 
 /**
- * Prevent multiple requests from being sent to the server
- * simultaneously. Ensures that the last call is always made.
- * @param {Function} fn
- * @param {int} wait
- * @returns Debounced function
+ * Creates a debounced version of a given function, guaranteeing that only one
+ * instance of the function executes at a time for the same arguments. If a
+ * new call is made with the same arguments while a previous call is still in
+ * progress, the latest call is queued and executed after the in-progress
+ * call finishes. Newer calls replace queued calls so that intermediate calls
+ * are debounced.
+ *
+ * @param {Function} fn - The function to debounce.
+ * @param {boolean} [trackArguments=false] - If true, the function will track
+ *     calls based on arguments, ensuring separate queues for each unique
+ *     argument set. If false, all calls share a single queue regardless of
+ *     arguments.
+ * @returns {Function} - A debounced version of the provided function.
+ *
+ * @example
+ * const simulatedRestRequest = async (arg) => {
+ *     console.log("Processing:", arg);
+ *     await sleep(1000); // Simulate processing delay
+ * };
+ * const debouncedRequest = debounce(simulatedRestRequest, true);
+ * debouncedRequest("A"); // Should process immediately
+ * debouncedRequest("A"); // Should queue, processed after the first completes
+ * debouncedRequest("A"); // Should replace the previous queued request
  */
-export const debounce = (fn, wait, immediate = false) => {
-    let lastArgs = null;
-    let lastTimeout = null;
-    let lastCallTime = null;
 
-    const debouncedFn = _.debounce(function (...args) {
-        if (lastTimeout) {
-            clearTimeout(lastTimeout);
-            lastTimeout = null;
-        }
-        fn.apply(this, args);
-        lastCallTime = Date.now(); // Update last call timestamp
-    }, wait, { leading: immediate });
+export const debounce = (fn, debounceByArguments = false) => {
+    const inProgress = new Map(); // Track in-progress requests
+    const queuedRequests = new Map(); // Queue to ensure last request is always processed
+
+    function execute(...args) {
+        const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
+        Promise.resolve(fn.apply(this, args))
+            .then((response) => response)
+            .finally(() => {
+            // Clean up the queue and update in-progress requests
+                inProgress.delete(stringArgs);
+                if (queuedRequests.has(stringArgs)) {
+                // If we have queued requests continue processing them
+                    queuedRequests.delete(stringArgs);
+                    inProgress.set(stringArgs, true);
+                    execute.apply(this, args);
+                }
+            });
+    }
 
     return function (...args) {
-        const now = Date.now();
-        const shouldRememberLastCall = lastCallTime && now - lastCallTime < wait;
-
-        lastArgs = args;
-        debouncedFn.apply(this, args);
-
-        if (!lastTimeout && shouldRememberLastCall) {
-            lastTimeout = setTimeout(() => {
-                if (lastArgs) {
-                    fn.apply(this, lastArgs);
-                    lastArgs = null;
-                }
-            }, wait);
+        const stringArgs = debounceByArguments ? JSON.stringify(args) : '';
+        if (!inProgress.has(stringArgs)) {
+            // When there's nothing in progress process the request immediately
+            inProgress.set(stringArgs, true);
+            execute.apply(this, args);
+        } else {
+            // If there is a request in process, queue this request to be processed after it completes.
+            // If there was already a queued request it will be removed (debounced).
+            if (queuedRequests.has(stringArgs)) {
+                queuedRequests.delete(stringArgs);
+            }
+            queuedRequests.set(stringArgs);
         }
     };
 };
