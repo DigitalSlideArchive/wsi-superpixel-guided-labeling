@@ -70,6 +70,14 @@ export default Vue.extend({
         },
         sortedSuperpixelIndices() {
             return store.sortedSuperpixelIndices;
+        },
+        currentComponent() {
+            if (store.mode === viewMode.Guided) {
+                return ActiveLearningFilmStrip;
+            } else if (store.mode === viewMode.Review) {
+                return ActiveLearningReviewContainer;
+            }
+            return null;
         }
     },
     watch: {
@@ -186,10 +194,10 @@ export default Vue.extend({
       <mouse-and-keyboard-controls v-if="mode !== viewMode.Review" />
       <!-- Opacity Slider -->
       <annotation-opacity-control v-if="mode !== viewMode.Review" />
-      <!-- Prediction Chips -->
-      <active-learning-film-strip v-if="mode === viewMode.Guided" />
-      <!-- Review View -->
-      <active-learning-review-container v-if="mode === viewMode.Review" />
+      <!-- Prediction Chips or Review View -->
+      <keep-alive>
+        <component :is="currentComponent" />
+      </keep-alive>
     </div>
   </div>
 </template>

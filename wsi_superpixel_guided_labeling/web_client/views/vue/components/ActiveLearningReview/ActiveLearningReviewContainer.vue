@@ -149,6 +149,9 @@ export default Vue.extend({
     },
     watch: {
         selectedSuperpixel() {
+            if (!this.selectedSuperpixel) {
+                return;
+            }
             const { meta } = this.selectedSuperpixel;
             store.reviewSuperpixel = this.selectedSuperpixel || null;
             this.currentMetadata = meta;
@@ -181,7 +184,7 @@ export default Vue.extend({
             deep: true
         }
     },
-    mounted() {
+    activated() {
         // Support infinite scrolling
         this.scrollObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry) => {
@@ -230,7 +233,8 @@ export default Vue.extend({
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
         _.uniq(allUsers).forEach((id) => store.backboneParent.getUser(id));
     },
-    destroyed() {
+    deactivated() {
+        this.selectedSuperpixel = null;
         const resizeHandle = document.querySelector('.resize-handle');
         resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
         document.removeEventListener('mousemove', this.mouseMove);
