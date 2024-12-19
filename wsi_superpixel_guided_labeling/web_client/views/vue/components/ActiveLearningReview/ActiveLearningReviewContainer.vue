@@ -172,7 +172,7 @@ export default Vue.extend({
             this.showFlags = !!this.firstComparison && !!this.booleanOperator;
         }
     },
-    mounted() {
+    activated() {
         // Support infinite scrolling
         this.scrollObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry) => {
@@ -221,7 +221,8 @@ export default Vue.extend({
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
         _.uniq(allUsers).forEach((id) => store.backboneParent.getUser(id));
     },
-    destroyed() {
+    deactivated() {
+        this.selectedSuperpixel = null;
         const resizeHandle = document.querySelector('.resize-handle');
         resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
         document.removeEventListener('mousemove', this.mouseMove);

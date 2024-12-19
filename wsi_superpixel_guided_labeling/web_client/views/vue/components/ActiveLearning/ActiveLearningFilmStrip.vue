@@ -45,11 +45,11 @@ export default {
             this.updateSelectedCard();
         }
     },
-    mounted() {
+    activated() {
         window.addEventListener('resize', () => { this.$nextTick(() => this.updatePageSize()); });
         this.$nextTick(() => this.updatePageSize());
     },
-    destroyed() {
+    deactivated() {
         window.removeEventListener('resize', () => { this.$nextTick(() => this.updatePageSize()); });
     },
     methods: {
