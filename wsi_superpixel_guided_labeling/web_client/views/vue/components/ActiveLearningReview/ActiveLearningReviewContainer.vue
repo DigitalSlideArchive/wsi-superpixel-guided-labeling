@@ -36,7 +36,14 @@ export default Vue.extend({
             openMenu: null,
             labelFlag: false,
             showFlags: false,
-            currentMetadata: null
+            currentMetadata: null,
+            groupBy: 0,
+            sortBy: 0,
+            previewSize: 0.5,
+            cardDetails: [],
+            firstComparison: null,
+            secondComparison: null,
+            booleanOperator: null,
         };
     },
     computed: {
@@ -112,37 +119,9 @@ export default Vue.extend({
                 return trimmed;
             });
         },
-        groupBy: {
-            get() { return store.groupBy; },
-            set(value) { store.groupBy = value; }
-        },
-        sortBy: {
-            get() { return store.sortBy; },
-            set(value) { store.sortBy = value; }
-        },
         filterBy: {
             get() { return store.filterBy; },
             set(value) { store.filterBy = value; }
-        },
-        previewSize: {
-            get() { return store.previewSize; },
-            set(value) { store.previewSize = value; }
-        },
-        cardDetails: {
-            get() { return store.cardDetails; },
-            set(value) { store.cardDetails = value; }
-        },
-        firstComparison: {
-            get() { return store.firstComparison; },
-            set(value) { store.firstComparison = value; }
-        },
-        secondComparison: {
-            get() { return store.secondComparison; },
-            set(value) { store.secondComparison = value; }
-        },
-        booleanOperator: {
-            get() { return store.booleanOperator; },
-            set(value) { store.booleanOperator = value; }
         },
         userNames() {
             return store.userNames;
@@ -254,7 +233,7 @@ export default Vue.extend({
             return _.sortBy(sorted, 'certainty');
         },
         sortSuperpixels(sorted) {
-            switch (store.sortBy) {
+            switch (this.sortBy) {
                 case 1:
                     sorted = this.sortBySlideName(sorted);
                     break;
@@ -433,7 +412,7 @@ export default Vue.extend({
             });
         },
         groupSuperpixels(data) {
-            switch (store.groupBy) {
+            switch (this.groupBy) {
                 case 1:
                     return this.groupBySlideName(data);
                 case 2:
@@ -507,7 +486,7 @@ export default Vue.extend({
             }
         },
         removeFilters(values) {
-            this.filterBy = _.without(this.filterBy, ...values);
+            store.filterBy = _.without(store.filterBy, ...values);
         },
         toggleOpenMenu(menu) {
             this.openMenu = this.openMenu === menu ? null : menu;

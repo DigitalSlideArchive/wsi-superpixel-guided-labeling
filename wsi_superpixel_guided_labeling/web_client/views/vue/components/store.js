@@ -48,14 +48,7 @@ const store = Vue.observable({
     activeLearningStep: activeLearningSteps.InitialState,
     selectedLabels: new Map(),
     selectedReviewSuperpixels: [],
-    groupBy: 0,
-    sortBy: 0,
     filterBy: ['no review'],
-    previewSize: 0.5,
-    cardDetails: [],
-    firstComparison: null,
-    secondComparison: null,
-    booleanOperator: null,
     predictionCounts: []
 });
 
