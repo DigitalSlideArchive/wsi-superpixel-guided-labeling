@@ -203,6 +203,7 @@ export default Vue.extend({
         this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
+            resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
             resizeHandle.addEventListener('mousedown', () => { this.isResizing = true; });
             document.addEventListener('mousemove', this.mouseMove);
             document.addEventListener('mouseup', () => { this.isResizing = false; });
@@ -214,8 +215,6 @@ export default Vue.extend({
     },
     deactivated() {
         this.selectedSuperpixel = null;
-        const resizeHandle = document.querySelector('.resize-handle');
-        resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
         document.removeEventListener('mousemove', this.mouseMove);
         document.removeEventListener('mouseup', () => { this.isResizing = false; });
     },
