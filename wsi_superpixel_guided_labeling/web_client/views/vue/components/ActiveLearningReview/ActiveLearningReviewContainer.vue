@@ -421,17 +421,17 @@ export default Vue.extend({
          * Group superpixels based on the selected grouping options
          *********************************************************************/
         groupBySlideName(data) {
-            return _.groupBy(data, (superpixel) => {
-                return this.imageItemsById[superpixel.imageId].name;
+            return Object.groupBy(data, ({ imageId }) => {
+                return this.imageItemsById[imageId].name;
             });
         },
         groupByLabelCategory(data) {
-            return _.groupBy(data, (superpixel) => {
-                return store.categories[superpixel.selectedCategory].label;
+            return Object.groupBy(data, ({ selectedCategory }) => {
+                return store.categories[selectedCategory].label;
             });
         },
         groupByLabelPredictionAgreement(data) {
-            return _.groupBy(data, (superpixel) => {
+            return Object.groupBy(data, (superpixel) => {
                 const { selectedCategory, prediction } = superpixel;
                 const selection = superpixel.labelCategories[selectedCategory].label;
                 const predicted = superpixel.predictionCategories[prediction].label;
