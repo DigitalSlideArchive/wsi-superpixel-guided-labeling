@@ -1167,6 +1167,7 @@ export default Vue.extend({
                   <div class="dropdown-button">
                     <div
                       class="btn btn-default btn-block"
+                      :disabled="!filterOptions.Reviewers.length"
                       @click="toggleOpenMenu('reviewer')"
                     >
                       <span class="multiselect-dropdown-label">
@@ -2087,6 +2088,8 @@ export default Vue.extend({
 .visible-menu {
   display: block;
   padding: 10px 5px 5px 10px;
+  max-height: 475px;
+  overflow-y: scroll;
 }
 
 .flex {
