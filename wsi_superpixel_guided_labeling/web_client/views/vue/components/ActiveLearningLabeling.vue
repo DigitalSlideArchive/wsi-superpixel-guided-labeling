@@ -217,10 +217,10 @@ export default Vue.extend({
         }
     },
     mounted() {
+        if (store.mode === viewMode.Review) return;
+
         window.addEventListener('keydown', this.keydownListener);
-    },
-    destroyed() {
-        window.removeEventListener('keydown', this.keydownListener);
+        console.log('event listener added');
     },
     methods: {
         /*************************
