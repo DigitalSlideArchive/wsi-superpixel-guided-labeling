@@ -385,30 +385,34 @@ export default Vue.extend({
             let results = data;
 
             const slideNames = _.pluck(this.imageItemsById, 'name');
-            if (slideNames.some((name) => store.filterBy.includes(name))) {
-                results = this.filterBySlideName(results);
-            }
             const labels = _.pluck(this.categories, 'label');
+            const predictions = _.rest(labels);
+            const labelers = this.filterOptions.Labelers;
+            const reviewers = this.filterOptions.Reviewers;
+
             if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
                 results = this.filterByLabelCategory(results);
             }
-            if (labels.some((label) => store.filterBy.includes(`review_${label}`)) || store.filterBy.includes('no review')) {
+            if (
+              labels.some((label) => store.filterBy.includes(`review_${label}`)) ||
+              store.filterBy.includes('no review')
+            ) {
                 results = this.filterByReviewCategory(results);
             }
-            const labelers = this.filterOptions.Labelers;
-            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
-                results = this.filterByLabeler(data);
+            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
+                results = this.filterByPredictionLabel(data);
             }
-            const reviewers = this.filterOptions.Reviewers;
-            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
-                results = this.filterByReviewer(data);
+            if (slideNames.some((name) => store.filterBy.includes(name))) {
+                results = this.filterBySlideName(results);
             }
             if (!!this.firstComparison && !!this.booleanOperator) {
                 results = this.filterByComparison(data);
             }
-            const predictions = _.rest(labels);
-            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
-                results = this.filterByPredictionLabel(data);
+            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
+                results = this.filterByLabeler(data);
+            }
+            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
+                results = this.filterByReviewer(data);
             }
             this.totalSuperpixels = results.length;
             return results;
