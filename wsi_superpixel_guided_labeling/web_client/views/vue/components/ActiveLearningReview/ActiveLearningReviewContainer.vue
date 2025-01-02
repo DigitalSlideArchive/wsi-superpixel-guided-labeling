@@ -292,26 +292,18 @@ export default Vue.extend({
          *********************************************************************/
         filterBySlideName(data) {
             // Filter by selected slide(s)
-            const slideNames = _.pluck(this.imageItemsById, 'name');
-            if (slideNames.some((name) => store.filterBy.includes(name))) {
-                return data.filter((superpixel) => {
-                    const name = this.imageItemsById[superpixel.imageId].name;
-                    return store.filterBy.includes(name);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const name = this.imageItemsById[superpixel.imageId].name;
+                return store.filterBy.includes(name);
+            });
         },
         filterByLabelCategory(data) {
             // Filter by selected label categories
-            const labels = _.pluck(this.categories, 'label');
-            if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
-                return data.filter((superpixel) => {
-                    const { selectedCategory, labelCategories } = superpixel;
-                    const label = labelCategories[selectedCategory].label;
-                    return store.filterBy.includes(`label_${label}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const { selectedCategory, labelCategories } = superpixel;
+                const label = labelCategories[selectedCategory].label;
+                return store.filterBy.includes(`label_${label}`);
+            });
         },
         filterByReviewCategory(data) {
             // Filter by review categories
@@ -333,91 +325,93 @@ export default Vue.extend({
         },
         filterByLabeler(data) {
             // Filter by labeler
-            const labelers = this.filterOptions.Labelers;
-            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
-                return data.filter((superpixel) => {
-                    const id = superpixel.meta ? superpixel.meta.labeler : '';
-                    return store.filterBy.includes(`labeler_${id}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const id = superpixel.meta ? superpixel.meta.labeler : '';
+                return store.filterBy.includes(`labeler_${id}`);
+            });
         },
         filterByReviewer(data) {
             // Filter by reviewer
-            const reviewers = this.filterOptions.Reviewers;
-            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
-                return data.filter((superpixel) => {
-                    const id = superpixel.meta ? superpixel.meta.reviewer : '';
-                    return store.filterBy.includes(`reviewer_${id}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const id = superpixel.meta ? superpixel.meta.reviewer : '';
+                return store.filterBy.includes(`reviewer_${id}`);
+            });
         },
         filterByComparison(data) {
             // Filter by comparison
-            if (!!this.firstComparison && !!this.booleanOperator) {
-                // Select the appropriate comparison function
-                const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
-                const [key0, userID0] = this.firstComparison.split('_');
-                // If no second option is selected we should compare the first selection
-                // to all remaining options. Otherwise just compare to the second selection.
-                let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
-                if (this.secondComparison) {
-                    [key1, userID1, key2] = this.secondComparison.split('_');
-                }
-
-                return data.filter((superpixel) => {
-                    const values = [null, null, null];
-                    [key0, key1, key2].forEach((key, idx) => {
-                        const userID = idx === 0 ? userID0 : userID1;
-                        if (key === 'prediction') {
-                            values[idx] = superpixel.predictionCategories[superpixel.prediction];
-                        } else if (key === 'label') {
-                            if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
-                                values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
-                            }
-                        } else if (key === 'review') {
-                            if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
-                                values[idx] = superpixel.labelCategories[superpixel.reviewValue];
-                            }
-                        }
-                        // As we support more complex options to add/remove/rename categories across epochs the
-                        // predictions categories and labels categories have a higher chance of diverging and we
-                        // shouldn't assume the same order in both lists. Compare label values instead.
-                        values[idx] = values[idx] ? values[idx].label : values[idx];
-                    });
-                    return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
-                           (!!values[0] && !!values[2] && op(values[0], values[2]));
-                });
+            // Select the appropriate comparison function
+            const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
+            const [key0, userID0] = this.firstComparison.split('_');
+            // If no second option is selected we should compare the first selection
+            // to all remaining options. Otherwise just compare to the second selection.
+            let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
+            if (this.secondComparison) {
+                [key1, userID1, key2] = this.secondComparison.split('_');
             }
-            return [];
+
+            return data.filter((superpixel) => {
+                const values = [null, null, null];
+                [key0, key1, key2].forEach((key, idx) => {
+                    const userID = idx === 0 ? userID0 : userID1;
+                    if (key === 'prediction') {
+                        values[idx] = superpixel.predictionCategories[superpixel.prediction];
+                    } else if (key === 'label') {
+                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
+                            values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
+                        }
+                    } else if (key === 'review') {
+                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
+                            values[idx] = superpixel.labelCategories[superpixel.reviewValue];
+                        }
+                    }
+                    // As we support more complex options to add/remove/rename categories across epochs the
+                    // predictions categories and labels categories have a higher chance of diverging and we
+                    // shouldn't assume the same order in both lists. Compare label values instead.
+                    values[idx] = values[idx] ? values[idx].label : values[idx];
+                });
+                return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
+                        (!!values[0] && !!values[2] && op(values[0], values[2]));
+            });
         },
         filterByPredictionLabel(data) {
             // Filter by selected label categories
-            const predictions = _.rest(_.pluck(this.categories, 'label'));
-            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
-                return data.filter((superpixel) => {
-                    const { prediction, predictionCategories } = superpixel;
-                    const label = predictionCategories[prediction].label;
-                    return store.filterBy.includes(`prediction_${label}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const { prediction, predictionCategories } = superpixel;
+                const label = predictionCategories[prediction].label;
+                return store.filterBy.includes(`prediction_${label}`);
+            });
         },
         filterSuperpixels(data) {
-            let results = [];
-            results.push(this.filterBySlideName(data));
-            results.push(this.filterByLabelCategory(data));
-            results.push(this.filterByReviewCategory(data));
-            results.push(this.filterByLabeler(data));
-            results.push(this.filterByReviewer(data));
-            results.push(this.filterByComparison(data));
-            results.push(this.filterByPredictionLabel(data));
+            let results = data;
 
-            results = results.filter((result) => result.length);
-            const filtered = results.length ? _.intersection(...results) : data;
-            this.totalSuperpixels = filtered.length;
-            return filtered;
+            const slideNames = _.pluck(this.imageItemsById, 'name');
+            if (slideNames.some((name) => store.filterBy.includes(name))) {
+                results = this.filterBySlideName(results);
+            }
+            const labels = _.pluck(this.categories, 'label');
+            if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
+                results = this.filterByLabelCategory(results);
+            }
+            if (labels.some((label) => store.filterBy.includes(`review_${label}`)) || store.filterBy.includes('no review')) {
+                results = this.filterByReviewCategory(results);
+            }
+            const labelers = this.filterOptions.Labelers;
+            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
+                results = this.filterByLabeler(data);
+            }
+            const reviewers = this.filterOptions.Reviewers;
+            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
+                results = this.filterByReviewer(data);
+            }
+            if (!!this.firstComparison && !!this.booleanOperator) {
+                results = this.filterByComparison(data);
+            }
+            const predictions = _.rest(labels);
+            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
+                results = this.filterByPredictionLabel(data);
+            }
+            this.totalSuperpixels = results.length;
+            return results;
         },
         /**********************************************************************
          * Group superpixels based on the selected grouping options
