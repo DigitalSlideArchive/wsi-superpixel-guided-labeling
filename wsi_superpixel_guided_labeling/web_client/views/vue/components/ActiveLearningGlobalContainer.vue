@@ -71,14 +71,20 @@ export default Vue.extend({
         sortedSuperpixelIndices() {
             return store.sortedSuperpixelIndices;
         },
-        currentComponent() {
+        modeComponent() {
             if (store.mode === viewMode.Guided) {
                 return ActiveLearningFilmStrip;
             } else if (store.mode === viewMode.Review) {
                 return ActiveLearningReviewContainer;
             }
             return null;
-        }
+        },
+        labelingComponent() {
+            if (store.mode !== viewMode.Review) {
+                return ActiveLearningLabeling;
+            }
+            return null;
+        },
     },
     watch: {
         activeLearningStep: {
@@ -183,11 +189,13 @@ export default Vue.extend({
         </div>
       </div>
       <!-- Labels Panel -->
-      <active-learning-labeling
-        v-if="mode !== viewMode.Review"
-        ref="activeLearningLabeling"
-        @combine="combineCategories"
-      />
+      <keep-alive>
+        <component
+          :is="labelingComponent"
+          ref="activeLearningLabeling"
+          @combine="combineCategories"
+        />
+      </keep-alive>
       <!-- Merge Confirmation Dialog -->
       <active-learning-merge-confirmation @merge="mergeCategory" />
       <!-- Information Panel -->
@@ -196,7 +204,7 @@ export default Vue.extend({
       <annotation-opacity-control v-if="mode !== viewMode.Review" />
       <!-- Prediction Chips or Review View -->
       <keep-alive>
-        <component :is="currentComponent" />
+        <component :is="modeComponent" />
       </keep-alive>
     </div>
   </div>
