@@ -6,6 +6,22 @@ import { restRequest } from '@girder/core/rest';
 
 const specialFolders = ['Annotations', 'Models', 'Features'];
 
+function createRequiredFolders(folderId) {
+    // Automatically create the required Annotations, Models,
+    // and Features folders if they don't already exist
+    specialFolders.forEach((folderName) => {
+        restRequest({
+            method: 'POST',
+            url: 'folder/',
+            data: {
+                parentId: folderId,
+                name: folderName,
+                reuseExisting: true
+            }
+        });
+    });
+}
+
 /**
  * When we view an item list, look for the histomicsui config file. Check that
  * the activeLearning key is set to true and make sure there is at least one
@@ -25,6 +41,8 @@ wrap(ItemListWidget, 'render', function (render) {
         url: `folder/${thisFolder.id}/yaml_config/.histomicsui_config.yaml`
     }).done((config) => {
         if (config && config['activeLearning'] || metaKeySet) {
+            // Make sure the required folders exist
+            createRequiredFolders(thisFolder.id);
             const largeImageItems = _.filter(this.collection.models, (model) => model.attributes.largeImage);
             // Don't make the request if the button already exists
             if (largeImageItems.length && !this.parentView.$el.find('.wsi-al-open').length) {
@@ -65,18 +83,7 @@ wrap(FolderListWidget, 'insertFolder', function (insertFolder) {
         url: `folder/${folder.id}/yaml_config/.histomicsui_config.yaml`
     }).done((config) => {
         if (config && config['activeLearning']) {
-            // Automatically create the required Annotations, Models, and Features folders if they don't already exist
-            specialFolders.forEach((folderName) => {
-                restRequest({
-                    method: 'POST',
-                    url: 'folder/',
-                    data: {
-                        parentId: folder.id,
-                        name: folderName,
-                        reuseExisting: true
-                    }
-                });
-            });
+            createRequiredFolders(folder.id);
         }
     });
     insertFolder.call(this, folder);
