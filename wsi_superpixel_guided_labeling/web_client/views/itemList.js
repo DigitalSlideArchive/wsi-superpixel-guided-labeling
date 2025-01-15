@@ -47,3 +47,36 @@ wrap(ItemListWidget, 'render', function (render) {
         }
     });
 });
+
+/**
+ * When a new folder is created check for the histomicsui config file. If the
+ * activeLearning key is set to true and we are not in a special folder, create
+ * the special folders within the new folder.
+ */
+wrap(FolderListWidget, 'insertFolder', function (insertFolder) {
+    const folder = arguments[1];
+    if (specialFolders.includes(folder.attributes.name)) {
+        // Ignore the special Annotations, Models, and Features folders
+        return;
+    }
+
+    restRequest({
+        url: `folder/${folder.id}/yaml_config/.histomicsui_config.yaml`
+    }).done((config) => {
+        if (config && config['activeLearning']) {
+            // Automatically create the required Annotations, Models, and Features folders if they don't already exist
+            specialFolders.forEach((folderName) => {
+                restRequest({
+                    method: 'POST',
+                    url: 'folder/',
+                    data: {
+                        parentId: folder.id,
+                        name: folderName,
+                        reuseExisting: true
+                    }
+                });
+            });
+        }
+    });
+    insertFolder.call(this, folder);
+});
