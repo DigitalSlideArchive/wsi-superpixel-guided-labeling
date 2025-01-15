@@ -36,7 +36,8 @@ export default Vue.extend({
             openMenu: null,
             labelFlag: false,
             showFlags: false,
-            currentMetadata: null
+            currentMetadata: null,
+            filteredSortedGroupedSuperpixels: null
         };
     },
     computed: {
@@ -99,11 +100,6 @@ export default Vue.extend({
         mode() {
             return store.mode;
         },
-        filteredSortedGroupedSuperpixels() {
-            let data = this.filterSuperpixels(this.superpixelsForReview);
-            data = this.groupSuperpixels(data);
-            return _.mapObject(data, (value, key) => this.sortSuperpixels(value));
-        },
         trimmedSuperpixels() {
             let sv = this.sliceValue;
             return _.mapObject(this.filteredSortedGroupedSuperpixels, (value, _key) => {
@@ -146,6 +142,9 @@ export default Vue.extend({
         },
         userNames() {
             return store.userNames;
+        },
+        userSelections() {
+            return [...store.filterBy, ...store.sortBy, ...store.groupBy];
         }
     },
     watch: {
@@ -170,6 +169,16 @@ export default Vue.extend({
         },
         booleanOperator() {
             this.showFlags = !!this.firstComparison && !!this.booleanOperator;
+        },
+        userSelections() {
+            this.updateFilteredSortedGroupedSuperpixels();
+        },
+        superpixelsForReview: {
+            handler() {
+                this.updateFilteredSortedGroupedSuperpixels();
+            },
+            immediate: true,
+            deep: true
         }
     },
     mounted() {
@@ -539,6 +548,26 @@ export default Vue.extend({
                 }
                 return store.userNames[user];
             }
+        },
+        updateFilteredSortedGroupedSuperpixels() {
+          this.showProgressBar();
+          setTimeout(() => {
+              // Make sure the DOM has been updated to display the
+              // progress bar before begining the process
+              let data = this.filterSuperpixels(this.superpixelsForReview);
+              data = this.groupSuperpixels(data);
+              this.filteredSortedGroupedSuperpixels = _.mapObject(
+                data, (value) => this.sortSuperpixels(value));
+              this.$nextTick(() => this.hideProgressBar());
+          }, 0);
+        },
+        showProgressBar() {
+            const progressBar = document.querySelector('.progress-bar-container');
+            progressBar.style.display = 'flex';
+        },
+        hideProgressBar() {
+            const progressBar = document.querySelector('.progress-bar-container');
+            progressBar.style.display = 'none';
         }
     }
 });
