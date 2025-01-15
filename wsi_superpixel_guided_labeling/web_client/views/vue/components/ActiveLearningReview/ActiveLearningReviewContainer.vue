@@ -550,16 +550,16 @@ export default Vue.extend({
             }
         },
         updateFilteredSortedGroupedSuperpixels() {
-          this.showProgressBar();
-          setTimeout(() => {
-              // Make sure the DOM has been updated to display the
-              // progress bar before begining the process
-              let data = this.filterSuperpixels(this.superpixelsForReview);
-              data = this.groupSuperpixels(data);
-              this.filteredSortedGroupedSuperpixels = _.mapObject(
-                data, (value) => this.sortSuperpixels(value));
-              this.$nextTick(() => this.hideProgressBar());
-          }, 0);
+            this.showProgressBar();
+            setTimeout(() => {
+                // Make sure the DOM has been updated to display the
+                // progress bar before begining the process
+                let data = this.filterSuperpixels(this.superpixelsForReview);
+                data = this.groupSuperpixels(data);
+                this.filteredSortedGroupedSuperpixels = _.mapObject(
+                    data, (value) => this.sortSuperpixels(value));
+                this.$nextTick(() => this.hideProgressBar());
+            }, 0);
         },
         showProgressBar() {
             const progressBar = document.querySelector('.progress-bar-container');
