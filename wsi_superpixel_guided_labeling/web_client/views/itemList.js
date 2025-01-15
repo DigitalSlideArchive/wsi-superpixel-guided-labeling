@@ -18,6 +18,8 @@ wrap(ItemListWidget, 'render', function (render) {
         return;
     }
 
+    // For backwards compatability also check the metadata keys
+    const metaKeySet = this.parentView.parentModel.get('meta').active_learning;
     restRequest({
         url: `folder/${thisFolder.id}/yaml_config/.histomicsui_config.yaml`
     }).done((config) => {
