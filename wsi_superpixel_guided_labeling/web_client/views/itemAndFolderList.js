@@ -1,5 +1,6 @@
 import { wrap } from '@girder/core/utilities/PluginUtils';
 import ItemListWidget from '@girder/core/views/widgets/ItemListWidget';
+import FolderListWidget from '@girder/core/views/widgets/FolderListWidget';
 import _ from 'underscore';
 import { restRequest } from '@girder/core/rest';
 
