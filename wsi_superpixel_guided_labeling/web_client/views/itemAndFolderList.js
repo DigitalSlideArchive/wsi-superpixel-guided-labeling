@@ -40,7 +40,7 @@ wrap(ItemListWidget, 'render', function (render) {
     restRequest({
         url: `folder/${thisFolder.id}/yaml_config/.histomicsui_config.yaml`
     }).done((config) => {
-        if (config && config['activeLearning'] || metaKeySet) {
+        if ((config && config.activeLearning) || metaKeySet) {
             // Make sure the required folders exist
             createRequiredFolders(thisFolder.id);
             const largeImageItems = _.filter(this.collection.models, (model) => model.attributes.largeImage);
@@ -82,7 +82,7 @@ wrap(FolderListWidget, 'insertFolder', function (insertFolder) {
     restRequest({
         url: `folder/${folder.id}/yaml_config/.histomicsui_config.yaml`
     }).done((config) => {
-        if (config && config['activeLearning']) {
+        if (config && config.activeLearning) {
             createRequiredFolders(folder.id);
         }
     });
