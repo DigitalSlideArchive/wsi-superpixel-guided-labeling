@@ -290,51 +290,50 @@ export default Vue.extend({
         /**********************************************************************
          * Filter superpixels based on the selected filter options
          *********************************************************************/
-        filterBySlideName(data) {
+        filterBySlideName(data, filterBy) {
             // Filter by selected slide(s)
             return data.filter((superpixel) => {
                 const name = this.imageItemsById[superpixel.imageId].name;
-                return store.filterBy.includes(name);
+                return filterBy.indexOf(name) > -1;
             });
         },
-        filterByLabelCategory(data) {
+        filterByLabelCategory(data, filterBy) {
             // Filter by selected label categories
             return data.filter((superpixel) => {
                 const { selectedCategory, labelCategories } = superpixel;
                 const label = labelCategories[selectedCategory].label;
-                return store.filterBy.includes(`label_${label}`);
+                return filterBy.indexOf(label) > -1;
             });
         },
-        filterByReviewCategory(data) {
+        filterByReviewCategory(data, filterBy) {
             // Filter by review categories
             let reviewResults = [];
-            const labels = _.pluck(this.categories, 'label');
-            if (labels.some((label) => store.filterBy.includes(`review_${label}`))) {
+            if (filterBy.length > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
                     const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
-                    return store.filterBy.includes(`review_${label}`);
+                    return filterBy.indexOf(label) > -1;
                 }));
             }
-            if (store.filterBy.includes('no review')) {
+            if (store.filterBy.indexOf('no review') > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
             return reviewResults;
         },
-        filterByLabeler(data) {
+        filterByLabeler(data, filterBy) {
             // Filter by labeler
             return data.filter((superpixel) => {
                 const id = superpixel.meta ? superpixel.meta.labeler : '';
-                return store.filterBy.includes(`labeler_${id}`);
+                return filterBy.indexOf(id) > -1;
             });
         },
-        filterByReviewer(data) {
+        filterByReviewer(data, filterBy) {
             // Filter by reviewer
             return data.filter((superpixel) => {
                 const id = superpixel.meta ? superpixel.meta.reviewer : '';
-                return store.filterBy.includes(`reviewer_${id}`);
+                return filterBy.indexOf(id) > -1;
             });
         },
         filterByComparison(data) {
@@ -373,46 +372,52 @@ export default Vue.extend({
                         (!!values[0] && !!values[2] && op(values[0], values[2]));
             });
         },
-        filterByPredictionLabel(data) {
+        filterByPredictionLabel(data, filterBy) {
             // Filter by selected label categories
             return data.filter((superpixel) => {
                 const { prediction, predictionCategories } = superpixel;
                 const label = predictionCategories[prediction].label;
-                return store.filterBy.includes(`prediction_${label}`);
+                return filterBy.indexOf(label) > -1;
             });
         },
         filterSuperpixels(data) {
+            const getFilters = (prefix) => {
+                return store.filterBy.reduce((acc, value) => {
+                    if (value.startsWith(prefix)) {
+                        acc.push(value.split('_')[1]);
+                    }
+                    return acc;
+                }, []);
+            };
             let results = data;
 
+            let filterBy = getFilters('label_');
+            if (filterBy.length > 0) {
+                results = this.filterByLabelCategory(results, filterBy);
+            }
+            filterBy = getFilters('review_');
+            if (filterBy.length > 0 || store.filterBy.indexOf('no review') > -1) {
+                results = this.filterByReviewCategory(results, filterBy);
+            }
+            filterBy = getFilters('prediction_');
+            if (filterBy.length > 0) {
+                results = this.filterByPredictionLabel(data, filterBy);
+            }
             const slideNames = _.pluck(this.imageItemsById, 'name');
-            const labels = _.pluck(this.categories, 'label');
-            const predictions = _.rest(labels);
-            const labelers = this.filterOptions.Labelers;
-            const reviewers = this.filterOptions.Reviewers;
-
-            if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
-                results = this.filterByLabelCategory(results);
-            }
-            if (
-              labels.some((label) => store.filterBy.includes(`review_${label}`)) ||
-              store.filterBy.includes('no review')
-            ) {
-                results = this.filterByReviewCategory(results);
-            }
-            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
-                results = this.filterByPredictionLabel(data);
-            }
-            if (slideNames.some((name) => store.filterBy.includes(name))) {
-                results = this.filterBySlideName(results);
+            filterBy = store.filterBy.filter((value) => slideNames.includes(value));
+            if (filterBy.length > 0) {
+                results = this.filterBySlideName(results, filterBy);
             }
             if (!!this.firstComparison && !!this.booleanOperator) {
                 results = this.filterByComparison(data);
             }
-            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
-                results = this.filterByLabeler(data);
+            filterBy = getFilters('labeler_');
+            if (filterBy.length > 0) {
+                results = this.filterByLabeler(data, filterBy);
             }
-            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
-                results = this.filterByReviewer(data);
+            filterBy = getFilters('reviewer_');
+            if (filterBy.length > 0) {
+                results = this.filterByReviewer(data, filterBy);
             }
             this.totalSuperpixels = results.length;
             return results;
