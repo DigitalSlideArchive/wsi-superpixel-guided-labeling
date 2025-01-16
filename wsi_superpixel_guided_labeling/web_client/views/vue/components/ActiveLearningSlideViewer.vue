@@ -279,8 +279,7 @@ export default Vue.extend({
                 y: (bbox[1] + bbox[3]) / 2
             };
             // Draw bounding box around selected superpixel
-            this.viewerWidget.viewer.zoom(zoom - 1.5);
-            this.viewerWidget.viewer.center(center);
+            this.viewerWidget.viewer.zoomAndCenter(zoom - 1.5, center);
             if (store.mode === viewMode.Review) {
                 // Offset the center to fit in the visible image section
                 const { height } = this.viewerWidget.viewer.bounds();
