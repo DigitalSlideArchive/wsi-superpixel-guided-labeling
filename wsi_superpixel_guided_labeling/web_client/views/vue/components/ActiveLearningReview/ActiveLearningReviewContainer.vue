@@ -123,7 +123,14 @@ export default Vue.extend({
             return store.userNames;
         },
         userSelections() {
-            return [...store.filterBy, ...this.sortBy, ...this.groupBy];
+            return [
+                ...store.filterBy,
+                this.firstComparison,
+                this.secondComparison,
+                this.booleanOperator,
+                ...this.sortBy,
+                ...this.groupBy
+            ];
         }
     },
     watch: {
@@ -154,14 +161,10 @@ export default Vue.extend({
         },
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
-        },
-        superpixelsForReview: {
-            handler() {
-                this.updateFilteredSortedGroupedSuperpixels();
-            },
-            immediate: true,
-            deep: true
         }
+    },
+    mounted() {
+        this.updateFilteredSortedGroupedSuperpixels();
     },
     activated() {
         // Support infinite scrolling
@@ -212,11 +215,26 @@ export default Vue.extend({
         // Pre-fetch all user names
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
         _.uniq(allUsers).forEach((id) => store.backboneParent.getUser(id));
+
+        // Enable deep watcher
+        // The "deep" flag is necessary to update the filtered/sorted list when
+        // the label or review is changed, but in other modes this causes an
+        // uneccessary slow-down. Only enable the watcher when we're in review mode.
+        this.stopWatcher = this.$watch(
+            'superpixelsForReview',
+            () => this.updateFilteredSortedGroupedSuperpixels(),
+            { deep: true, immediate: true }
+        );
     },
     deactivated() {
         this.selectedSuperpixel = null;
         document.removeEventListener('mousemove', this.mouseMove);
         document.removeEventListener('mouseup', () => { this.isResizing = false; });
+        // Disable deep watcher
+        if (this.stopWatcher) {
+            this.stopWatcher();
+            this.stopWatcher = null;
+        }
     },
     methods: {
         /**********************************************************************

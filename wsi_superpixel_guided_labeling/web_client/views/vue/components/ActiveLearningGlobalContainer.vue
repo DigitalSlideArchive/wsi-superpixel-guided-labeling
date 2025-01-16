@@ -84,7 +84,7 @@ export default Vue.extend({
                 return ActiveLearningLabeling;
             }
             return null;
-        },
+        }
     },
     watch: {
         activeLearningStep: {
