@@ -116,6 +116,9 @@ const ActiveLearningView = View.extend({
                 assignHotkey(oldKey, newKey);
             });
 
+            // Create the activeLearning flag if it does not exist
+            'activeLearning' in this.histomicsUIConfig || (this.histomicsUIConfig.activeLearning = true);
+
             // Create the guidedLabeleling object if it does not exist
             'guidedLabelingUI' in this.histomicsUIConfig || (this.histomicsUIConfig.guidedLabelingUI = {});
             store.strokeOpacity = this.histomicsUIConfig.guidedLabelingUI.borderOpacity || 1.0;
@@ -133,6 +136,9 @@ const ActiveLearningView = View.extend({
     },
 
     updateHistomicsYamlConfig: debounce(function () {
+        // Make sure the flag to enable active learning is set to true
+        this.histomicsUIConfig.activeLearning = true;
+
         const groups = new Map();
         this.categoryMap.clear(); // Keep the internal categoryMap in sync with changes
         _.forEach(store.categories, (category, index) => {

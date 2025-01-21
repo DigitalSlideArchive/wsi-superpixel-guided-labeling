@@ -4,7 +4,7 @@ import { exposePluginConfig } from '@girder/core/utilities/PluginUtils';
 import girderEvents from '@girder/core/events';
 
 import ActiveLearningView from './views/body/ActiveLearningView';
-import './views/itemList';
+import './views/itemAndFolderList';
 import './views/HeaderView';
 import './views/HeaderImageView';
 import * as WSISuperpixelGuidedLabeling from './index';
