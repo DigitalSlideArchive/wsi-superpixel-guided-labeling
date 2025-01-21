@@ -124,6 +124,9 @@ export default Vue.extend({
     class="h-active-learning-container"
     :class="[activeLearningStep > activeLearningSteps.InitialLabeling ? 'guided' : 'setup']"
   >
+    <div class="progress-bar-container">
+      <div class="progress-bar" />
+    </div>
     <active-learning-initial-superpixels
       v-if="activeLearningStep === activeLearningSteps.SuperpixelSegmentation"
       :backbone-parent="backboneParent"
@@ -241,5 +244,33 @@ export default Vue.extend({
 .slide-viewer {
     position: relative;
     bottom: 3px;
+}
+
+.progress-bar-container {
+    position: fixed;
+    top: 45px;
+    width: 100%;
+    height: 5px;
+    z-index: 1000;
+    overflow: hidden;
+    display: none;
+}
+
+.progress-bar {
+    width: 25%;
+    height: 100%;
+    background-color: #337ab7;
+    animation: grow 2s infinite;
+    transform: translateX(-100%);
+    animation-delay: 1s;
+}
+
+@keyframes grow {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(400%);
+    }
 }
 </style>
