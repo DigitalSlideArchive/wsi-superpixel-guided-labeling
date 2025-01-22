@@ -45,7 +45,8 @@ export default Vue.extend({
             firstComparison: null,
             secondComparison: null,
             booleanOperator: null,
-            filtersAllLabels: true
+            filtersAllLabels: true,
+            filtersAllReviews: false
         };
     },
     computed: {
@@ -190,6 +191,14 @@ export default Vue.extend({
                 }
             },
             immediate: true
+        },
+        filtersAllReviews() {
+            const reviews = store.categories.map((cat) => `review_${cat.label}`);
+            if (this.filtersAllReviews) {
+                store.filterBy.push(...reviews);
+            } else {
+                store.filterBy = store.filterBy.filter((value) => !reviews.includes(value));
+            }
         }
     },
     mounted() {
@@ -1109,11 +1118,11 @@ export default Vue.extend({
                       <li><hr></li>
                       <li>
                         <label
-                          for="cat_has_label"
+                          for="cat_has_review"
                           class="checkboxLabel"
                         >
                           <input
-                            id="cat_has_label"
+                            id="cat_has_review"
                             v-model="filtersAllLabels"
                             type="checkbox"
                           >
@@ -1177,7 +1186,21 @@ export default Vue.extend({
                             type="checkbox"
                             value="no review"
                           >
-                          not reviewed
+                          No Review
+                        </label>
+                      </li>
+                      <li><hr></li>
+                      <li>
+                        <label
+                          for="cat_has_label"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            id="cat_has_label"
+                            v-model="filtersAllReviews"
+                            type="checkbox"
+                          >
+                          All Reviews
                         </label>
                       </li>
                       <li
@@ -1194,7 +1217,7 @@ export default Vue.extend({
                             type="checkbox"
                             :value="`review_${cat}`"
                           >
-                          {{ index === 0 ? 'Unlabeled' : cat }}
+                          {{ index === 0 ? 'unlabeled' : cat }}
                         </label>
                       </li>
                     </ul>
