@@ -265,12 +265,11 @@ export default Vue.extend({
         sortByLabelCategory(sorted) {
             return _.sortBy(sorted, 'selectedCategory');
         },
-        sortByLabelPredictionAgreement(sorted) {
-            return _.sortBy(sorted, (superpixel) => {
-                const selected = superpixel.labelCategories[superpixel.selectedCategory];
-                const predicted = superpixel.predictionCategories[superpixel.prediction];
-                return selected.label === predicted.label;
-            });
+        sortByPredictionCategory(sorted) {
+            return _.sortBy(sorted, 'prediction');
+        },
+        sortByReviewCategory(sorted) {
+            return _.sortBy(sorted, 'reviewValue');
         },
         sortByConfidence(sorted) {
             return _.sortBy(sorted, 'confidence');
@@ -287,12 +286,15 @@ export default Vue.extend({
                     sorted = this.sortByLabelCategory(sorted);
                     break;
                 case 3:
-                    sorted = this.sortByLabelPredictionAgreement(sorted);
+                    sorted = this.sortByPredictionCategory(sorted);
                     break;
                 case 4:
-                    sorted = this.sortByConfidence(sorted);
+                    sorted = this.sortByReviewCategory(sorted);
                     break;
                 case 5:
+                    sorted = this.sortByConfidence(sorted);
+                    break;
+                case 6:
                     sorted = this.sortByCertainty(sorted);
                     break;
                 default:
