@@ -359,11 +359,11 @@ export default Vue.extend({
                     if (key === 'prediction') {
                         values[idx] = superpixel.predictionCategories[superpixel.prediction];
                     } else if (key === 'label') {
-                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
+                        if (!this.secondComparison || (!!superpixel.meta && superpixel.meta.labeler === userID)) {
                             values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
                         }
                     } else if (key === 'review') {
-                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
+                        if (!this.secondComparison || (!!superpixel.meta && superpixel.meta.reviewer === userID)) {
                             values[idx] = superpixel.labelCategories[superpixel.reviewValue];
                         }
                     }
@@ -1254,11 +1254,11 @@ export default Vue.extend({
                     <li>
                       <div class="radio">
                         <label
-                          for="prediction_1"
+                          for="prediction_comparison_1"
                           :class="['options', secondComparison === 'prediction' && 'disabled-label']"
                         >
                           <input
-                            id="prediction_1"
+                            id="prediction_comparison_1"
                             v-model="firstComparison"
                             type="radio"
                             value="prediction"
@@ -1396,10 +1396,7 @@ export default Vue.extend({
                         class="radio"
                         :disabled="firstComparison === 'prediction'"
                       >
-                        <label
-                          for="any"
-                          :class="['options', firstComparison === 'prediction' && 'disabled-label']"
-                        >
+                        <label for="any">
                           <input
                             id="any"
                             v-model="secondComparison"
@@ -1417,11 +1414,11 @@ export default Vue.extend({
                         :disabled="firstComparison === 'prediction'"
                       >
                         <label
-                          for="prediction_2"
+                          for="prediction_comparison_2"
                           :class="['options', firstComparison === 'prediction' && 'disabled-label']"
                         >
                           <input
-                            id="prediction_2"
+                            id="prediction_comparison_2"
                             v-model="secondComparison"
                             type="radio"
                             value="prediction"
