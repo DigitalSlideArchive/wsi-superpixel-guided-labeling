@@ -451,12 +451,17 @@ export default Vue.extend({
                 return store.categories[selectedCategory].label;
             });
         },
-        groupByLabelPredictionAgreement(data) {
+        groupByPredictionCategory(data) {
             return Object.groupBy(data, (superpixel) => {
-                const { selectedCategory, prediction } = superpixel;
-                const selection = superpixel.labelCategories[selectedCategory].label;
-                const predicted = superpixel.predictionCategories[prediction].label;
-                return selection === predicted ? 'Agree' : 'Disagree';
+                return superpixel.predictionCategories[superpixel.prediction].label;
+            });
+        },
+        groupByReviewCategory(data) {
+            return Object.groupBy(data, ({ reviewValue }) => {
+                if (!_.isNumber(reviewValue)) {
+                    return 'default';
+                }
+                return store.categories[reviewValue].label;
             });
         },
         groupSuperpixels(data) {
@@ -466,7 +471,9 @@ export default Vue.extend({
                 case 2:
                     return this.groupByLabelCategory(data);
                 case 3:
-                    return this.groupByLabelPredictionAgreement(data);
+                    return this.groupByPredictionCategory(data);
+                case 4:
+                    return this.groupByReviewCategory(data);
                 default:
                     return { data };
             }
@@ -1807,12 +1814,12 @@ export default Vue.extend({
         >
           <h4
             v-if="groupBy !== 0"
-            :class="[groupBy === 2 && 'group-header']"
+            :class="[groupBy >= 2 && 'group-header']"
             :style="[{'margin-left': '5px'}]"
           >
-            {{ label }} ({{ filteredSortedGroupedSuperpixels[label].length }})
+            {{ label === 'default' ? 'None' : label }} ({{ filteredSortedGroupedSuperpixels[label].length }})
             <i
-              v-if="groupBy === 2"
+              v-if="groupBy >= 2"
               class="icon-blank"
               :class="[groupBy === 2 && 'group-icon']"
               :style="{'background-color': catColorByLabel(label)}"
@@ -1825,11 +1832,11 @@ export default Vue.extend({
               :key="index"
               :class="[
                 'h-superpixel-card',
-                groupBy === 2 ? 'grouped' : 'ungrouped',
+                groupBy >= 2 ? 'grouped' : 'ungrouped',
                 superpixel === selectedSuperpixel && 'selected-superpixel',
                 cardDetails.length > 0 && 'h-superpixel-card-detailed'
               ]"
-              :style="[groupBy !== 2 && {'border-color': catColorByIndex(superpixel.selectedCategory)}]"
+              :style="[groupBy < 2 && {'border-color': catColorByIndex(superpixel.selectedCategory)}]"
             >
               <active-learning-review-card
                 :style="{'position': 'relative'}"
