@@ -52,7 +52,8 @@ export const groupByOptions = {
     0: '(None)',
     1: 'Slide',
     2: 'Label',
-    3: 'Agree/Disagree'
+    3: 'Prediction',
+    4: 'Review'
 };
 
 export const sortByOptions = {
