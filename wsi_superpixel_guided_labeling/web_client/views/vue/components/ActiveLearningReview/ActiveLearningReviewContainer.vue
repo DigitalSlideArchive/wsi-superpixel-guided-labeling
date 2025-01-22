@@ -44,7 +44,8 @@ export default Vue.extend({
             cardDetails: [],
             firstComparison: null,
             secondComparison: null,
-            booleanOperator: null
+            booleanOperator: null,
+            filtersAllLabels: true
         };
     },
     computed: {
@@ -178,6 +179,17 @@ export default Vue.extend({
         sortAscending() {
             Object.values(this.filteredSortedGroupedSuperpixels)
                 .map((sortedList) => sortedList.reverse());
+        },
+        filtersAllLabels: {
+            handler() {
+                const labels = store.categories.slice(1).map((cat) => `label_${cat.label}`);
+                if (this.filtersAllLabels) {
+                    store.filterBy.push(...labels);
+                } else {
+                    store.filterBy = store.filterBy.filter((value) => !labels.includes(value));
+                }
+            },
+            immediate: true
         }
     },
     mounted() {
@@ -1080,21 +1092,49 @@ export default Vue.extend({
                       </span>
                     </div>
                     <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
-                      <li
-                        v-for="(cat, index) in filterOptions.Labels"
-                        :key="`cat_${index}`"
-                      >
+                      <li>
                         <label
-                          :for="`cat_${index}`"
+                          for="cat_0"
                           class="checkboxLabel"
                         >
                           <input
-                            :id="`cat_${index}`"
+                            id="cat_0"
+                            v-model="filterBy"
+                            type="checkbox"
+                            value="label_default"
+                          >
+                          No Label
+                        </label>
+                      </li>
+                      <li><hr></li>
+                      <li>
+                        <label
+                          for="cat_has_label"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            id="cat_has_label"
+                            v-model="filtersAllLabels"
+                            type="checkbox"
+                          >
+                          All Labels
+                        </label>
+                      </li>
+                      <li
+                        v-for="(cat, index) in filterOptions.Labels.slice(1)"
+                        :key="`cat_${index + 1}`"
+                      >
+                        <label
+                          :for="`cat_${index + 1}`"
+                          class="checkboxLabel"
+                        >
+                          <input
+                            :id="`cat_${index + 1}`"
                             v-model="filterBy"
                             type="checkbox"
                             :value="`label_${cat}`"
                           >
-                          {{ index === 0 ? 'No Label' : cat }}
+                          {{ cat }}
                         </label>
                       </li>
                     </ul>
