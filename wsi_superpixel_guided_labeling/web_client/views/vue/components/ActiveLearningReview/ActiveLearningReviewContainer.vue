@@ -37,7 +37,14 @@ export default Vue.extend({
             labelFlag: false,
             showFlags: false,
             currentMetadata: null,
-            filteredSortedGroupedSuperpixels: null
+            filteredSortedGroupedSuperpixels: null,
+            groupBy: 0,
+            sortBy: 0,
+            previewSize: 0.5,
+            cardDetails: [],
+            firstComparison: null,
+            secondComparison: null,
+            booleanOperator: null
         };
     },
     computed: {
@@ -108,47 +115,29 @@ export default Vue.extend({
                 return trimmed;
             });
         },
-        groupBy: {
-            get() { return store.groupBy; },
-            set(value) { store.groupBy = value; }
-        },
-        sortBy: {
-            get() { return store.sortBy; },
-            set(value) { store.sortBy = value; }
-        },
         filterBy: {
             get() { return store.filterBy; },
             set(value) { store.filterBy = value; }
-        },
-        previewSize: {
-            get() { return store.previewSize; },
-            set(value) { store.previewSize = value; }
-        },
-        cardDetails: {
-            get() { return store.cardDetails; },
-            set(value) { store.cardDetails = value; }
-        },
-        firstComparison: {
-            get() { return store.firstComparison; },
-            set(value) { store.firstComparison = value; }
-        },
-        secondComparison: {
-            get() { return store.secondComparison; },
-            set(value) { store.secondComparison = value; }
-        },
-        booleanOperator: {
-            get() { return store.booleanOperator; },
-            set(value) { store.booleanOperator = value; }
         },
         userNames() {
             return store.userNames;
         },
         userSelections() {
-            return [...store.filterBy, ...store.sortBy, ...store.groupBy];
+            return [
+                ...store.filterBy,
+                this.firstComparison,
+                this.secondComparison,
+                this.booleanOperator,
+                ...this.sortBy,
+                ...this.groupBy
+            ];
         }
     },
     watch: {
         selectedSuperpixel() {
+            if (!this.selectedSuperpixel) {
+                return;
+            }
             const { meta } = this.selectedSuperpixel;
             store.reviewSuperpixel = this.selectedSuperpixel || null;
             this.currentMetadata = meta;
@@ -172,16 +161,12 @@ export default Vue.extend({
         },
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
-        },
-        superpixelsForReview: {
-            handler() {
-                this.updateFilteredSortedGroupedSuperpixels();
-            },
-            immediate: true,
-            deep: true
         }
     },
     mounted() {
+        this.updateFilteredSortedGroupedSuperpixels();
+    },
+    activated() {
         // Support infinite scrolling
         this.scrollObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry) => {
@@ -221,6 +206,7 @@ export default Vue.extend({
         this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
+            resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
             resizeHandle.addEventListener('mousedown', () => { this.isResizing = true; });
             document.addEventListener('mousemove', this.mouseMove);
             document.addEventListener('mouseup', () => { this.isResizing = false; });
@@ -229,12 +215,26 @@ export default Vue.extend({
         // Pre-fetch all user names
         const allUsers = [...this.filterOptions.Labelers, ...this.filterOptions.Reviewers];
         _.uniq(allUsers).forEach((id) => store.backboneParent.getUser(id));
+
+        // Enable deep watcher
+        // The "deep" flag is necessary to update the filtered/sorted list when
+        // the label or review is changed, but in other modes this causes an
+        // uneccessary slow-down. Only enable the watcher when we're in review mode.
+        this.stopWatcher = this.$watch(
+            'superpixelsForReview',
+            () => this.updateFilteredSortedGroupedSuperpixels(),
+            { deep: true, immediate: true }
+        );
     },
-    destroyed() {
-        const resizeHandle = document.querySelector('.resize-handle');
-        resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
+    deactivated() {
+        this.selectedSuperpixel = null;
         document.removeEventListener('mousemove', this.mouseMove);
         document.removeEventListener('mouseup', () => { this.isResizing = false; });
+        // Disable deep watcher
+        if (this.stopWatcher) {
+            this.stopWatcher();
+            this.stopWatcher = null;
+        }
     },
     methods: {
         /**********************************************************************
@@ -262,7 +262,7 @@ export default Vue.extend({
             return _.sortBy(sorted, 'certainty');
         },
         sortSuperpixels(sorted) {
-            switch (store.sortBy) {
+            switch (this.sortBy) {
                 case 1:
                     sorted = this.sortBySlideName(sorted);
                     break;
@@ -441,7 +441,7 @@ export default Vue.extend({
             });
         },
         groupSuperpixels(data) {
-            switch (store.groupBy) {
+            switch (this.groupBy) {
                 case 1:
                     return this.groupBySlideName(data);
                 case 2:
@@ -515,7 +515,7 @@ export default Vue.extend({
             }
         },
         removeFilters(values) {
-            this.filterBy = _.without(this.filterBy, ...values);
+            store.filterBy = _.without(store.filterBy, ...values);
         },
         toggleOpenMenu(menu) {
             this.openMenu = this.openMenu === menu ? null : menu;
