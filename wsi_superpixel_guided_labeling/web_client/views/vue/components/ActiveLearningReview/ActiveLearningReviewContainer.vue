@@ -174,6 +174,10 @@ export default Vue.extend({
                 this.updateFilteredSortedGroupedSuperpixels(changedSuperpixel);
             },
             deep: true
+        },
+        sortAscending() {
+            Object.values(this.filteredSortedGroupedSuperpixels)
+                .map((sortedList) => sortedList.reverse());
         }
     },
     mounted() {
