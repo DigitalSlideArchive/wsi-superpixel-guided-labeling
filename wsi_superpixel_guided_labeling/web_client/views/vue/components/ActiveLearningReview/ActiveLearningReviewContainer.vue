@@ -290,150 +290,153 @@ export default Vue.extend({
         /**********************************************************************
          * Filter superpixels based on the selected filter options
          *********************************************************************/
-        filterBySlideName(data) {
+        filterBySlideName(data, filterBy) {
             // Filter by selected slide(s)
-            const slideNames = _.pluck(this.imageItemsById, 'name');
-            if (slideNames.some((name) => store.filterBy.includes(name))) {
-                return data.filter((superpixel) => {
-                    const name = this.imageItemsById[superpixel.imageId].name;
-                    return store.filterBy.includes(name);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const name = this.imageItemsById[superpixel.imageId].name;
+                return filterBy.indexOf(name) > -1;
+            });
         },
-        filterByLabelCategory(data) {
+        filterByLabelCategory(data, filterBy) {
             // Filter by selected label categories
-            const labels = _.pluck(this.categories, 'label');
-            if (labels.some((label) => store.filterBy.includes(`label_${label}`))) {
-                return data.filter((superpixel) => {
-                    const { selectedCategory, labelCategories } = superpixel;
-                    const label = labelCategories[selectedCategory].label;
-                    return store.filterBy.includes(`label_${label}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const { selectedCategory, labelCategories } = superpixel;
+                const label = labelCategories[selectedCategory].label;
+                return filterBy.indexOf(label) > -1;
+            });
         },
-        filterByReviewCategory(data) {
+        filterByReviewCategory(data, filterBy) {
             // Filter by review categories
             let reviewResults = [];
-            const labels = _.pluck(this.categories, 'label');
-            if (labels.some((label) => store.filterBy.includes(`review_${label}`))) {
+            if (filterBy.length > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
                     const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
-                    return store.filterBy.includes(`review_${label}`);
+                    return filterBy.indexOf(label) > -1;
                 }));
             }
-            if (store.filterBy.includes('no review')) {
+            if (store.filterBy.indexOf('no review') > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
                 }));
             }
             return reviewResults;
         },
-        filterByLabeler(data) {
+        filterByLabeler(data, filterBy) {
             // Filter by labeler
-            const labelers = this.filterOptions.Labelers;
-            if (labelers.some((id) => store.filterBy.includes(`labeler_${id}`))) {
-                return data.filter((superpixel) => {
-                    const id = superpixel.meta ? superpixel.meta.labeler : '';
-                    return store.filterBy.includes(`labeler_${id}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const id = superpixel.meta ? superpixel.meta.labeler : '';
+                return filterBy.indexOf(id) > -1;
+            });
         },
-        filterByReviewer(data) {
+        filterByReviewer(data, filterBy) {
             // Filter by reviewer
-            const reviewers = this.filterOptions.Reviewers;
-            if (reviewers.some((id) => store.filterBy.includes(`reviewer_${id}`))) {
-                return data.filter((superpixel) => {
-                    const id = superpixel.meta ? superpixel.meta.reviewer : '';
-                    return store.filterBy.includes(`reviewer_${id}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const id = superpixel.meta ? superpixel.meta.reviewer : '';
+                return filterBy.indexOf(id) > -1;
+            });
         },
         filterByComparison(data) {
             // Filter by comparison
-            if (!!this.firstComparison && !!this.booleanOperator) {
-                // Select the appropriate comparison function
-                const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
-                const [key0, userID0] = this.firstComparison.split('_');
-                // If no second option is selected we should compare the first selection
-                // to all remaining options. Otherwise just compare to the second selection.
-                let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
-                if (this.secondComparison) {
-                    [key1, userID1, key2] = this.secondComparison.split('_');
-                }
+            // Select the appropriate comparison function
+            const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
+            const [key0, userID0] = this.firstComparison.split('_');
+            // If no second option is selected we should compare the first selection
+            // to all remaining options. Otherwise just compare to the second selection.
+            let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
+            if (this.secondComparison) {
+                [key1, userID1, key2] = this.secondComparison.split('_');
+            }
 
-                return data.filter((superpixel) => {
-                    const values = [null, null, null];
-                    [key0, key1, key2].forEach((key, idx) => {
-                        const userID = idx === 0 ? userID0 : userID1;
-                        if (key === 'prediction') {
-                            values[idx] = superpixel.predictionCategories[superpixel.prediction];
-                        } else if (key === 'label') {
-                            if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
-                                values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
-                            }
-                        } else if (key === 'review') {
-                            if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
-                                values[idx] = superpixel.labelCategories[superpixel.reviewValue];
-                            }
+            return data.filter((superpixel) => {
+                const values = [null, null, null];
+                [key0, key1, key2].forEach((key, idx) => {
+                    const userID = idx === 0 ? userID0 : userID1;
+                    if (key === 'prediction') {
+                        values[idx] = superpixel.predictionCategories[superpixel.prediction];
+                    } else if (key === 'label') {
+                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
+                            values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
                         }
-                        // As we support more complex options to add/remove/rename categories across epochs the
-                        // predictions categories and labels categories have a higher chance of diverging and we
-                        // shouldn't assume the same order in both lists. Compare label values instead.
-                        values[idx] = values[idx] ? values[idx].label : values[idx];
-                    });
-                    return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
-                           (!!values[0] && !!values[2] && op(values[0], values[2]));
+                    } else if (key === 'review') {
+                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
+                            values[idx] = superpixel.labelCategories[superpixel.reviewValue];
+                        }
+                    }
+                    // As we support more complex options to add/remove/rename categories across epochs the
+                    // predictions categories and labels categories have a higher chance of diverging and we
+                    // shouldn't assume the same order in both lists. Compare label values instead.
+                    values[idx] = values[idx] ? values[idx].label : values[idx];
                 });
-            }
-            return [];
+                return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
+                        (!!values[0] && !!values[2] && op(values[0], values[2]));
+            });
         },
-        filterByPredictionLabel(data) {
+        filterByPredictionLabel(data, filterBy) {
             // Filter by selected label categories
-            const predictions = _.rest(_.pluck(this.categories, 'label'));
-            if (predictions.some((label) => store.filterBy.includes(`prediction_${label}`))) {
-                return data.filter((superpixel) => {
-                    const { prediction, predictionCategories } = superpixel;
-                    const label = predictionCategories[prediction].label;
-                    return store.filterBy.includes(`prediction_${label}`);
-                });
-            }
-            return [];
+            return data.filter((superpixel) => {
+                const { prediction, predictionCategories } = superpixel;
+                const label = predictionCategories[prediction].label;
+                return filterBy.indexOf(label) > -1;
+            });
         },
         filterSuperpixels(data) {
-            let results = [];
-            results.push(this.filterBySlideName(data));
-            results.push(this.filterByLabelCategory(data));
-            results.push(this.filterByReviewCategory(data));
-            results.push(this.filterByLabeler(data));
-            results.push(this.filterByReviewer(data));
-            results.push(this.filterByComparison(data));
-            results.push(this.filterByPredictionLabel(data));
+            const getFilters = (prefix) => {
+                return store.filterBy.reduce((acc, value) => {
+                    if (value.startsWith(prefix)) {
+                        acc.push(value.split('_')[1]);
+                    }
+                    return acc;
+                }, []);
+            };
+            let results = data;
 
-            results = results.filter((result) => result.length);
-            const filtered = results.length ? _.intersection(...results) : data;
-            this.totalSuperpixels = filtered.length;
-            return filtered;
+            let filterBy = getFilters('label_');
+            if (filterBy.length > 0) {
+                results = this.filterByLabelCategory(results, filterBy);
+            }
+            filterBy = getFilters('review_');
+            if (filterBy.length > 0 || store.filterBy.indexOf('no review') > -1) {
+                results = this.filterByReviewCategory(results, filterBy);
+            }
+            filterBy = getFilters('prediction_');
+            if (filterBy.length > 0) {
+                results = this.filterByPredictionLabel(data, filterBy);
+            }
+            const slideNames = _.pluck(this.imageItemsById, 'name');
+            filterBy = store.filterBy.filter((value) => slideNames.includes(value));
+            if (filterBy.length > 0) {
+                results = this.filterBySlideName(results, filterBy);
+            }
+            if (!!this.firstComparison && !!this.booleanOperator) {
+                results = this.filterByComparison(data);
+            }
+            filterBy = getFilters('labeler_');
+            if (filterBy.length > 0) {
+                results = this.filterByLabeler(data, filterBy);
+            }
+            filterBy = getFilters('reviewer_');
+            if (filterBy.length > 0) {
+                results = this.filterByReviewer(data, filterBy);
+            }
+            this.totalSuperpixels = results.length;
+            return results;
         },
         /**********************************************************************
          * Group superpixels based on the selected grouping options
          *********************************************************************/
         groupBySlideName(data) {
-            return _.groupBy(data, (superpixel) => {
-                return this.imageItemsById[superpixel.imageId].name;
+            return Object.groupBy(data, ({ imageId }) => {
+                return this.imageItemsById[imageId].name;
             });
         },
         groupByLabelCategory(data) {
-            return _.groupBy(data, (superpixel) => {
-                return store.categories[superpixel.selectedCategory].label;
+            return Object.groupBy(data, ({ selectedCategory }) => {
+                return store.categories[selectedCategory].label;
             });
         },
         groupByLabelPredictionAgreement(data) {
-            return _.groupBy(data, (superpixel) => {
+            return Object.groupBy(data, (superpixel) => {
                 const { selectedCategory, prediction } = superpixel;
                 const selection = superpixel.labelCategories[selectedCategory].label;
                 const predicted = superpixel.predictionCategories[prediction].label;
@@ -1169,6 +1172,7 @@ export default Vue.extend({
                   <div class="dropdown-button">
                     <div
                       class="btn btn-default btn-block"
+                      :disabled="!filterOptions.Reviewers.length"
                       @click="toggleOpenMenu('reviewer')"
                     >
                       <span class="multiselect-dropdown-label">
@@ -2089,6 +2093,8 @@ export default Vue.extend({
 .visible-menu {
   display: block;
   padding: 10px 5px 5px 10px;
+  max-height: 475px;
+  overflow-y: scroll;
 }
 
 .flex {
