@@ -127,12 +127,12 @@ export default Vue.extend({
         userSelections() {
             return [
                 ...store.filterBy,
-                this.firstComparison,
-                this.secondComparison,
-                this.booleanOperator,
                 ...this.sortBy,
                 ...this.groupBy
             ];
+        },
+        comparisonSelections() {
+            return [this.firstComparison, this.booleanOperator, this.secondComparison];
         }
     },
     watch: {
@@ -155,11 +155,12 @@ export default Vue.extend({
             }
             this.$nextTick(() => this.updateObserved());
         },
-        firstComparison() {
+        comparisonSelections(_newComps, oldComps) {
+            const [oldFirst, oldBoolean] = oldComps;
             this.showFlags = !!this.firstComparison && !!this.booleanOperator;
-        },
-        booleanOperator() {
-            this.showFlags = !!this.firstComparison && !!this.booleanOperator;
+            if (this.showFlags || (oldFirst && oldBoolean)) {
+                this.updateFilteredSortedGroupedSuperpixels();
+            }
         },
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
@@ -474,7 +475,7 @@ export default Vue.extend({
                 results = this.filterBySlideName(results, filterBy);
             }
             if (!!this.firstComparison && !!this.booleanOperator) {
-                results = this.filterByComparison(data);
+                results = this.filterByComparison(results);
             }
             filterBy = getFilters('labeler_');
             if (filterBy.length > 0) {
