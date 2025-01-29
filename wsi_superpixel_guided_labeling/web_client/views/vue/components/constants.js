@@ -52,14 +52,16 @@ export const groupByOptions = {
     0: '(None)',
     1: 'Slide',
     2: 'Label',
-    3: 'Agree/Disagree'
+    3: 'Prediction',
+    4: 'Review'
 };
 
 export const sortByOptions = {
     0: '(None)',
     1: 'Slide',
     2: 'Label',
-    3: 'Agree/Disagree',
-    4: 'Confidence',
-    5: 'Certainty'
+    3: 'Prediction',
+    4: 'Review',
+    5: 'Confidence',
+    6: 'Certainty'
 };

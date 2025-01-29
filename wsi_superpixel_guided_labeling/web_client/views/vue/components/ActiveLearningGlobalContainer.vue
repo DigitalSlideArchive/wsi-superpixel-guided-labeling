@@ -1,6 +1,5 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
 
 import ActiveLearningInitialSuperpixels from './ActiveLearningSetup/ActiveLearningInitialSuperpixels.vue';
 import ActiveLearningMergeConfirmation from './ActiveLearningSetup/ActiveLearningMergeConfirmation.vue';
@@ -113,10 +112,6 @@ export default Vue.extend({
         store.pageSize = this.pageSize;
         store.categories = [...this.categoryMap.values()];
         store.currentImageId = Object.keys(this.imageNamesById)[0];
-
-        // Default to filtering out unlabeled superpixels
-        const cats = _.map(_.rest(store.categories), (cat) => `label_${cat.label}`);
-        store.filterBy = [...store.filterBy, ...cats];
 
         // We don't want to mount child components until the store has been updated
         this.storeReady = true;
