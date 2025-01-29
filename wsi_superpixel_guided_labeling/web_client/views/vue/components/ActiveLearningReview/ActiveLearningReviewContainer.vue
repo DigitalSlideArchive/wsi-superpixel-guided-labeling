@@ -170,6 +170,10 @@ export default Vue.extend({
         },
         filtersAllLabels: {
             handler() {
+                if (_.isNull(this.filtersAllLabels)) {
+                    return;
+                }
+
                 const labels = store.categories.slice(1).map((cat) => `label_${cat.label}`);
                 if (this.filtersAllLabels) {
                     store.filterBy.push(...labels);
@@ -180,11 +184,45 @@ export default Vue.extend({
             immediate: true
         },
         filtersAllReviews() {
+            if (_.isNull(this.filtersAllReviews)) {
+                return;
+            }
+
             const reviews = store.categories.map((cat) => `review_${cat.label}`);
             if (this.filtersAllReviews) {
                 store.filterBy.push(...reviews);
             } else {
                 store.filterBy = store.filterBy.filter((value) => !reviews.includes(value));
+            }
+        },
+        filterBy(newList, oldList) {
+            const [first, second] = newList.length > oldList.length ? [newList, oldList] : [oldList, newList];
+            const changed = _.difference(first, second)[0];
+            const labels = store.categories.slice(1).map((cat) => `label_${cat.label}`);
+            const reviews = store.categories.map((cat) => `review_${cat.label}`);
+
+            let values = null, filtersAll = null, element = null;
+            if (labels.includes(changed) && _.isNull(this.filtersAllLabels)) {
+                values = labels;
+                filtersAll = 'filtersAllLabels';
+                element = document.getElementById('cat_has_label');
+            } else if (reviews.includes(changed) && _.isNull(this.filtersAllReviews)) {
+                values = reviews;
+                filtersAll = 'filtersAllReviews';
+                element = document.getElementById('cat_has_review');
+            }
+            if (element) {
+                // Label was selected or un-selected
+                const found = values.reduce((acc, value) => {
+                    acc += Number(store.filterBy.includes(value));
+                    return acc;
+                }, 0);
+                // If all labels or no labels are selected the state should be true or false,
+                // otherwise set state as indeterminate
+                element.indeterminate = (found !== 0 && found !== values.length);
+                if (!element.indeterminate) {
+                    this[`${filtersAll}`] = (found === values.length);
+                }
             }
         }
     },
@@ -1077,11 +1115,11 @@ export default Vue.extend({
                       <li><hr></li>
                       <li>
                         <label
-                          for="cat_has_review"
+                          for="cat_has_label"
                           class="checkboxLabel"
                         >
                           <input
-                            id="cat_has_review"
+                            id="cat_has_label"
                             v-model="filtersAllLabels"
                             type="checkbox"
                           >
@@ -1101,6 +1139,7 @@ export default Vue.extend({
                             v-model="filterBy"
                             type="checkbox"
                             :value="`label_${cat}`"
+                            @click="filtersAllLabels = null"
                           >
                           {{ cat }}
                         </label>
@@ -1151,11 +1190,11 @@ export default Vue.extend({
                       <li><hr></li>
                       <li>
                         <label
-                          for="cat_has_label"
+                          for="cat_has_review"
                           class="checkboxLabel"
                         >
                           <input
-                            id="cat_has_label"
+                            id="cat_has_review"
                             v-model="filtersAllReviews"
                             type="checkbox"
                           >
@@ -1175,6 +1214,7 @@ export default Vue.extend({
                             v-model="filterBy"
                             type="checkbox"
                             :value="`review_${cat}`"
+                            @click="filtersAllReviews = null"
                           >
                           {{ index === 0 ? 'unlabeled' : cat }}
                         </label>
