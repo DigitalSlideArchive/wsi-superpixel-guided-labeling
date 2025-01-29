@@ -115,7 +115,7 @@ export default Vue.extend({
             store.categoriesAndIndices = [...store.categoriesAndIndices];
             updateMetadata(this.superpixelDecision, newValue, false);
             store.backboneParent.updateAnnotationMetadata(store.currentImageId);
-            store.changeLog.push(this.superpixelDecision);
+            store.guidedChangeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {
             if (!this.isSelected || typeof categoryNumber !== 'number') {

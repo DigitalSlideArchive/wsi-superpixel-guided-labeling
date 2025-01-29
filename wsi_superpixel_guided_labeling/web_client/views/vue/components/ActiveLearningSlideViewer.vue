@@ -54,7 +54,7 @@ export default Vue.extend({
             return store.selectedIndex;
         },
         changeLog() {
-            return store.changeLog;
+            return store.guidedChangeLog;
         },
         superpixelsToDisplay() {
             return store.superpixelsToDisplay;
@@ -118,12 +118,13 @@ export default Vue.extend({
         },
         changeLog: {
             handler() {
-                if (!store.changeLog.length) {
+                if (!store.guidedChangeLog.length) {
                     return;
                 }
-                const superpixel = this.changeLog.pop();
+                const superpixel = store.guidedChangeLog.pop();
                 this.drawPixelmapAnnotation();
                 store.backboneParent.saveAnnotations([superpixel.imageId], false);
+                store.changeLog.push(this.superpixelDecision);
             },
             deep: true
         },
@@ -462,6 +463,7 @@ export default Vue.extend({
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);
+            store.changeLog.push(superpixel);
         },
         saveNewPixelmapData(boundaries, data) {
             const annotation = store.annotationsByImageId[store.currentImageId];
