@@ -280,7 +280,6 @@ export default Vue.extend({
             menuObserver.observe(element);
         });
 
-        this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
             resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
@@ -674,6 +673,9 @@ export default Vue.extend({
                             break;
                     }
                     this.filteredSortedGroupedSuperpixels[group].splice(index, 0, changedSuperpixel);
+                }
+                if (!this.selectedSuperpixel) {
+                    this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
                 }
                 this.$nextTick(() => this.hideProgressBar());
             }, 0);
