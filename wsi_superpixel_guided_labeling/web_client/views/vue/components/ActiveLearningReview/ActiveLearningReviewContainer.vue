@@ -236,7 +236,7 @@ export default Vue.extend({
         this.stopWatcher = this.$watch(
             'superpixelsForReview',
             () => this.updateFilteredSortedGroupedSuperpixels(),
-            { deep: true, immediate: true }
+            { deep: true }
         );
     },
     deactivated() {
