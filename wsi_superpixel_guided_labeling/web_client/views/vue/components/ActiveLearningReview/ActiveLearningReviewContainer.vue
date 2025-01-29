@@ -131,6 +131,9 @@ export default Vue.extend({
                 ...this.sortBy,
                 ...this.groupBy
             ];
+        },
+        changeLog() {
+            return store.changeLog;
         }
     },
     watch: {
@@ -161,6 +164,16 @@ export default Vue.extend({
         },
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
+        },
+        changeLog: {
+            handler() {
+                if (!store.changeLog.length) {
+                    return;
+                }
+                const changedSuperpixel = this.changeLog.pop();
+                this.updateFilteredSortedGroupedSuperpixels([changedSuperpixel]);
+            },
+            deep: true
         }
     },
     mounted() {
