@@ -131,6 +131,9 @@ export default Vue.extend({
                 ...this.sortBy,
                 ...this.groupBy
             ];
+        },
+        changeLog() {
+            return store.changeLog;
         }
     },
     watch: {
@@ -161,6 +164,16 @@ export default Vue.extend({
         },
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
+        },
+        changeLog: {
+            handler() {
+                if (!store.changeLog.length) {
+                    return;
+                }
+                const changedSuperpixel = this.changeLog.pop();
+                this.updateFilteredSortedGroupedSuperpixels(changedSuperpixel);
+            },
+            deep: true
         }
     },
     mounted() {
@@ -223,7 +236,7 @@ export default Vue.extend({
         this.stopWatcher = this.$watch(
             'superpixelsForReview',
             () => this.updateFilteredSortedGroupedSuperpixels(),
-            { deep: true, immediate: true }
+            { deep: true }
         );
     },
     deactivated() {
@@ -419,7 +432,6 @@ export default Vue.extend({
             if (filterBy.length > 0) {
                 results = this.filterByReviewer(data, filterBy);
             }
-            this.totalSuperpixels = results.length;
             return results;
         },
         /**********************************************************************
@@ -552,15 +564,44 @@ export default Vue.extend({
                 return store.userNames[user];
             }
         },
-        updateFilteredSortedGroupedSuperpixels() {
+        updateFilteredSortedGroupedSuperpixels(changedSuperpixel) {
             this.showProgressBar();
+            const superpixelsForReview = !changedSuperpixel ? this.superpixelsForReview : [changedSuperpixel];
             setTimeout(() => {
                 // Make sure the DOM has been updated to display the
                 // progress bar before begining the process
-                let data = this.filterSuperpixels(this.superpixelsForReview);
-                data = this.groupSuperpixels(data);
-                this.filteredSortedGroupedSuperpixels = _.mapObject(
-                    data, (value) => this.sortSuperpixels(value));
+                const filtered = this.filterSuperpixels(superpixelsForReview);
+                const data = this.groupSuperpixels(filtered);
+                if (!changedSuperpixel) {
+                    this.totalSuperpixels = filtered.length;
+                    this.filteredSortedGroupedSuperpixels = _.mapObject(data, (value) => this.sortSuperpixels(value));
+                } else {
+                    const [group] = Object.keys(data);
+                    const superpixels = this.filteredSortedGroupedSuperpixels;
+                    let index = -1;
+                    switch (this.sortBy) {
+                        case 1:
+                            index = _.sortedIndex(superpixels, (superpixel) => { return this.imageItemsById[superpixel.imageId].name; });
+                            break;
+                        case 2:
+                            index = _.sortedIndex(superpixels, 'selectedCategory');
+                            break;
+                        case 3:
+                            index = _.sortedIndex(superpixels, (superpixel) => {
+                                const selected = superpixel.labelCategories[superpixel.selectedCategory];
+                                const predicted = superpixel.predictionCategories[superpixel.prediction];
+                                return selected.label === predicted.label;
+                            });
+                            break;
+                        case 4:
+                            index = _.sortedIndex(superpixels, 'confidence');
+                            break;
+                        case 5:
+                            index = _.sortedIndex(superpixels, 'certainty');
+                            break;
+                    }
+                    this.filteredSortedGroupedSuperpixels[group].splice(index, 0, changedSuperpixel);
+                }
                 this.$nextTick(() => this.hideProgressBar());
             }, 0);
         },

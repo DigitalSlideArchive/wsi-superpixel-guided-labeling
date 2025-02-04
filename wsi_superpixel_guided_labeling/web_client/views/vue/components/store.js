@@ -12,6 +12,7 @@ const store = Vue.observable({
     apiRoot: '',
     superpixelsToDisplay: [],
     changeLog: [],
+    guidedChangeLog: [],
     annotationsByImageId: {},
     backboneParent: null,
     categories: [],
