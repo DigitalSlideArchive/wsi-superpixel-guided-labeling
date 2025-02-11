@@ -1435,7 +1435,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_labeler_${key}_1`"
-                          :class="['options', (!!secondComparison && secondComparison.startsWith('label')) && 'disabled-label']"
+                          :class="['options', secondComparison === `label_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_labeler_${key}_1`"
@@ -1455,7 +1455,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_reviewer_${key}_1`"
-                          :class="['options', (!!secondComparison && secondComparison.startsWith('review')) && 'disabled-label']"
+                          :class="['options', secondComparison === `review_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_reviewer_${key}_1`"
@@ -1544,6 +1544,7 @@ export default Vue.extend({
                     class="btn btn-block btn-default dropdown-toggle dropdown-button"
                     type="button"
                     data-toggle="dropdown"
+                    :disabled="!firstComparison || !booleanOperator"
                   >
                     <span class="overflow-text">
                       {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
@@ -1552,10 +1553,7 @@ export default Vue.extend({
                   </button>
                   <ul class="dropdown-menu">
                     <li>
-                      <div
-                        class="radio"
-                        :disabled="firstComparison === 'prediction'"
-                      >
+                      <div class="radio">
                         <label for="any">
                           <input
                             id="any"
@@ -1595,7 +1593,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_labeler_${key}_2`"
-                          :class="['options', (!!firstComparison && firstComparison.startsWith('label')) && 'disabled-label']"
+                          :class="['options', firstComparison === `label_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_labeler_${key}_2`"
@@ -1615,7 +1613,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_reviewer_${key}_2`"
-                          :class="['options', (!!firstComparison && firstComparison.startsWith('review')) && 'disabled-label']"
+                          :class="['options', firstComparison === `review_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_reviewer_${key}_2`"
