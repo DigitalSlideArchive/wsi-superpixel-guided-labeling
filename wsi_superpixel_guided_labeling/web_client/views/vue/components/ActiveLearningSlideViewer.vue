@@ -7,7 +7,7 @@ import { ViewerWidget } from '@girder/large_image_annotation/views';
 
 import { activeLearningSteps, boundaryColor, viewMode } from './constants.js';
 import { store, updatePixelmapLayerStyle } from './store.js';
-import { updateMetadata, getFillColor } from './utils.js';
+import { getFillColor } from './utils.js';
 
 export default Vue.extend({
     props: ['availableImages'],
@@ -53,8 +53,8 @@ export default Vue.extend({
         selectedIndex() {
             return store.selectedIndex;
         },
-        changeLog() {
-            return store.guidedChangeLog;
+        labelingChangeLog() {
+            return store.labelingChangeLog;
         },
         superpixelsToDisplay() {
             return store.superpixelsToDisplay;
@@ -116,15 +116,18 @@ export default Vue.extend({
         page() {
             this.updateMapBoundsForSelection();
         },
-        changeLog: {
+        labelingChangeLog: {
             handler() {
-                if (!store.guidedChangeLog.length) {
+                if (!store.labelingChangeLog.length) {
                     return;
                 }
-                const superpixel = store.guidedChangeLog.pop();
+                // A label was changed in guided mode. Pop the changed superpixel from this queue,
+                // re-draw the annotation layer to reflect the change, then add the change to the
+                // main review change log so that the review mode is updated as well.
+                const superpixel = store.labelingChangeLog.pop();
                 this.drawPixelmapAnnotation();
                 store.backboneParent.saveAnnotations([superpixel.imageId], false);
-                store.changeLog.push(this.superpixelDecision);
+                store.reviewChangeLog.push(superpixel);
             },
             deep: true
         },
@@ -458,12 +461,11 @@ export default Vue.extend({
                     index: boundaries ? index / 2 : index
                 };
             }
-            updateMetadata(superpixel, newLabel, false);
-            store.backboneParent.updateAnnotationMetadata(store.currentImageId);
 
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);
-            store.changeLog.push(superpixel);
+            // Make sure the review mode stays in sync with these changes
+            store.reviewChangeLog.push(superpixel);
         },
         saveNewPixelmapData(boundaries, data) {
             const annotation = store.annotationsByImageId[store.currentImageId];

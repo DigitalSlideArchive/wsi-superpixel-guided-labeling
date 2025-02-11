@@ -131,8 +131,8 @@ export default Vue.extend({
                 ...this.groupBy
             ];
         },
-        changeLog() {
-            return store.changeLog;
+        reviewChangeLog() {
+            return store.reviewChangeLog;
         },
         comparisonSelections() {
             return [this.firstComparison, this.booleanOperator, this.secondComparison];
@@ -168,13 +168,17 @@ export default Vue.extend({
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
         },
-        changeLog: {
+        reviewChangeLog: {
             handler() {
-                if (!store.changeLog.length) {
+                if (!store.reviewChangeLog.length) {
                     return;
                 }
-                const changedSuperpixel = this.changeLog.pop();
+                const changedSuperpixel = this.reviewChangeLog.pop();
                 this.updateFilteredSortedGroupedSuperpixels(changedSuperpixel);
+                // All changes in this change log are label changes.
+                // Make sure the metadata is kept in sync.
+                updateMetadata(changedSuperpixel, changedSuperpixel.selectedCategory, false);
+                store.backboneParent.updateAnnotationMetadata(changedSuperpixel.imageId);
             },
             deep: true
         },
