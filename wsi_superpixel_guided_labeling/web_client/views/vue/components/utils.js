@@ -46,6 +46,7 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
     meta[superpixel.index][`${key}Date`] = new Date().toDateString();
     meta[superpixel.index][`${key}Value`] = newCategory;
     meta[superpixel.index][`${key}Epoch`] = store.epoch;
+    superpixel.meta = meta[superpixel.index];
 
     if (isReview) {
         superpixel.reviewValue = newCategory;
