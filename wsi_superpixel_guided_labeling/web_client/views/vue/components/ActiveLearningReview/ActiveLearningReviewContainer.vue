@@ -152,7 +152,7 @@ export default Vue.extend({
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
-            if (!filteredContainsSelected) {
+            if (!filteredContainsSelected && data.length) {
                 // If the selected superpixel has been filtered out fall back to the first available
                 this.selectedSuperpixel = Object.values(data)[0][0];
             }
@@ -651,7 +651,7 @@ export default Vue.extend({
                 if (!changedSuperpixel) {
                     this.totalSuperpixels = filtered.length;
                     this.filteredSortedGroupedSuperpixels = _.mapObject(data, (value) => this.sortSuperpixels(value));
-                } else {
+                } else if (data) {
                     const [group] = Object.keys(data);
                     const superpixels = this.filteredSortedGroupedSuperpixels;
                     let index = -1;
@@ -678,7 +678,7 @@ export default Vue.extend({
                     }
                     this.filteredSortedGroupedSuperpixels[group].splice(index, 0, changedSuperpixel);
                 }
-                if (!this.selectedSuperpixel) {
+                if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.data) {
                     this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
                 }
                 this.$nextTick(() => this.hideProgressBar());
