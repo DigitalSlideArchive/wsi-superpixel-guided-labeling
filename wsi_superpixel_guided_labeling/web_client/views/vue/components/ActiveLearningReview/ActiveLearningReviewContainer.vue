@@ -1399,7 +1399,10 @@ export default Vue.extend({
                   <ul class="dropdown-menu">
                     <li>
                       <div class="radio">
-                        <label for="no_selection_1">
+                        <label
+                          for="no_selection_1"
+                          class="options"
+                        >
                           <input
                             id="no_selection_1"
                             v-model="firstComparison"
@@ -1554,7 +1557,10 @@ export default Vue.extend({
                   <ul class="dropdown-menu">
                     <li>
                       <div class="radio">
-                        <label for="any">
+                        <label
+                          for="any"
+                          class="options"
+                        >
                           <input
                             id="any"
                             v-model="secondComparison"
