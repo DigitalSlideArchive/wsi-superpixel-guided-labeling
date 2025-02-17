@@ -564,7 +564,11 @@ export default Vue.extend({
             }
         },
         catColorByLabel(label) {
-            return _.findWhere(store.categories, { label }).fillColor;
+            const cat = _.findWhere(store.categories, { label });
+            if (cat) {
+                return cat.fillColor;
+            }
+            return 'rgb(0, 0, 0)';
         },
         catColorByIndex(index) {
             const color = store.categories[index].fillColor;
