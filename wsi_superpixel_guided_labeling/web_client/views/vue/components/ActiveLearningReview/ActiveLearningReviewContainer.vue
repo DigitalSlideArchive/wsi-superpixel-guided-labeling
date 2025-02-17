@@ -593,7 +593,7 @@ export default Vue.extend({
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
-            if (this.sliceValue === 1) {
+            if (this.sliceValue === 1 && this.observedSuperpixel) {
                 // Make an initial estimate of how many chips to show
                 const container = document.getElementById('chipsContainer');
                 const containerRect = container.getBoundingClientRect();
