@@ -419,39 +419,59 @@ export default Vue.extend({
             });
         },
         filterByComparison(data) {
-            // Filter by comparison
-            // Select the appropriate comparison function
-            const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
-            const [key0, userID0] = this.firstComparison.split('_');
-            // If no second option is selected we should compare the first selection
-            // to all remaining options. Otherwise just compare to the second selection.
-            let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
-            if (this.secondComparison) {
-                [key1, userID1, key2] = this.secondComparison.split('_');
+            const assignKeysAndIds = (selection) => {
+                // Find the keys we'll need to get the data
+                // requested for comparison
+                if (!selection) return [null, null, null];
+
+                let [valueKey, userKey] = [null, null];
+                const [prefix, userId] = selection.split('_');
+                if (prefix === 'prediction') {
+                    valueKey = 'prediction';
+                } else if (prefix === 'labels') {
+                    valueKey = 'selectedCategory';
+                    if (userId) {
+                        userKey = 'labeler';
+                    }
+                } else if (prefix === 'review') {
+                    valueKey = 'reviewValue';
+                    if (userId) {
+                        userKey = 'reviewer';
+                    }
+                }
+                return [valueKey, userKey, userId];
+            };
+
+            // Find the specifc keys we need to fit the user requested comparison(s)
+            const [firstValueKey, firstUserKey, firstUserId] = assignKeysAndIds(this.firstComparison);
+            let [secondValueKey, secondUserKey, secondUserId] = assignKeysAndIds(this.secondComparison);
+            let thirdValueKey = null;
+            if (!secondValueKey) {
+                // If no second value is selected we want *anything* that matches
+                [secondValueKey, thirdValueKey] = _.without(['prediction', 'selectedCategory', 'reviewValue'], firstValueKey);
             }
 
+            const getLabel = (valueKey, userKey, userId, superpixel) => {
+                // We don't want to assume that indices will always be in-sync across
+                // prediction and label name mapping. Instead, find the string label.
+                if (!userKey || superpixel[userKey] === userId) {
+                    const offset = valueKey === 'prediction' ? 1 : 0;
+                    const value = isValidNumber(superpixel[valueKey]) ? superpixel[valueKey] + offset : null;
+                    return isValidNumber(value) ? store.categories[value].label : null;
+                }
+            };
             return data.filter((superpixel) => {
-                const values = [null, null, null];
-                [key0, key1, key2].forEach((key, idx) => {
-                    const userID = idx === 0 ? userID0 : userID1;
-                    if (key === 'prediction') {
-                        values[idx] = superpixel.predictionCategories[superpixel.prediction];
-                    } else if (key === 'label') {
-                        if (!this.secondComparison || (!!superpixel.meta && superpixel.meta.labeler === userID)) {
-                            values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
-                        }
-                    } else if (key === 'review') {
-                        if (!this.secondComparison || (!!superpixel.meta && superpixel.meta.reviewer === userID)) {
-                            values[idx] = superpixel.labelCategories[superpixel.reviewValue];
-                        }
+                const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
+                const firstLabel = getLabel(firstValueKey, firstUserKey, firstUserId, superpixel);
+                const secondLabel = getLabel(secondValueKey, secondUserKey, secondUserId, superpixel);
+                const thirdLabel = getLabel(thirdValueKey, null, null, superpixel);
+                if (!_.isNull(firstLabel) && !_.isNull(secondLabel)) {
+                    if (!_.isNull(thirdLabel)) {
+                        return op(firstLabel, secondLabel) || op(firstLabel, thirdLabel);
                     }
-                    // As we support more complex options to add/remove/rename categories across epochs the
-                    // predictions categories and labels categories have a higher chance of diverging and we
-                    // shouldn't assume the same order in both lists. Compare label values instead.
-                    values[idx] = values[idx] ? values[idx].label : values[idx];
-                });
-                return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
-                        (!!values[0] && !!values[2] && op(values[0], values[2]));
+                    return op(firstLabel, secondLabel);
+                }
+                return false;
             });
         },
         filterByPredictionLabel(data, filterBy) {
