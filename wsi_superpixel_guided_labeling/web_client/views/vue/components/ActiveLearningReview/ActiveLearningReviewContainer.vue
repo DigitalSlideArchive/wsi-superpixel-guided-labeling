@@ -2137,6 +2137,7 @@ export default Vue.extend({
 
 .grouped {
   border: none !important;
+  margin: 0px 2px;
 }
 
 .ungrouped {
