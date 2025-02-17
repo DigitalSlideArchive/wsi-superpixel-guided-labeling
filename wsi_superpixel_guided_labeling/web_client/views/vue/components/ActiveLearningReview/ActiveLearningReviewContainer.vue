@@ -612,33 +612,30 @@ export default Vue.extend({
             this.openMenu = this.openMenu === menu ? null : menu;
         },
         selectedComparisonText(selection) {
-            if (!selection || selection === 'prediction') {
-                return selection;
-            } else {
-                const [, userID] = selection.split('_');
-                let user;
-                if (store.currentUser === userID) {
-                    user = store.currentUser;
-                } else {
-                    const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
-                        if (superpixel.meta) {
-                            return (
-                                (!!superpixel.meta.reviewer === userID) ||
-                              (!!superpixel.meta.labeler === userID)
-                            );
-                        }
-                        return false;
-                    });
-                    if (!superpixel) {
-                        return '';
+            if (!selection) return selection;
+
+            const [, userID] = selection.split('_');
+            if (!userID) return selection;
+
+            let user = store.currentUser;
+            if (!(store.currentUser === userID)) {
+                const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
+                    if (superpixel.meta) {
+                        return (
+                            (!!superpixel.meta.reviewer === userID) ||
+                            (!!superpixel.meta.labeler === userID)
+                        );
                     }
-                    user = superpixel.meta.labeler;
-                    if (!!superpixel.meta.reviewer === userID) {
-                        user = superpixel.meta.reviewer;
-                    }
+                    return false;
+                });
+                if (!superpixel) return '';
+
+                user = superpixel.meta.labeler;
+                if (!!superpixel.meta.reviewer === userID) {
+                    user = superpixel.meta.reviewer;
                 }
-                return store.userNames[user];
             }
+            return store.userNames[user];
         },
         updateFilteredSortedGroupedSuperpixels(changedSuperpixel) {
             this.showProgressBar();
@@ -1431,6 +1428,40 @@ export default Vue.extend({
                         </label>
                       </div>
                     </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="labels_comparison_1"
+                          :class="['options', secondComparison === 'labels' && 'disabled-label']"
+                        >
+                          <input
+                            id="labels_comparison_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            value="labels"
+                            class="hidden-radio"
+                          >
+                          Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="reviews_comparison_1"
+                          :class="['options', secondComparison === 'reviews' && 'disabled-label']"
+                        >
+                          <input
+                            id="reviews_comparison_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            value="review"
+                            class="hidden-radio"
+                          >
+                          Reviews
+                        </label>
+                      </div>
+                    </li>
                     <li
                       v-for="key in filterOptions.Labelers"
                       :key="`comp_labeler_${key}`"
@@ -1573,10 +1604,7 @@ export default Vue.extend({
                       </div>
                     </li>
                     <li>
-                      <div
-                        class="radio"
-                        :disabled="firstComparison === 'prediction'"
-                      >
+                      <div class="radio">
                         <label
                           for="prediction_comparison_2"
                           :class="['options', firstComparison === 'prediction' && 'disabled-label']"
@@ -1589,6 +1617,40 @@ export default Vue.extend({
                             class="hidden-radio"
                           >
                           Predictions
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="labels_comparison_2"
+                          :class="['options', firstComparison === 'labels' && 'disabled-label']"
+                        >
+                          <input
+                            id="labels_comparison_2"
+                            v-model="secondComparison"
+                            type="radio"
+                            value="labels"
+                            class="hidden-radio"
+                          >
+                          Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="reviews_comparison_2"
+                          :class="['options', firstComparison === 'reviews' && 'disabled-label']"
+                        >
+                          <input
+                            id="reviews_comparison_2"
+                            v-model="secondComparison"
+                            type="radio"
+                            value="review"
+                            class="hidden-radio"
+                          >
+                          Reviews
                         </label>
                       </div>
                     </li>
