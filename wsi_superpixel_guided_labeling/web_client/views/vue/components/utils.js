@@ -1,3 +1,5 @@
+import _ from 'underscore';
+
 import { schemeTableau10 } from './constants';
 import { store } from './store';
 
@@ -114,4 +116,14 @@ export const debounce = (fn, debounceByArguments = false) => {
             queuedRequests.set(stringArgs);
         }
     };
+};
+
+/**
+ * Simple util function for determining if a value is a valid number
+ *
+ * @param {*} value Value to check
+ * @returns {boolean} Whether or not value is a valid number
+ */
+export const isValidNumber = (value) => {
+    return _.isNumber(value) && !_.isNaN(value);
 };

@@ -6,7 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
-import { updateMetadata, rgbStringToArray } from '../utils.js';
+import { updateMetadata, rgbStringToArray, isValidNumber } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -393,13 +393,13 @@ export default Vue.extend({
             if (filterBy.length > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
-                    const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
+                    const label = isValidNumber(reviewValue) ? labelCategories[reviewValue].label : '';
                     return filterBy.indexOf(label) > -1;
                 }));
             }
             if (store.filterBy.indexOf('no review') > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
-                    return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
+                    return !isValidNumber(superpixel.reviewValue);
                 }));
             }
             return reviewResults;
@@ -523,7 +523,7 @@ export default Vue.extend({
         },
         groupByReviewCategory(data) {
             return Object.groupBy(data, ({ reviewValue }) => {
-                if (!_.isNumber(reviewValue)) {
+                if (!isValidNumber(reviewValue)) {
                     return 'default';
                 }
                 return store.categories[reviewValue].label;

@@ -16,7 +16,7 @@ import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGloba
 import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
 import { activeLearningSteps } from '../vue/components/constants.js';
-import { debounce } from '../vue/components/utils.js';
+import { debounce, isValidNumber } from '../vue/components/utils.js';
 
 import '../../stylesheets/body/learning.styl';
 
@@ -129,7 +129,7 @@ const ActiveLearningView = View.extend({
                 const idx = _.findIndex([...this.categoryMap.values()], (c) => c.label === l);
                 return idx === -1 ? null : idx - 1;
             });
-            store.exclusions = _.reject(excluded, (v) => !_.isNumber(v));
+            store.exclusions = _.reject(excluded, (v) => !isValidNumber(v));
 
             return this.fetchFoldersAndItems();
         });
@@ -667,7 +667,7 @@ const ActiveLearningView = View.extend({
             const annotation = values.labels.get('annotation');
             if (annotation) {
                 _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
-                    if (_.isNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
+                    if (isValidNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
                         annotation.elements[0].values[k] = v.reviewValue;
                         if (!imageIds.includes(annotation.itemId)) {
                             imageIds.push(annotation.itemId);
