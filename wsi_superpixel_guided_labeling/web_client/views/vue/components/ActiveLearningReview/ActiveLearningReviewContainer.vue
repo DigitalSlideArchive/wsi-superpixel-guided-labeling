@@ -1073,7 +1073,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`slide_${index}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`slide_${index}`"
@@ -1119,7 +1119,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`prediction_${index}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`prediction_${index}`"
@@ -1164,7 +1164,7 @@ export default Vue.extend({
                       <li>
                         <label
                           for="cat_0"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             id="cat_0"
@@ -1179,7 +1179,7 @@ export default Vue.extend({
                       <li>
                         <label
                           for="cat_has_label"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             id="cat_has_label"
@@ -1195,7 +1195,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`cat_${index + 1}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`cat_${index + 1}`"
@@ -1239,7 +1239,7 @@ export default Vue.extend({
                       <li>
                         <label
                           for="no review"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             id="no review"
@@ -1254,7 +1254,7 @@ export default Vue.extend({
                       <li>
                         <label
                           for="cat_has_review"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             id="cat_has_review"
@@ -1270,7 +1270,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`review_${index}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`review_${index}`"
@@ -1319,7 +1319,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`labeler_${key}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`labeler_${key}`"
@@ -1366,7 +1366,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`reviewer_${key}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`reviewer_${key}`"
@@ -1814,7 +1814,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="className"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="className"
@@ -1828,7 +1828,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="confidence"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="confidence"
@@ -1842,7 +1842,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="certainty"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="certainty"
@@ -1856,7 +1856,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="prediction"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="prediction"
