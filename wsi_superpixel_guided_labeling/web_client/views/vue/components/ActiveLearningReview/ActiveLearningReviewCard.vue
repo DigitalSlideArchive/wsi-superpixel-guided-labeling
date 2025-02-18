@@ -99,7 +99,6 @@ export default Vue.extend({
                 }
 
                 updateMetadata(this.superpixel, newCategory, true);
-                store.backboneParent.updateAnnotationMetadata(this.superpixel.imageId);
             }
         }
     },

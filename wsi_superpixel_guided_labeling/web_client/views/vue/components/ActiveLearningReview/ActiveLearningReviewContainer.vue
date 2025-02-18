@@ -173,12 +173,8 @@ export default Vue.extend({
                 if (!store.reviewChangeLog.length) {
                     return;
                 }
-                const changedSuperpixel = this.reviewChangeLog.pop();
+                const changedSuperpixel = store.reviewChangeLog.pop();
                 this.updateFilteredSortedGroupedSuperpixels(changedSuperpixel);
-                // All changes in this change log are label changes.
-                // Make sure the metadata is kept in sync.
-                updateMetadata(changedSuperpixel, changedSuperpixel.selectedCategory, false);
-                store.backboneParent.updateAnnotationMetadata(changedSuperpixel.imageId);
             },
             deep: true
         },
@@ -604,8 +600,6 @@ export default Vue.extend({
             this.selectedReviewSuperpixels.forEach((superpixel) => {
                 updateMetadata(superpixel, newValue, true);
             });
-            Object.keys(store.annotationsByImageId).forEach(
-                (imageId) => store.backboneParent.updateAnnotationMetadata(imageId));
             this.selectedReviewSuperpixels = [];
             this.selectingSuperpixels = false;
         },
