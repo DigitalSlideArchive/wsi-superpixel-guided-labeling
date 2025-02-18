@@ -2004,10 +2004,22 @@ export default Vue.extend({
       class="col-sm-9 chips-container"
     >
       <div id="superpixelChips">
+        <h3
+          v-if="Object.values(trimmedSuperpixels).length === 0"
+          :style="{'text-align': 'center'}"
+        >
+          No Results Found
+        </h3>
         <div
           v-for="[label, value] in Object.entries(trimmedSuperpixels)"
           :key="label"
         >
+          <h3
+            v-if="Object.values(value).length === 0"
+            :style="{'text-align': 'center'}"
+          >
+            No Results Found
+          </h3>
           <h4
             v-if="groupBy !== 0"
             :class="[groupBy >= 2 && 'group-header']"
