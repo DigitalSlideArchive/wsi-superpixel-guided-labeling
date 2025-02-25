@@ -91,6 +91,7 @@ export default {
             // update page
             store.page = Math.floor(currentIndex / store.pageSize);
             store.maxPage = Math.ceil((store.sortedSuperpixelIndices.length) / store.pageSize) - 1;
+            this.maxPage = store.maxPage;
             // update selected index
             store.selectedIndex = currentIndex - (store.pageSize * store.page);
             updateSelectedPage();
