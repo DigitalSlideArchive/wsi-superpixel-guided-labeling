@@ -404,11 +404,8 @@ const ActiveLearningView = View.extend({
                     promises.push(backboneModel.fetch().done(() => {
                         this.annotationsByImageId[imageId][key] = backboneModel;
                         if (key === 'labels') {
-                            const annotation = backboneModel.get('annotation');
-                            if (!_.has(annotation.attributes, 'metadata')) {
-                                annotation.attributes.metadata = {};
-                            }
                             this.updateAnnotationMetadata(imageId);
+                            this.saveAnnotationMetadata(imageId);
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
                             }
@@ -845,19 +842,25 @@ const ActiveLearningView = View.extend({
      */
     updateAnnotationMetadata: debounce(function (imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
-        let metadata = annotation.get('annotation').attributes.metadata;
-        // We used to store the entire user object but now expect to only store
-        // the user id string. Update old metadata to maintain compatability.
-        metadata = _.mapObject(metadata, (meta) => {
-            if (meta) {
-                if (_.isObject(meta.labeler)) {
-                    meta.labeler = meta.labeler._id;
-                }
-                if (_.isObject(meta.reviewer)) {
-                    meta.reviewer = meta.reviewer._id;
-                }
+        const pixelmapElement = annotation.get('annotation').elements[0];
+        const attributes = annotation.get('annotation').attributes;
+        // Guarantee that the metadata object exists
+        const metadata = attributes.metadata || (attributes.metadata = {});
+        pixelmapElement.values.forEach((value, index) => {
+            if (value !== 0 && (!metadata[index] || !metadata[index].labeler)) {
+                index in metadata || (metadata[index] = {});
+                metadata[index].labeler = store.currentUser;
             }
         });
+    }),
+
+    /**
+     * Save the annotation metadata. Useful for when only the metadata has changed
+     * and the whole annotation does not need to be saved.
+     */
+    saveAnnotationMetadata: debounce(function (imageId) {
+        const annotation = this.annotationsByImageId[imageId].labels;
+        const metadata = annotation.get('annotation').attributes.metadata;
         return restRequest({
             type: 'PUT',
             url: `annotation/${annotation.id}/metadata`,

@@ -596,10 +596,14 @@ export default Vue.extend({
                 event.stopImmediatePropagation();
             }
         },
-        applyBulkReview(newValue) {
+        applyBulkReview(selectedValue) {
+            const imageIds = new Set();
             this.selectedReviewSuperpixels.forEach((superpixel) => {
+                const newValue = selectedValue === -1 ? superpixel.selectedCategory : selectedValue;
                 updateMetadata(superpixel, newValue, true);
+                imageIds.add(superpixel.imageId);
             });
+            store.backboneParent.saveAnnotationMetadata(Array.from(imageIds));
             this.selectedReviewSuperpixels = [];
             this.selectingSuperpixels = false;
         },
@@ -1944,7 +1948,7 @@ export default Vue.extend({
               type="button"
               class="btn btn-success btn-group-two"
               :disabled="selectedReviewSuperpixels.length < 1"
-              @click="() => applyBulkReview(0)"
+              @click="() => applyBulkReview(-1)"
             >
               Approve
             </button>

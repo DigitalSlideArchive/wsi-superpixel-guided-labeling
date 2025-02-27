@@ -3,6 +3,7 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import { store, nextCard } from '../store';
+import { updateMetadata } from '../utils';
 
 export default Vue.extend({
     props: ['index'],
@@ -112,6 +113,7 @@ export default Vue.extend({
 
             // Force computed values to update
             store.categoriesAndIndices = [...store.categoriesAndIndices];
+            updateMetadata(this.superpixelDecision, newValue, false);
             store.labelingChangeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {

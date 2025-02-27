@@ -126,9 +126,9 @@ export default Vue.extend({
                 // main review change log so that the review mode is updated as well.
                 const superpixel = store.labelingChangeLog.pop();
                 this.drawPixelmapAnnotation();
+                updateMetadata(superpixel, superpixel.selectedCategory, false);
                 store.backboneParent.saveAnnotations([superpixel.imageId], false);
                 store.reviewChangeLog.push(superpixel);
-                updateMetadata(superpixel, superpixel.selectedCategory, false);
             },
             deep: true
         },
@@ -458,16 +458,15 @@ export default Vue.extend({
                 // superpixels. Build our own.
                 superpixel = {
                     imageId: store.currentImageId,
-                    selectedCategory: newLabel,
                     index: boundaries ? index / 2 : index
                 };
             }
-
+            superpixel.selectedCategory = newLabel;
+            updateMetadata(superpixel, newLabel, false);
             this.saveNewPixelmapData(boundaries, _.clone(data));
             this.updateRunningLabelCounts(boundaries, index, newLabel, previousLabel);
             // Make sure the review mode stays in sync with these changes
             store.reviewChangeLog.push(superpixel);
-            updateMetadata(superpixel, superpixel.selectedCategory, false);
         },
         saveNewPixelmapData(boundaries, data) {
             const annotation = store.annotationsByImageId[store.currentImageId];
