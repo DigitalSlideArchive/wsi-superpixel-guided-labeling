@@ -634,8 +634,24 @@ export default Vue.extend({
         removeFilters(values) {
             store.filterBy = _.without(store.filterBy, ...values);
         },
+        confirmMenuFocus(event) {
+            const menu = document.getElementsByClassName('visible-menu')[0];
+            if (menu && !menu.contains(event.target)) {
+                this.toggleOpenMenu(this.openMenu);
+            }
+        },
         toggleOpenMenu(menu) {
-            this.openMenu = this.openMenu === menu ? null : menu;
+            if (this.openMenu === menu) {
+                // Menu was open; closing now
+                this.openMenu = null;
+                document.removeEventListener('click', this.confirmMenuFocus);
+            } else {
+                // Menu was closed; opening now
+                this.openMenu = menu;
+                this.$nextTick(() => {
+                    document.addEventListener('click', this.confirmMenuFocus);
+                });
+            }
         },
         selectedComparisonText(selection) {
             if (!selection) return selection;
@@ -647,10 +663,7 @@ export default Vue.extend({
             if (!(store.currentUser === userID)) {
                 const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
                     if (superpixel.meta) {
-                        return (
-                            (!!superpixel.meta.reviewer === userID) ||
-                            (!!superpixel.meta.labeler === userID)
-                        );
+                        return superpixel.meta.reviewer === userID || superpixel.meta.labeler === userID;
                     }
                     return false;
                 });
@@ -1068,6 +1081,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('slide')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Slide Image
@@ -1114,6 +1128,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('prediction')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Predictions
@@ -1162,6 +1177,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('labels')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Labels
@@ -1237,6 +1253,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('reviews')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Reviews
@@ -1314,6 +1331,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('labeler')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Labeled By
@@ -1361,6 +1379,7 @@ export default Vue.extend({
                       class="btn btn-default btn-block"
                       :disabled="!filterOptions.Reviewers.length"
                       @click="toggleOpenMenu('reviewer')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Reviewed By
@@ -1812,6 +1831,7 @@ export default Vue.extend({
               <div
                 class="btn btn-default btn-block"
                 @click="toggleOpenMenu('data')"
+                @click.stop
               >
                 <span class="multiselect-dropdown-label">
                   Superpixel Data

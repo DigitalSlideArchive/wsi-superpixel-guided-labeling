@@ -218,9 +218,7 @@ export default Vue.extend({
     },
     mounted() {
         if (store.mode === viewMode.Review) return;
-
         window.addEventListener('keydown', this.keydownListener);
-        console.log('event listener added');
     },
     methods: {
         /*************************
@@ -302,18 +300,15 @@ export default Vue.extend({
                         // If we can't find the superpixel, build our own.
                         superpixel = { imageId, selectedCategory: newValue, index };
                     }
-
                     if (labelIndices[imageId].has(index)) {
                         // A label is affected, update the value and the metadata
                         pixelmapElement.values[index] = newValue;
-                        // meta[index]['LabelValue'] = newValue;
                         updateMetadata(superpixel, newValue, false);
                     }
 
                     if (meta[index] && meta[index].reviewValue === oldValue) {
                         // A review is affected, update the metadata
                         const newValue = newValues[index];
-                        // meta[index]['ReviewValue'] = newValue;
                         updateMetadata(superpixel, newValue, true);
                     }
                 });
