@@ -503,7 +503,7 @@ export default Vue.extend({
             }
             filterBy = getFilters('prediction_');
             if (filterBy.length > 0) {
-                results = this.filterByPredictionLabel(data, filterBy);
+                results = this.filterByPredictionLabel(results, filterBy);
             }
             const slideNames = _.pluck(this.imageItemsById, 'name');
             filterBy = store.filterBy.filter((value) => slideNames.includes(value));
@@ -515,11 +515,11 @@ export default Vue.extend({
             }
             filterBy = getFilters('labeler_');
             if (filterBy.length > 0) {
-                results = this.filterByLabeler(data, filterBy);
+                results = this.filterByLabeler(results, filterBy);
             }
             filterBy = getFilters('reviewer_');
             if (filterBy.length > 0) {
-                results = this.filterByReviewer(data, filterBy);
+                results = this.filterByReviewer(results, filterBy);
             }
             return results;
         },
