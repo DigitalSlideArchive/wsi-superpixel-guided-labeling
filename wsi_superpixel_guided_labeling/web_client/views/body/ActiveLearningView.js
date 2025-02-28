@@ -404,7 +404,10 @@ const ActiveLearningView = View.extend({
                     promises.push(backboneModel.fetch().done(() => {
                         this.annotationsByImageId[imageId][key] = backboneModel;
                         if (key === 'labels') {
-                            this.updateAnnotationMetadata(imageId);
+                            const annotation = backboneModel.get('annotation');
+                            if (!_.has(annotation.attributes, 'metadata')) {
+                                annotation.attributes.metadata = {};
+                            }
                             this.saveAnnotationMetadata(imageId);
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
@@ -836,23 +839,6 @@ const ActiveLearningView = View.extend({
             });
         }, 2000);
     },
-
-    /**
-     * Update the annotation metadata
-     */
-    updateAnnotationMetadata: debounce(function (imageId) {
-        const annotation = this.annotationsByImageId[imageId].labels;
-        const pixelmapElement = annotation.get('annotation').elements[0];
-        const attributes = annotation.get('annotation').attributes;
-        // Guarantee that the metadata object exists
-        const metadata = attributes.metadata || (attributes.metadata = {});
-        pixelmapElement.values.forEach((value, index) => {
-            if (value !== 0 && (!metadata[index] || !metadata[index].labeler)) {
-                index in metadata || (metadata[index] = {});
-                metadata[index].labeler = store.currentUser;
-            }
-        });
-    }),
 
     /**
      * Save the annotation metadata. Useful for when only the metadata has changed

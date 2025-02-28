@@ -57,7 +57,6 @@ export const updateMetadata = (superpixel, newCategory, isReview) => {
     if (isReview) {
         superpixel.reviewValue = newCategory;
     }
-    store.backboneParent.updateAnnotationMetadata(superpixel.imageId);
 };
 
 /**
