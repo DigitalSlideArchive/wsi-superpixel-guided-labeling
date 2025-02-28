@@ -89,8 +89,8 @@ export default Vue.extend({
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
-            const labelers = _.compact(_.uniq(_.pluck(meta, 'labeler')));
-            const reviewers = _.compact(_.uniq(_.pluck(meta, 'reviewer')));
+            const labelers = _.compact(_.uniq(_.pluck(meta, 'labeler').concat(store.currentUser)));
+            const reviewers = _.compact(_.uniq(_.pluck(meta, 'reviewer').concat(store.currentUser)));
             return {
                 Slides: slides,
                 Predictions: predictions,
@@ -190,7 +190,8 @@ export default Vue.extend({
 
                 const labels = store.categories.slice(1).map((cat) => `label_${cat.label}`);
                 if (this.filtersAllLabels) {
-                    store.filterBy.push(...labels);
+                    const allValues = new Set([...store.filterBy, ...labels]);
+                    store.filterBy = Array.from(allValues);
                 } else {
                     store.filterBy = store.filterBy.filter((value) => !labels.includes(value));
                 }
@@ -204,7 +205,8 @@ export default Vue.extend({
 
             const reviews = store.categories.map((cat) => `review_${cat.label}`);
             if (this.filtersAllReviews) {
-                store.filterBy.push(...reviews);
+                const allValues = new Set([...store.filterBy, ...reviews]);
+                store.filterBy = Array.from(allValues);
             } else {
                 store.filterBy = store.filterBy.filter((value) => !reviews.includes(value));
             }
@@ -411,7 +413,7 @@ export default Vue.extend({
             // Filter by reviewer
             return data.filter((superpixel) => {
                 const id = superpixel.meta ? superpixel.meta.reviewer : '';
-                return filterBy.indexOf(id) > -1;
+                return isValidNumber(superpixel.reviewValue) && filterBy.indexOf(id) > -1;
             });
         },
         filterByComparison(data) {
@@ -424,7 +426,7 @@ export default Vue.extend({
                 const [prefix, userId] = selection.split('_');
                 if (prefix === 'prediction') {
                     valueKey = 'prediction';
-                } else if (prefix === 'labels') {
+                } else if (prefix === 'label') {
                     valueKey = 'selectedCategory';
                     if (userId) {
                         userKey = 'labeler';
@@ -450,11 +452,13 @@ export default Vue.extend({
             const getLabel = (valueKey, userKey, userId, superpixel) => {
                 // We don't want to assume that indices will always be in-sync across
                 // prediction and label name mapping. Instead, find the string label.
-                if (!userKey || superpixel[userKey] === userId) {
-                    const offset = valueKey === 'prediction' ? 1 : 0;
-                    const value = isValidNumber(superpixel[valueKey]) ? superpixel[valueKey] + offset : null;
-                    return isValidNumber(value) ? store.categories[value].label : null;
+                if (!userKey || (superpixel.meta && superpixel.meta[userKey] === userId)) {
+                    const { labelCategories, predictionCategories } = superpixel;
+                    const categories = valueKey === 'prediction' ? predictionCategories : labelCategories;
+                    const value = superpixel[valueKey];
+                    return isValidNumber(value) ? categories[value].label : null;
                 }
+                return null;
             };
             return data.filter((superpixel) => {
                 const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
@@ -1454,13 +1458,13 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           for="labels_comparison_1"
-                          :class="['options', secondComparison === 'labels' && 'disabled-label']"
+                          :class="['options', secondComparison === 'label' && 'disabled-label']"
                         >
                           <input
                             id="labels_comparison_1"
                             v-model="firstComparison"
                             type="radio"
-                            value="labels"
+                            value="label"
                             class="hidden-radio"
                           >
                           Labels
@@ -1646,13 +1650,13 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           for="labels_comparison_2"
-                          :class="['options', firstComparison === 'labels' && 'disabled-label']"
+                          :class="['options', firstComparison === 'label' && 'disabled-label']"
                         >
                           <input
                             id="labels_comparison_2"
                             v-model="secondComparison"
                             type="radio"
-                            value="labels"
+                            value="label"
                             class="hidden-radio"
                           >
                           Labels
