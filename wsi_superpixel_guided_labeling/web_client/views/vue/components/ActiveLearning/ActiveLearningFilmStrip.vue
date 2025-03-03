@@ -11,11 +11,6 @@ export default {
         ActiveLearningFilmStripCard,
         ActiveLearningStats
     },
-    data() {
-        return {
-            maxPage: 500
-        };
-    },
     computed: {
         selectedIndex() {
             return store.selectedIndex;
@@ -32,6 +27,9 @@ export default {
                 return store.backboneParent.imageItemsById[id].name;
             }
             return '';
+        },
+        maxPage() {
+            return store.maxPage;
         }
     },
     watch: {
@@ -90,7 +88,7 @@ export default {
             store.pageSize = Math.floor(width / (cardWidth + padding));
             // update page
             store.page = Math.floor(currentIndex / store.pageSize);
-            store.maxPage = Math.ceil(store.sortedSuperpixelIndices.length / store.pageSize);
+            store.maxPage = Math.ceil((store.sortedSuperpixelIndices.length) / store.pageSize) - 1;
             // update selected index
             store.selectedIndex = currentIndex - (store.pageSize * store.page);
             updateSelectedPage();
