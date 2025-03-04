@@ -289,6 +289,7 @@ const ActiveLearningView = View.extend({
                     imageNamesById,
                     annotationsByImageId: this.annotationsByImageId,
                     certaintyMetrics: this.certaintyMetrics,
+                    featureShapes: this.featureShapes,
                     apiRoot: getApiRoot(),
                     currentAverageCertainty: this.currentAverageCertainty,
                     availableImages: this.availableImages,
@@ -568,7 +569,8 @@ const ActiveLearningView = View.extend({
             if (!jobInfo) {
                 throw new Error('Unable to find specified superpixel classification image.');
             }
-            return this.getJobCertaintyChoices(jobInfo.xmlspec);
+            this.getJobCertaintyChoices(jobInfo.xmlspec);
+            return this.getJobFeatureChoices(jobInfo.xmlspec);
         });
     },
 
@@ -621,6 +623,26 @@ const ActiveLearningView = View.extend({
                 flattenedSpec.parameters.certainty.values.length
             );
             this.certaintyMetrics = hasCertaintyMetrics ? flattenedSpec.parameters.certainty.values : null;
+            return this.vueComponentChanged();
+        });
+    },
+
+    /**
+     * Extract the feature options from the superpixel predictions job.
+     * @param {string} xmlUrl
+     */
+    getJobFeatureChoices(xmlUrl) {
+        restRequest({
+            url: xmlUrl
+        }).then((xmlSpec) => {
+            const gui = parse(xmlSpec);
+            const flattenedSpec = this.flattenParse(gui);
+            const hasFeatureShapes = (
+                flattenedSpec.parameters.feature &&
+                flattenedSpec.parameters.feature.values &&
+                flattenedSpec.parameters.feature.values.length
+            );
+            this.featureShapes = hasFeatureShapes ? flattenedSpec.parameters.feature.values : null;
             return this.vueComponentChanged();
         });
     },
@@ -729,7 +751,7 @@ const ActiveLearningView = View.extend({
         };
     },
 
-    generateInitialSuperpixels(radius, magnification, certaintyMetric) {
+    generateInitialSuperpixels(radius, magnification, certaintyMetric, featureShape) {
         const data = this.generateClassificationJobData();
         Object.assign(data, {
             labels: JSON.stringify([]),
@@ -738,6 +760,7 @@ const ActiveLearningView = View.extend({
             girderApiUrl: '',
             girderToken: '',
             certainty: certaintyMetric,
+            feature: featureShape,
             train: false
         });
         store.activeLearningStep = activeLearningSteps.InitialLabeling;

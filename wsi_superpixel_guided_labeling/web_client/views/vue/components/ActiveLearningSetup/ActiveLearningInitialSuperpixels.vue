@@ -2,12 +2,13 @@
 import Vue from 'vue';
 
 export default Vue.extend({
-    props: ['backboneParent', 'certaintyMetrics'],
+    props: ['backboneParent', 'certaintyMetrics', 'featureShapes'],
     data() {
         return {
             radius: 100,
             magnification: 5,
-            certaintyChoice: ''
+            certaintyChoice: '',
+            featureChoice: ''
         };
     },
     computed: {
@@ -17,13 +18,15 @@ export default Vue.extend({
     },
     mounted() {
         this.certaintyChoice = this.certaintyMetrics[0];
+        this.featureChoice = this.featureShapes[0];
     },
     methods: {
         generateInitialSuperpixels() {
             this.backboneParent.generateInitialSuperpixels(
                 this.radius,
                 this.magnification,
-                this.certaintyChoice
+                this.certaintyChoice,
+                this.featureChoice
             );
         }
     }
@@ -67,6 +70,24 @@ export default Vue.extend({
       >
         <option
           v-for="option in certaintyMetrics"
+          :key="option"
+          :value="option"
+        >
+          {{ option }}
+        </option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="feature-shape">Feature Shape</label>
+      <div class="form-group-description">
+        Feature is superpixel image data or foundation model vector
+      </div>
+      <select
+        id="feature-shape"
+        v-model="featureChoice"
+      >
+        <option
+          v-for="option in featureShapes"
           :key="option"
           :value="option"
         >

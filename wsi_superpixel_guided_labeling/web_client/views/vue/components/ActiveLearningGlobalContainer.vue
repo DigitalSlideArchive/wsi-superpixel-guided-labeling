@@ -29,6 +29,7 @@ export default Vue.extend({
         'imageNamesById',
         'annotationsByImageId',
         'certaintyMetrics',
+        'featureShapes',
         'apiRoot',
         'currentAverageCertainty',
         'availableImages',
@@ -140,6 +141,7 @@ export default Vue.extend({
       v-if="activeLearningStep === activeLearningSteps.SuperpixelSegmentation"
       :backbone-parent="backboneParent"
       :certainty-metrics="certaintyMetrics"
+      :feature-shapes="featureShapes"
     />
     <div v-if="storeReady && activeLearningStep > activeLearningSteps.SuperpixelSegmentation">
       <!-- Image Viewer -->
