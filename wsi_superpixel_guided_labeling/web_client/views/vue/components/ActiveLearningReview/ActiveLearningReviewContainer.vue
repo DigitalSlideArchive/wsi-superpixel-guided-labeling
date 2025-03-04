@@ -656,7 +656,7 @@ export default Vue.extend({
         selectedComparisonText(selection) {
             if (!selection) return selection;
 
-            const [, userID] = selection.split('_');
+            const [type, userID] = selection.split('_');
             if (!userID) return selection;
 
             let user = store.currentUser;
@@ -674,7 +674,7 @@ export default Vue.extend({
                     user = superpixel.meta.reviewer;
                 }
             }
-            return store.userNames[user];
+            return `${store.userNames[user]} ${type}`;
         },
         updateFilteredSortedGroupedSuperpixels(changedSuperpixel) {
             this.showProgressBar();
@@ -1433,7 +1433,11 @@ export default Vue.extend({
                     type="button"
                     data-toggle="dropdown"
                   >
-                    <span class="overflow-text">
+                    <span
+                      class="overflow-text"
+                      data-toggle="tooltip"
+                      :title="selectedComparisonText(firstComparison) || '(None)'"
+                    >
                       {{ selectedComparisonText(firstComparison) || '(None)' }}
                     </span>
                     <span class="caret" />
@@ -1625,7 +1629,11 @@ export default Vue.extend({
                     data-toggle="dropdown"
                     :disabled="!firstComparison || !booleanOperator"
                   >
-                    <span class="overflow-text">
+                    <span
+                      class="overflow-text"
+                      data-toggle="tooltip"
+                      :title="selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)')"
+                    >
                       {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
                     </span>
                     <span class="caret" />
