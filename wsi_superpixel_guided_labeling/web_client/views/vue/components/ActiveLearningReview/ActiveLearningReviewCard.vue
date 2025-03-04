@@ -3,7 +3,7 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import { store } from '../store';
-import { updateMetadata } from '../utils';
+import { isValidNumber, updateMetadata } from '../utils';
 
 export default Vue.extend({
     props: ['superpixel', 'previewSize', 'cardDetails', 'reviewValue'],
@@ -81,7 +81,7 @@ export default Vue.extend({
         },
         reviewerCategorySelection: {
             get() {
-                if (!_.isNumber(this.superpixel.reviewValue)) {
+                if (!isValidNumber(this.superpixel.reviewValue)) {
                     return this.superpixel.selectedCategory;
                 }
                 return this.superpixel.reviewValue;
@@ -95,11 +95,11 @@ export default Vue.extend({
                     // Index (newCategory) -1 indicates "Approve" or "Clear Review". If we are approving
                     // then we are setting the reviewValue to the selectedCategory. If we are clearing the
                     // review we are setting the reviewValue to null.
-                    newCategory = _.isNumber(this.superpixel.reviewValue) ? null : this.superpixel.selectedCategory;
+                    newCategory = isValidNumber(this.superpixel.reviewValue) ? null : this.superpixel.selectedCategory;
                 }
 
                 updateMetadata(this.superpixel, newCategory, true);
-                store.backboneParent.updateAnnotationMetadata(this.superpixel.imageId);
+                store.backboneParent.saveAnnotationMetadata(this.superpixel.imageId);
             }
         }
     },

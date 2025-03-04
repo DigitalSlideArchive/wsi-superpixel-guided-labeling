@@ -1,3 +1,5 @@
+import _ from 'underscore';
+
 import { schemeTableau10 } from './constants';
 import { store } from './store';
 
@@ -37,15 +39,20 @@ export const rgbStringToArray = (rgbStr) => {
  * @param {boolean} isReview Whether or not this is a review. Will update the label if not a review.
 */
 export const updateMetadata = (superpixel, newCategory, isReview) => {
-    const labels = store.annotationsByImageId[superpixel.imageId].labels;
-    const meta = labels.get('annotation').attributes.metadata;
+    const annotation = store.annotationsByImageId[superpixel.imageId];
+    const attributes = annotation.labels.get('annotation').attributes;
+    // Guarantee that the metadata object exists
+    const meta = attributes.metadata || (attributes.metadata = {});
     // If no new value is provided user selection is correct
     const key = isReview ? 'review' : 'label';
+    // Guarantee that there is an entry for this superpixel in the metadata
     superpixel.index in meta || (meta[superpixel.index] = {});
     meta[superpixel.index][`${key}er`] = store.currentUser;
     meta[superpixel.index][`${key}Date`] = new Date().toDateString();
     meta[superpixel.index][`${key}Value`] = newCategory;
     meta[superpixel.index][`${key}Epoch`] = store.epoch;
+    // Keep the superpixel object in sync with the metadata
+    superpixel.meta = meta[superpixel.index];
 
     if (isReview) {
         superpixel.reviewValue = newCategory;
@@ -113,4 +120,14 @@ export const debounce = (fn, debounceByArguments = false) => {
             queuedRequests.set(stringArgs);
         }
     };
+};
+
+/**
+ * Simple util function for determining if a value is a valid number
+ *
+ * @param {*} value Value to check
+ * @returns {boolean} Whether or not value is a valid number
+ */
+export const isValidNumber = (value) => {
+    return _.isNumber(value) && !_.isNaN(value);
 };

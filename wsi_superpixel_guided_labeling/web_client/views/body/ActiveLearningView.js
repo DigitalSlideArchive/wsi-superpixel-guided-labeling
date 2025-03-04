@@ -16,7 +16,7 @@ import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGloba
 import ActiveLearningToolBar from '../vue/components/ActiveLearningToolBar.vue';
 import { store, assignHotkey } from '../vue/components/store.js';
 import { activeLearningSteps } from '../vue/components/constants.js';
-import { debounce } from '../vue/components/utils.js';
+import { debounce, isValidNumber } from '../vue/components/utils.js';
 
 import '../../stylesheets/body/learning.styl';
 
@@ -129,7 +129,7 @@ const ActiveLearningView = View.extend({
                 const idx = _.findIndex([...this.categoryMap.values()], (c) => c.label === l);
                 return idx === -1 ? null : idx - 1;
             });
-            store.exclusions = _.reject(excluded, (v) => !_.isNumber(v));
+            store.exclusions = _.reject(excluded, (v) => !isValidNumber(v));
 
             return this.fetchFoldersAndItems();
         });
@@ -408,7 +408,7 @@ const ActiveLearningView = View.extend({
                             if (!_.has(annotation.attributes, 'metadata')) {
                                 annotation.attributes.metadata = {};
                             }
-                            this.updateAnnotationMetadata(imageId);
+                            this.saveAnnotationMetadata(imageId);
                             if (!this.availableImages.includes(imageId)) {
                                 this.availableImages.push(imageId);
                             }
@@ -667,7 +667,7 @@ const ActiveLearningView = View.extend({
             const annotation = values.labels.get('annotation');
             if (annotation) {
                 _.forEach(Object.entries(annotation.attributes.metadata), ([k, v]) => {
-                    if (_.isNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
+                    if (isValidNumber(v.reviewValue) && v.reviewEpoch >= v.labelEpoch) {
                         annotation.elements[0].values[k] = v.reviewValue;
                         if (!imageIds.includes(annotation.itemId)) {
                             imageIds.push(annotation.itemId);
@@ -841,23 +841,12 @@ const ActiveLearningView = View.extend({
     },
 
     /**
-     * Update the annotation metadata
+     * Save the annotation metadata. Useful for when only the metadata has changed
+     * and the whole annotation does not need to be saved.
      */
-    updateAnnotationMetadata: debounce(function (imageId) {
+    saveAnnotationMetadata: debounce(function (imageId) {
         const annotation = this.annotationsByImageId[imageId].labels;
-        let metadata = annotation.get('annotation').attributes.metadata;
-        // We used to store the entire user object but now expect to only store
-        // the user id string. Update old metadata to maintain compatability.
-        metadata = _.mapObject(metadata, (meta) => {
-            if (meta) {
-                if (_.isObject(meta.labeler)) {
-                    meta.labeler = meta.labeler._id;
-                }
-                if (_.isObject(meta.reviewer)) {
-                    meta.reviewer = meta.reviewer._id;
-                }
-            }
-        });
+        const metadata = annotation.get('annotation').attributes.metadata;
         return restRequest({
             type: 'PUT',
             url: `annotation/${annotation.id}/metadata`,

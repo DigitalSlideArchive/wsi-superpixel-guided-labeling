@@ -6,7 +6,7 @@ import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';
 import { store } from '../store.js';
 import { groupByOptions, sortByOptions } from '../constants';
-import { updateMetadata, rgbStringToArray } from '../utils.js';
+import { updateMetadata, rgbStringToArray, isValidNumber } from '../utils.js';
 
 export default Vue.extend({
     components: {
@@ -44,7 +44,9 @@ export default Vue.extend({
             cardDetails: [],
             firstComparison: null,
             secondComparison: null,
-            booleanOperator: null
+            booleanOperator: null,
+            filtersAllLabels: true,
+            filtersAllReviews: false
         };
     },
     computed: {
@@ -87,8 +89,8 @@ export default Vue.extend({
                 return this.imageItemsById[imageId].name;
             });
             const meta = _.compact(_.pluck(this.superpixelsForReview, 'meta'));
-            const labelers = _.compact(_.uniq(_.pluck(meta, 'labeler')));
-            const reviewers = _.compact(_.uniq(_.pluck(meta, 'reviewer')));
+            const labelers = _.compact(_.uniq(_.pluck(meta, 'labeler').concat(store.currentUser)));
+            const reviewers = _.compact(_.uniq(_.pluck(meta, 'reviewer').concat(store.currentUser)));
             return {
                 Slides: slides,
                 Predictions: predictions,
@@ -125,15 +127,15 @@ export default Vue.extend({
         userSelections() {
             return [
                 ...store.filterBy,
-                this.firstComparison,
-                this.secondComparison,
-                this.booleanOperator,
                 ...this.sortBy,
                 ...this.groupBy
             ];
         },
-        changeLog() {
-            return store.changeLog;
+        reviewChangeLog() {
+            return store.reviewChangeLog;
+        },
+        comparisonSelections() {
+            return [this.firstComparison, this.booleanOperator, this.secondComparison];
         }
     },
     watch: {
@@ -150,30 +152,94 @@ export default Vue.extend({
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
-            if (!filteredContainsSelected) {
+            if (!filteredContainsSelected && data.length) {
                 // If the selected superpixel has been filtered out fall back to the first available
                 this.selectedSuperpixel = Object.values(data)[0][0];
             }
             this.$nextTick(() => this.updateObserved());
         },
-        firstComparison() {
+        comparisonSelections(_newComps, oldComps) {
+            const [oldFirst, oldBoolean] = oldComps;
             this.showFlags = !!this.firstComparison && !!this.booleanOperator;
-        },
-        booleanOperator() {
-            this.showFlags = !!this.firstComparison && !!this.booleanOperator;
+            if (this.showFlags || (oldFirst && oldBoolean)) {
+                this.updateFilteredSortedGroupedSuperpixels();
+            }
         },
         userSelections() {
             this.updateFilteredSortedGroupedSuperpixels();
         },
-        changeLog: {
+        reviewChangeLog: {
             handler() {
-                if (!store.changeLog.length) {
+                if (!store.reviewChangeLog.length) {
                     return;
                 }
-                const changedSuperpixel = this.changeLog.pop();
+                const changedSuperpixel = store.reviewChangeLog.pop();
                 this.updateFilteredSortedGroupedSuperpixels(changedSuperpixel);
             },
             deep: true
+        },
+        sortAscending() {
+            Object.values(this.filteredSortedGroupedSuperpixels)
+                .map((sortedList) => sortedList.reverse());
+        },
+        filtersAllLabels: {
+            handler() {
+                if (_.isNull(this.filtersAllLabels)) {
+                    return;
+                }
+
+                const labels = store.categories.slice(1).map((cat) => `label_${cat.label}`);
+                if (this.filtersAllLabels) {
+                    const allValues = new Set([...store.filterBy, ...labels]);
+                    store.filterBy = Array.from(allValues);
+                } else {
+                    store.filterBy = store.filterBy.filter((value) => !labels.includes(value));
+                }
+            },
+            immediate: true
+        },
+        filtersAllReviews() {
+            if (_.isNull(this.filtersAllReviews)) {
+                return;
+            }
+
+            const reviews = store.categories.map((cat) => `review_${cat.label}`);
+            if (this.filtersAllReviews) {
+                const allValues = new Set([...store.filterBy, ...reviews]);
+                store.filterBy = Array.from(allValues);
+            } else {
+                store.filterBy = store.filterBy.filter((value) => !reviews.includes(value));
+            }
+        },
+        filterBy(newList, oldList) {
+            const [first, second] = newList.length > oldList.length ? [newList, oldList] : [oldList, newList];
+            const changed = _.difference(first, second)[0];
+            const labels = store.categories.slice(1).map((cat) => `label_${cat.label}`);
+            const reviews = store.categories.map((cat) => `review_${cat.label}`);
+
+            let values = null, filtersAll = null, element = null;
+            if (labels.includes(changed) && _.isNull(this.filtersAllLabels)) {
+                values = labels;
+                filtersAll = 'filtersAllLabels';
+                element = document.getElementById('cat_has_label');
+            } else if (reviews.includes(changed) && _.isNull(this.filtersAllReviews)) {
+                values = reviews;
+                filtersAll = 'filtersAllReviews';
+                element = document.getElementById('cat_has_review');
+            }
+            if (element) {
+                // Label was selected or un-selected
+                const found = values.reduce((acc, value) => {
+                    acc += Number(store.filterBy.includes(value));
+                    return acc;
+                }, 0);
+                // If all labels or no labels are selected the state should be true or false,
+                // otherwise set state as indeterminate
+                element.indeterminate = (found !== 0 && found !== values.length);
+                if (!element.indeterminate) {
+                    this[`${filtersAll}`] = (found === values.length);
+                }
+            }
         }
     },
     mounted() {
@@ -216,7 +282,6 @@ export default Vue.extend({
             menuObserver.observe(element);
         });
 
-        this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
         this.$nextTick(() => {
             const resizeHandle = document.querySelector('.resize-handle');
             resizeHandle.removeEventListener('mousedown', () => { this.isResizing = true; });
@@ -261,12 +326,11 @@ export default Vue.extend({
         sortByLabelCategory(sorted) {
             return _.sortBy(sorted, 'selectedCategory');
         },
-        sortByLabelPredictionAgreement(sorted) {
-            return _.sortBy(sorted, (superpixel) => {
-                const selected = superpixel.labelCategories[superpixel.selectedCategory];
-                const predicted = superpixel.predictionCategories[superpixel.prediction];
-                return selected.label === predicted.label;
-            });
+        sortByPredictionCategory(sorted) {
+            return _.sortBy(sorted, 'prediction');
+        },
+        sortByReviewCategory(sorted) {
+            return _.sortBy(sorted, 'reviewValue');
         },
         sortByConfidence(sorted) {
             return _.sortBy(sorted, 'confidence');
@@ -283,12 +347,15 @@ export default Vue.extend({
                     sorted = this.sortByLabelCategory(sorted);
                     break;
                 case 3:
-                    sorted = this.sortByLabelPredictionAgreement(sorted);
+                    sorted = this.sortByPredictionCategory(sorted);
                     break;
                 case 4:
-                    sorted = this.sortByConfidence(sorted);
+                    sorted = this.sortByReviewCategory(sorted);
                     break;
                 case 5:
+                    sorted = this.sortByConfidence(sorted);
+                    break;
+                case 6:
                     sorted = this.sortByCertainty(sorted);
                     break;
                 default:
@@ -324,13 +391,13 @@ export default Vue.extend({
             if (filterBy.length > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
                     const { reviewValue, labelCategories } = superpixel;
-                    const label = _.isNumber(reviewValue) ? labelCategories[reviewValue].label : '';
+                    const label = isValidNumber(reviewValue) ? labelCategories[reviewValue].label : '';
                     return filterBy.indexOf(label) > -1;
                 }));
             }
             if (store.filterBy.indexOf('no review') > -1) {
                 reviewResults = reviewResults.concat(data.filter((superpixel) => {
-                    return !superpixel.meta || !_.isNumber(superpixel.meta.reviewValue);
+                    return !isValidNumber(superpixel.reviewValue);
                 }));
             }
             return reviewResults;
@@ -346,43 +413,65 @@ export default Vue.extend({
             // Filter by reviewer
             return data.filter((superpixel) => {
                 const id = superpixel.meta ? superpixel.meta.reviewer : '';
-                return filterBy.indexOf(id) > -1;
+                return isValidNumber(superpixel.reviewValue) && filterBy.indexOf(id) > -1;
             });
         },
         filterByComparison(data) {
-            // Filter by comparison
-            // Select the appropriate comparison function
-            const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
-            const [key0, userID0] = this.firstComparison.split('_');
-            // If no second option is selected we should compare the first selection
-            // to all remaining options. Otherwise just compare to the second selection.
-            let [key1, key2, userID1] = _.without(['label', 'review', 'prediction'], key0);
-            if (this.secondComparison) {
-                [key1, userID1, key2] = this.secondComparison.split('_');
+            const assignKeysAndIds = (selection) => {
+                // Find the keys we'll need to get the data
+                // requested for comparison
+                if (!selection) return [null, null, null];
+
+                let [valueKey, userKey] = [null, null];
+                const [prefix, userId] = selection.split('_');
+                if (prefix === 'prediction') {
+                    valueKey = 'prediction';
+                } else if (prefix === 'label') {
+                    valueKey = 'selectedCategory';
+                    if (userId) {
+                        userKey = 'labeler';
+                    }
+                } else if (prefix === 'review') {
+                    valueKey = 'reviewValue';
+                    if (userId) {
+                        userKey = 'reviewer';
+                    }
+                }
+                return [valueKey, userKey, userId];
+            };
+
+            // Find the specifc keys we need to fit the user requested comparison(s)
+            const [firstValueKey, firstUserKey, firstUserId] = assignKeysAndIds(this.firstComparison);
+            let [secondValueKey, secondUserKey, secondUserId] = assignKeysAndIds(this.secondComparison);
+            let thirdValueKey = null;
+            if (!secondValueKey) {
+                // If no second value is selected we want *anything* that matches
+                [secondValueKey, thirdValueKey] = _.without(['prediction', 'selectedCategory', 'reviewValue'], firstValueKey);
             }
 
+            const getLabel = (valueKey, userKey, userId, superpixel) => {
+                // We don't want to assume that indices will always be in-sync across
+                // prediction and label name mapping. Instead, find the string label.
+                if (!userKey || (superpixel.meta && superpixel.meta[userKey] === userId)) {
+                    const { labelCategories, predictionCategories } = superpixel;
+                    const categories = valueKey === 'prediction' ? predictionCategories : labelCategories;
+                    const value = superpixel[valueKey];
+                    return isValidNumber(value) ? categories[value].label : null;
+                }
+                return null;
+            };
             return data.filter((superpixel) => {
-                const values = [null, null, null];
-                [key0, key1, key2].forEach((key, idx) => {
-                    const userID = idx === 0 ? userID0 : userID1;
-                    if (key === 'prediction') {
-                        values[idx] = superpixel.predictionCategories[superpixel.prediction];
-                    } else if (key === 'label') {
-                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.labeler === userID)) {
-                            values[idx] = superpixel.labelCategories[superpixel.selectedCategory];
-                        }
-                    } else if (key === 'review') {
-                        if (!this.secondComparison || (!!superpixel.meta && !!superpixel.meta.reviewer === userID)) {
-                            values[idx] = superpixel.labelCategories[superpixel.reviewValue];
-                        }
+                const op = this.booleanOperator === 'matches' ? (a, b) => a === b : (a, b) => a !== b;
+                const firstLabel = getLabel(firstValueKey, firstUserKey, firstUserId, superpixel);
+                const secondLabel = getLabel(secondValueKey, secondUserKey, secondUserId, superpixel);
+                const thirdLabel = getLabel(thirdValueKey, null, null, superpixel);
+                if (!_.isNull(firstLabel) && !_.isNull(secondLabel)) {
+                    if (!_.isNull(thirdLabel)) {
+                        return op(firstLabel, secondLabel) || op(firstLabel, thirdLabel);
                     }
-                    // As we support more complex options to add/remove/rename categories across epochs the
-                    // predictions categories and labels categories have a higher chance of diverging and we
-                    // shouldn't assume the same order in both lists. Compare label values instead.
-                    values[idx] = values[idx] ? values[idx].label : values[idx];
-                });
-                return (!!values[0] && !!values[1] && op(values[0], values[1])) ||
-                        (!!values[0] && !!values[2] && op(values[0], values[2]));
+                    return op(firstLabel, secondLabel);
+                }
+                return false;
             });
         },
         filterByPredictionLabel(data, filterBy) {
@@ -414,7 +503,7 @@ export default Vue.extend({
             }
             filterBy = getFilters('prediction_');
             if (filterBy.length > 0) {
-                results = this.filterByPredictionLabel(data, filterBy);
+                results = this.filterByPredictionLabel(results, filterBy);
             }
             const slideNames = _.pluck(this.imageItemsById, 'name');
             filterBy = store.filterBy.filter((value) => slideNames.includes(value));
@@ -422,15 +511,15 @@ export default Vue.extend({
                 results = this.filterBySlideName(results, filterBy);
             }
             if (!!this.firstComparison && !!this.booleanOperator) {
-                results = this.filterByComparison(data);
+                results = this.filterByComparison(results);
             }
             filterBy = getFilters('labeler_');
             if (filterBy.length > 0) {
-                results = this.filterByLabeler(data, filterBy);
+                results = this.filterByLabeler(results, filterBy);
             }
             filterBy = getFilters('reviewer_');
             if (filterBy.length > 0) {
-                results = this.filterByReviewer(data, filterBy);
+                results = this.filterByReviewer(results, filterBy);
             }
             return results;
         },
@@ -447,12 +536,17 @@ export default Vue.extend({
                 return store.categories[selectedCategory].label;
             });
         },
-        groupByLabelPredictionAgreement(data) {
+        groupByPredictionCategory(data) {
             return Object.groupBy(data, (superpixel) => {
-                const { selectedCategory, prediction } = superpixel;
-                const selection = superpixel.labelCategories[selectedCategory].label;
-                const predicted = superpixel.predictionCategories[prediction].label;
-                return selection === predicted ? 'Agree' : 'Disagree';
+                return superpixel.predictionCategories[superpixel.prediction].label;
+            });
+        },
+        groupByReviewCategory(data) {
+            return Object.groupBy(data, ({ reviewValue }) => {
+                if (!isValidNumber(reviewValue)) {
+                    return 'default';
+                }
+                return store.categories[reviewValue].label;
             });
         },
         groupSuperpixels(data) {
@@ -462,13 +556,19 @@ export default Vue.extend({
                 case 2:
                     return this.groupByLabelCategory(data);
                 case 3:
-                    return this.groupByLabelPredictionAgreement(data);
+                    return this.groupByPredictionCategory(data);
+                case 4:
+                    return this.groupByReviewCategory(data);
                 default:
                     return { data };
             }
         },
         catColorByLabel(label) {
-            return _.findWhere(store.categories, { label }).fillColor;
+            const cat = _.findWhere(store.categories, { label });
+            if (cat) {
+                return cat.fillColor;
+            }
+            return 'rgb(0, 0, 0)';
         },
         catColorByIndex(index) {
             const color = store.categories[index].fillColor;
@@ -500,12 +600,14 @@ export default Vue.extend({
                 event.stopImmediatePropagation();
             }
         },
-        applyBulkReview(newValue) {
+        applyBulkReview(selectedValue) {
+            const imageIds = new Set();
             this.selectedReviewSuperpixels.forEach((superpixel) => {
+                const newValue = selectedValue === -1 ? superpixel.selectedCategory : selectedValue;
                 updateMetadata(superpixel, newValue, true);
+                imageIds.add(superpixel.imageId);
             });
-            Object.keys(store.annotationsByImageId).forEach(
-                (imageId) => store.backboneParent.updateAnnotationMetadata(imageId));
+            store.backboneParent.saveAnnotationMetadata(Array.from(imageIds));
             this.selectedReviewSuperpixels = [];
             this.selectingSuperpixels = false;
         },
@@ -517,7 +619,7 @@ export default Vue.extend({
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
             this.observedSuperpixel = _.last(document.getElementsByClassName('h-superpixel-card'));
-            if (this.sliceValue === 1) {
+            if (this.sliceValue === 1 && this.observedSuperpixel) {
                 // Make an initial estimate of how many chips to show
                 const container = document.getElementById('chipsContainer');
                 const containerRect = container.getBoundingClientRect();
@@ -532,37 +634,47 @@ export default Vue.extend({
         removeFilters(values) {
             store.filterBy = _.without(store.filterBy, ...values);
         },
+        confirmMenuFocus(event) {
+            const menu = document.getElementsByClassName('visible-menu')[0];
+            if (menu && !menu.contains(event.target)) {
+                this.toggleOpenMenu(this.openMenu);
+            }
+        },
         toggleOpenMenu(menu) {
-            this.openMenu = this.openMenu === menu ? null : menu;
+            if (this.openMenu === menu) {
+                // Menu was open; closing now
+                this.openMenu = null;
+                document.removeEventListener('click', this.confirmMenuFocus);
+            } else {
+                // Menu was closed; opening now
+                this.openMenu = menu;
+                this.$nextTick(() => {
+                    document.addEventListener('click', this.confirmMenuFocus);
+                });
+            }
         },
         selectedComparisonText(selection) {
-            if (!selection || selection === 'prediction') {
-                return selection;
-            } else {
-                const [, userID] = selection.split('_');
-                let user;
-                if (store.currentUser === userID) {
-                    user = store.currentUser;
-                } else {
-                    const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
-                        if (superpixel.meta) {
-                            return (
-                                (!!superpixel.meta.reviewer === userID) ||
-                              (!!superpixel.meta.labeler === userID)
-                            );
-                        }
-                        return false;
-                    });
-                    if (!superpixel) {
-                        return '';
+            if (!selection) return selection;
+
+            const [, userID] = selection.split('_');
+            if (!userID) return selection;
+
+            let user = store.currentUser;
+            if (!(store.currentUser === userID)) {
+                const superpixel = _.find(this.superpixelsForReview, (superpixel) => {
+                    if (superpixel.meta) {
+                        return superpixel.meta.reviewer === userID || superpixel.meta.labeler === userID;
                     }
-                    user = superpixel.meta.labeler;
-                    if (!!superpixel.meta.reviewer === userID) {
-                        user = superpixel.meta.reviewer;
-                    }
+                    return false;
+                });
+                if (!superpixel) return '';
+
+                user = superpixel.meta.labeler;
+                if (!!superpixel.meta.reviewer === userID) {
+                    user = superpixel.meta.reviewer;
                 }
-                return store.userNames[user];
             }
+            return store.userNames[user];
         },
         updateFilteredSortedGroupedSuperpixels(changedSuperpixel) {
             this.showProgressBar();
@@ -575,7 +687,7 @@ export default Vue.extend({
                 if (!changedSuperpixel) {
                     this.totalSuperpixels = filtered.length;
                     this.filteredSortedGroupedSuperpixels = _.mapObject(data, (value) => this.sortSuperpixels(value));
-                } else {
+                } else if (data) {
                     const [group] = Object.keys(data);
                     const superpixels = this.filteredSortedGroupedSuperpixels;
                     let index = -1;
@@ -601,6 +713,9 @@ export default Vue.extend({
                             break;
                     }
                     this.filteredSortedGroupedSuperpixels[group].splice(index, 0, changedSuperpixel);
+                }
+                if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.data) {
+                    this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
                 }
                 this.$nextTick(() => this.hideProgressBar());
             }, 0);
@@ -966,6 +1081,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('slide')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Slide Image
@@ -979,7 +1095,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`slide_${index}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`slide_${index}`"
@@ -1012,6 +1128,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('prediction')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Predictions
@@ -1025,7 +1142,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`prediction_${index}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`prediction_${index}`"
@@ -1060,6 +1177,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('labels')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Labels
@@ -1067,21 +1185,50 @@ export default Vue.extend({
                       </span>
                     </div>
                     <ul :class="['dropdown-menu', openMenu === 'labels' ? 'visible-menu' : 'hidden']">
-                      <li
-                        v-for="(cat, index) in filterOptions.Labels"
-                        :key="`cat_${index}`"
-                      >
+                      <li>
                         <label
-                          :for="`cat_${index}`"
-                          class="checkboxLabel"
+                          for="cat_0"
+                          class="checkboxLabel options"
                         >
                           <input
-                            :id="`cat_${index}`"
+                            id="cat_0"
+                            v-model="filterBy"
+                            type="checkbox"
+                            value="label_default"
+                          >
+                          No Label
+                        </label>
+                      </li>
+                      <li><hr></li>
+                      <li>
+                        <label
+                          for="cat_has_label"
+                          class="checkboxLabel options"
+                        >
+                          <input
+                            id="cat_has_label"
+                            v-model="filtersAllLabels"
+                            type="checkbox"
+                          >
+                          All Labels
+                        </label>
+                      </li>
+                      <li
+                        v-for="(cat, index) in filterOptions.Labels.slice(1)"
+                        :key="`cat_${index + 1}`"
+                      >
+                        <label
+                          :for="`cat_${index + 1}`"
+                          class="checkboxLabel options"
+                        >
+                          <input
+                            :id="`cat_${index + 1}`"
                             v-model="filterBy"
                             type="checkbox"
                             :value="`label_${cat}`"
+                            @click="filtersAllLabels = null"
                           >
-                          {{ index === 0 ? 'No Label' : cat }}
+                          {{ cat }}
                         </label>
                       </li>
                     </ul>
@@ -1106,6 +1253,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('reviews')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Reviews
@@ -1116,7 +1264,7 @@ export default Vue.extend({
                       <li>
                         <label
                           for="no review"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             id="no review"
@@ -1124,7 +1272,21 @@ export default Vue.extend({
                             type="checkbox"
                             value="no review"
                           >
-                          not reviewed
+                          No Review
+                        </label>
+                      </li>
+                      <li><hr></li>
+                      <li>
+                        <label
+                          for="cat_has_review"
+                          class="checkboxLabel options"
+                        >
+                          <input
+                            id="cat_has_review"
+                            v-model="filtersAllReviews"
+                            type="checkbox"
+                          >
+                          All Reviews
                         </label>
                       </li>
                       <li
@@ -1133,15 +1295,16 @@ export default Vue.extend({
                       >
                         <label
                           :for="`review_${index}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`review_${index}`"
                             v-model="filterBy"
                             type="checkbox"
                             :value="`review_${cat}`"
+                            @click="filtersAllReviews = null"
                           >
-                          {{ index === 0 ? 'Unlabeled' : cat }}
+                          {{ index === 0 ? 'unlabeled' : cat }}
                         </label>
                       </li>
                     </ul>
@@ -1168,6 +1331,7 @@ export default Vue.extend({
                     <div
                       class="btn btn-default btn-block"
                       @click="toggleOpenMenu('labeler')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Labeled By
@@ -1181,7 +1345,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`labeler_${key}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`labeler_${key}`"
@@ -1215,6 +1379,7 @@ export default Vue.extend({
                       class="btn btn-default btn-block"
                       :disabled="!filterOptions.Reviewers.length"
                       @click="toggleOpenMenu('reviewer')"
+                      @click.stop
                     >
                       <span class="multiselect-dropdown-label">
                         Reviewed By
@@ -1228,7 +1393,7 @@ export default Vue.extend({
                       >
                         <label
                           :for="`reviewer_${key}`"
-                          class="checkboxLabel"
+                          class="checkboxLabel options"
                         >
                           <input
                             :id="`reviewer_${key}`"
@@ -1276,7 +1441,10 @@ export default Vue.extend({
                   <ul class="dropdown-menu">
                     <li>
                       <div class="radio">
-                        <label for="no_selection_1">
+                        <label
+                          for="no_selection_1"
+                          class="options"
+                        >
                           <input
                             id="no_selection_1"
                             v-model="firstComparison"
@@ -1291,17 +1459,51 @@ export default Vue.extend({
                     <li>
                       <div class="radio">
                         <label
-                          for="prediction_1"
+                          for="prediction_comparison_1"
                           :class="['options', secondComparison === 'prediction' && 'disabled-label']"
                         >
                           <input
-                            id="prediction_1"
+                            id="prediction_comparison_1"
                             v-model="firstComparison"
                             type="radio"
                             value="prediction"
                             class="hidden-radio"
                           >
                           Predictions
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="labels_comparison_1"
+                          :class="['options', secondComparison === 'label' && 'disabled-label']"
+                        >
+                          <input
+                            id="labels_comparison_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            value="label"
+                            class="hidden-radio"
+                          >
+                          Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="reviews_comparison_1"
+                          :class="['options', secondComparison === 'reviews' && 'disabled-label']"
+                        >
+                          <input
+                            id="reviews_comparison_1"
+                            v-model="firstComparison"
+                            type="radio"
+                            value="review"
+                            class="hidden-radio"
+                          >
+                          Reviews
                         </label>
                       </div>
                     </li>
@@ -1312,7 +1514,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_labeler_${key}_1`"
-                          :class="['options', (!!secondComparison && secondComparison.startsWith('label')) && 'disabled-label']"
+                          :class="['options', secondComparison === `label_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_labeler_${key}_1`"
@@ -1332,7 +1534,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_reviewer_${key}_1`"
-                          :class="['options', (!!secondComparison && secondComparison.startsWith('review')) && 'disabled-label']"
+                          :class="['options', secondComparison === `review_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_reviewer_${key}_1`"
@@ -1421,6 +1623,7 @@ export default Vue.extend({
                     class="btn btn-block btn-default dropdown-toggle dropdown-button"
                     type="button"
                     data-toggle="dropdown"
+                    :disabled="!firstComparison || !booleanOperator"
                   >
                     <span class="overflow-text">
                       {{ selectedComparisonText(secondComparison) || (!!firstComparison && !!booleanOperator ? 'Any' : '(None)') }}
@@ -1429,13 +1632,10 @@ export default Vue.extend({
                   </button>
                   <ul class="dropdown-menu">
                     <li>
-                      <div
-                        class="radio"
-                        :disabled="firstComparison === 'prediction'"
-                      >
+                      <div class="radio">
                         <label
                           for="any"
-                          :class="['options', firstComparison === 'prediction' && 'disabled-label']"
+                          class="options"
                         >
                           <input
                             id="any"
@@ -1449,22 +1649,53 @@ export default Vue.extend({
                       </div>
                     </li>
                     <li>
-                      <div
-                        class="radio"
-                        :disabled="firstComparison === 'prediction'"
-                      >
+                      <div class="radio">
                         <label
-                          for="prediction_2"
+                          for="prediction_comparison_2"
                           :class="['options', firstComparison === 'prediction' && 'disabled-label']"
                         >
                           <input
-                            id="prediction_2"
+                            id="prediction_comparison_2"
                             v-model="secondComparison"
                             type="radio"
                             value="prediction"
                             class="hidden-radio"
                           >
                           Predictions
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="labels_comparison_2"
+                          :class="['options', firstComparison === 'label' && 'disabled-label']"
+                        >
+                          <input
+                            id="labels_comparison_2"
+                            v-model="secondComparison"
+                            type="radio"
+                            value="label"
+                            class="hidden-radio"
+                          >
+                          Labels
+                        </label>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="radio">
+                        <label
+                          for="reviews_comparison_2"
+                          :class="['options', firstComparison === 'reviews' && 'disabled-label']"
+                        >
+                          <input
+                            id="reviews_comparison_2"
+                            v-model="secondComparison"
+                            type="radio"
+                            value="review"
+                            class="hidden-radio"
+                          >
+                          Reviews
                         </label>
                       </div>
                     </li>
@@ -1475,7 +1706,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_labeler_${key}_2`"
-                          :class="['options', (!!firstComparison && firstComparison.startsWith('label')) && 'disabled-label']"
+                          :class="['options', firstComparison === `label_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_labeler_${key}_2`"
@@ -1495,7 +1726,7 @@ export default Vue.extend({
                       <div class="radio">
                         <label
                           :for="`comp_reviewer_${key}_2`"
-                          :class="['options', (!!firstComparison && firstComparison.startsWith('review')) && 'disabled-label']"
+                          :class="['options', firstComparison === `review_${key}` && 'disabled-label']"
                         >
                           <input
                             :id="`comp_reviewer_${key}_2`"
@@ -1600,6 +1831,7 @@ export default Vue.extend({
               <div
                 class="btn btn-default btn-block"
                 @click="toggleOpenMenu('data')"
+                @click.stop
               >
                 <span class="multiselect-dropdown-label">
                   Superpixel Data
@@ -1610,7 +1842,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="className"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="className"
@@ -1624,7 +1856,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="confidence"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="confidence"
@@ -1638,7 +1870,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="certainty"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="certainty"
@@ -1652,7 +1884,7 @@ export default Vue.extend({
                 <li>
                   <label
                     for="prediction"
-                    class="checkboxLabel"
+                    class="checkboxLabel options"
                   >
                     <input
                       id="prediction"
@@ -1740,7 +1972,7 @@ export default Vue.extend({
               type="button"
               class="btn btn-success btn-group-two"
               :disabled="selectedReviewSuperpixels.length < 1"
-              @click="() => applyBulkReview(0)"
+              @click="() => applyBulkReview(-1)"
             >
               Approve
             </button>
@@ -1800,18 +2032,30 @@ export default Vue.extend({
       class="col-sm-9 chips-container"
     >
       <div id="superpixelChips">
+        <h3
+          v-if="Object.values(trimmedSuperpixels).length === 0"
+          :style="{'text-align': 'center'}"
+        >
+          No Results Found
+        </h3>
         <div
           v-for="[label, value] in Object.entries(trimmedSuperpixels)"
           :key="label"
         >
+          <h3
+            v-if="Object.values(value).length === 0"
+            :style="{'text-align': 'center'}"
+          >
+            No Results Found
+          </h3>
           <h4
             v-if="groupBy !== 0"
-            :class="[groupBy === 2 && 'group-header']"
+            :class="[groupBy >= 2 && 'group-header']"
             :style="[{'margin-left': '5px'}]"
           >
-            {{ label }} ({{ filteredSortedGroupedSuperpixels[label].length }})
+            {{ label === 'default' ? 'None' : label }} ({{ filteredSortedGroupedSuperpixels[label].length }})
             <i
-              v-if="groupBy === 2"
+              v-if="groupBy >= 2"
               class="icon-blank"
               :class="[groupBy === 2 && 'group-icon']"
               :style="{'background-color': catColorByLabel(label)}"
@@ -1824,11 +2068,11 @@ export default Vue.extend({
               :key="index"
               :class="[
                 'h-superpixel-card',
-                groupBy === 2 ? 'grouped' : 'ungrouped',
+                groupBy >= 2 ? 'grouped' : 'ungrouped',
                 superpixel === selectedSuperpixel && 'selected-superpixel',
                 cardDetails.length > 0 && 'h-superpixel-card-detailed'
               ]"
-              :style="[groupBy !== 2 && {'border-color': catColorByIndex(superpixel.selectedCategory)}]"
+              :style="[groupBy < 2 && {'border-color': catColorByIndex(superpixel.selectedCategory)}]"
             >
               <active-learning-review-card
                 :style="{'position': 'relative'}"
@@ -2013,6 +2257,7 @@ export default Vue.extend({
 
 .grouped {
   border: none !important;
+  margin: 0px 2px;
 }
 
 .ungrouped {
