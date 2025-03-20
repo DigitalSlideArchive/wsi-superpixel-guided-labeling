@@ -314,6 +314,11 @@ export default Vue.extend({
             () => this.updateFilteredSortedGroupedSuperpixels(),
             { deep: true }
         );
+        this.selectedSuperpixel = store.reviewSuperpixel;
+        if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.size) {
+            const values = this.filteredSortedGroupedSuperpixels.values().toArray();
+            this.selectedSuperpixel = values[0][0];
+        }
     },
     deactivated() {
         this.selectedSuperpixel = null;
