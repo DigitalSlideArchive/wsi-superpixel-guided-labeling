@@ -725,27 +725,40 @@ export default Vue.extend({
                 } else if (data) {
                     const [group] = data.keys().toArray();
                     const superpixels = this.filteredSortedGroupedSuperpixels.get(group);
-                    let index = -1;
+                    let index;
+                    const sortOrder = this.sortAscending ? 1 : -1;
+                    const changedImageName = this.imageItemsById[changedSuperpixel.imageId].name;
                     switch (this.sortBy) {
                         case 1:
-                            index = _.sortedIndex(superpixels, (superpixel) => { return this.imageItemsById[superpixel.imageId].name; });
+                            index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                const imageName = this.imageItemsById[superpixel.imageId].name;
+                                return imageName <= changedImageName * sortOrder;
+                            });
                             break;
                         case 2:
-                            index = _.sortedIndex(superpixels, 'selectedCategory');
+                            index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                return superpixel.selectedCategory * sortOrder;
+                            });
                             break;
                         case 3:
-                            index = _.sortedIndex(superpixels, (superpixel) => {
-                                const selected = superpixel.labelCategories[superpixel.selectedCategory];
-                                const predicted = superpixel.predictionCategories[superpixel.prediction];
-                                return selected.label === predicted.label;
+                            index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                return superpixel.prediction * sortOrder;
                             });
                             break;
                         case 4:
-                            index = _.sortedIndex(superpixels, 'confidence');
+                            index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                return superpixel.confidence * sortOrder;
+                            });
                             break;
                         case 5:
-                            index = _.sortedIndex(superpixels, 'certainty');
+                            index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                return superpixel.certainty * sortOrder;
+                            });
                             break;
+                        default:
+                            index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                return superpixel.index * sortOrder;
+                            });
                     }
                     superpixels.splice(index, 0, changedSuperpixel);
                 }
