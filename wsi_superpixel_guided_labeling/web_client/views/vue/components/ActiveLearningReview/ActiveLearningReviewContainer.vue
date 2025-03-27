@@ -314,6 +314,11 @@ export default Vue.extend({
             () => this.updateFilteredSortedGroupedSuperpixels(),
             { deep: true }
         );
+        this.selectedSuperpixel = store.reviewSuperpixel;
+        if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.size) {
+            const values = this.filteredSortedGroupedSuperpixels.values().toArray();
+            this.selectedSuperpixel = values[0][0];
+        }
     },
     deactivated() {
         this.selectedSuperpixel = null;
@@ -722,32 +727,55 @@ export default Vue.extend({
                             acc.set(key, this.sortSuperpixels(value));
                             return acc;
                         }, new Map());
-                } else if (data) {
-                    const [group] = data.keys().toArray();
-                    const superpixels = this.filteredSortedGroupedSuperpixels.get(group);
-                    let index = -1;
-                    switch (this.sortBy) {
-                        case 1:
-                            index = _.sortedIndex(superpixels, (superpixel) => { return this.imageItemsById[superpixel.imageId].name; });
-                            break;
-                        case 2:
-                            index = _.sortedIndex(superpixels, 'selectedCategory');
-                            break;
-                        case 3:
-                            index = _.sortedIndex(superpixels, (superpixel) => {
-                                const selected = superpixel.labelCategories[superpixel.selectedCategory];
-                                const predicted = superpixel.predictionCategories[superpixel.prediction];
-                                return selected.label === predicted.label;
-                            });
-                            break;
-                        case 4:
-                            index = _.sortedIndex(superpixels, 'confidence');
-                            break;
-                        case 5:
-                            index = _.sortedIndex(superpixels, 'certainty');
-                            break;
+                } else {
+                    // Determine if the changed superpixel needs to be removed
+                    this.filteredSortedGroupedSuperpixels.forEach((values, key) => {
+                        const index = values.findIndex((v) => v.index === changedSuperpixel.index);
+                        if (index !== -1) values.splice(index, 1);
+                    });
+                    if (data.size) {
+                        const [group] = data.keys().toArray();
+                        const superpixels = this.filteredSortedGroupedSuperpixels.get(group);
+                        let index;
+                        const sortOrder = this.sortAscending ? 1 : -1;
+                        const changedImageName = this.imageItemsById[changedSuperpixel.imageId].name;
+                        switch (this.sortBy) {
+                            case 1:
+                                index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                    const imageName = this.imageItemsById[superpixel.imageId].name;
+                                    return imageName <= changedImageName * sortOrder;
+                                });
+                                break;
+                            case 2:
+                                index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                    return superpixel.selectedCategory * sortOrder;
+                                });
+                                break;
+                            case 3:
+                                index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                    return superpixel.prediction * sortOrder;
+                                });
+                                break;
+                            case 4:
+                                index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                    return superpixel.confidence * sortOrder;
+                                });
+                                break;
+                            case 5:
+                                index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                    return superpixel.certainty * sortOrder;
+                                });
+                                break;
+                            default:
+                                index = _.sortedIndex(superpixels, changedSuperpixel, (superpixel) => {
+                                    return superpixel.index * sortOrder;
+                                });
+                        }
+                        // Use "set" rather than just using "splice" so that we trigger the watcher
+                        // and update the displayed superpixels
+                        superpixels.splice(index, 0, changedSuperpixel);
                     }
-                    superpixels.splice(index, 0, changedSuperpixel);
+                    this.filteredSortedGroupedSuperpixels = new Map(this.filteredSortedGroupedSuperpixels);
                 }
                 if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.has('data')) {
                     this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.get('data')[0];
