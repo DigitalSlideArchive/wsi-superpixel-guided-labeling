@@ -37,7 +37,7 @@ export default Vue.extend({
             labelFlag: false,
             showFlags: false,
             currentMetadata: null,
-            filteredSortedGroupedSuperpixels: null,
+            filteredSortedGroupedSuperpixels: new Map(),
             groupBy: 0,
             sortBy: 0,
             previewSize: 0.5,
@@ -111,11 +111,13 @@ export default Vue.extend({
         },
         trimmedSuperpixels() {
             let sv = this.sliceValue;
-            return _.mapObject(this.filteredSortedGroupedSuperpixels, (value, _key) => {
+            const slicedMap = new Map();
+            this.filteredSortedGroupedSuperpixels.forEach((value, key) => {
                 const trimmed = value.slice(0, sv);
                 sv -= trimmed.length;
-                return trimmed;
+                slicedMap.set(key, trimmed);
             });
+            return slicedMap;
         },
         filterBy: {
             get() { return store.filterBy; },
@@ -151,10 +153,12 @@ export default Vue.extend({
             if (this.observedSuperpixel) {
                 this.scrollObserver.unobserve(this.observedSuperpixel);
             }
-            const filteredContainsSelected = _.findWhere(data, this.selectedSuperpixel);
-            if (!filteredContainsSelected && data.length) {
-                // If the selected superpixel has been filtered out fall back to the first available
-                this.selectedSuperpixel = Object.values(data)[0][0];
+            if (this.selectedSuperpixel && !this.filterSuperpixels([this.selectedSuperpixel]).length) {
+                // The selected superpixel has been filtered out; fall back to the first available
+                const firstGroupValues = data.values().toArray()[0];
+                if (firstGroupValues.length) {
+                    this.selectedSuperpixel = firstGroupValues[0];
+                }
             }
             this.$nextTick(() => this.updateObserved());
         },
@@ -179,8 +183,15 @@ export default Vue.extend({
             deep: true
         },
         sortAscending() {
-            Object.values(this.filteredSortedGroupedSuperpixels)
-                .map((sortedList) => sortedList.reverse());
+            let superpixels = this.filteredSortedGroupedSuperpixels;
+            if (this.groupBy === this.sortBy) {
+                superpixels = this.sortMapByKeys(superpixels);
+            }
+            this.filteredSortedGroupedSuperpixels = (
+                [...superpixels].reduce((acc, [key, value]) => {
+                    acc.set(key, value.reverse());
+                    return acc;
+                }, new Map()));
         },
         filtersAllLabels: {
             handler() {
@@ -337,6 +348,20 @@ export default Vue.extend({
         },
         sortByCertainty(sorted) {
             return _.sortBy(sorted, 'certainty');
+        },
+        sortMapByKeys(map) {
+            if (this.groupBy === 0) {
+                return map;
+            }
+
+            const sortedMap = new Map();
+            // Sort keys alphabetically by default
+            let sortedKeys = map.keys().toArray().sort();
+            if (!this.sortAscending) {
+                sortedKeys = sortedKeys.reverse();
+            }
+            sortedKeys.forEach((key) => sortedMap.set(key, map.get(key)));
+            return sortedMap;
         },
         sortSuperpixels(sorted) {
             switch (this.sortBy) {
@@ -527,22 +552,22 @@ export default Vue.extend({
          * Group superpixels based on the selected grouping options
          *********************************************************************/
         groupBySlideName(data) {
-            return Object.groupBy(data, ({ imageId }) => {
+            return Map.groupBy(data, ({ imageId }) => {
                 return this.imageItemsById[imageId].name;
             });
         },
         groupByLabelCategory(data) {
-            return Object.groupBy(data, ({ selectedCategory }) => {
+            return Map.groupBy(data, ({ selectedCategory }) => {
                 return store.categories[selectedCategory].label;
             });
         },
         groupByPredictionCategory(data) {
-            return Object.groupBy(data, (superpixel) => {
+            return Map.groupBy(data, (superpixel) => {
                 return superpixel.predictionCategories[superpixel.prediction].label;
             });
         },
         groupByReviewCategory(data) {
-            return Object.groupBy(data, ({ reviewValue }) => {
+            return Map.groupBy(data, ({ reviewValue }) => {
                 if (!isValidNumber(reviewValue)) {
                     return 'default';
                 }
@@ -550,18 +575,24 @@ export default Vue.extend({
             });
         },
         groupSuperpixels(data) {
+            let groups = null;
             switch (this.groupBy) {
                 case 1:
-                    return this.groupBySlideName(data);
+                    groups = this.groupBySlideName(data);
+                    break;
                 case 2:
-                    return this.groupByLabelCategory(data);
+                    groups = this.groupByLabelCategory(data);
+                    break;
                 case 3:
-                    return this.groupByPredictionCategory(data);
+                    groups = this.groupByPredictionCategory(data);
+                    break;
                 case 4:
-                    return this.groupByReviewCategory(data);
+                    groups = this.groupByReviewCategory(data);
+                    break;
                 default:
-                    return { data };
+                    groups = new Map([['data', data]]);
             }
+            return this.sortMapByKeys(groups);
         },
         catColorByLabel(label) {
             const cat = _.findWhere(store.categories, { label });
@@ -612,7 +643,7 @@ export default Vue.extend({
             this.selectingSuperpixels = false;
         },
         selectAll() {
-            this.selectedReviewSuperpixels = _.union(..._.values(this.filteredSortedGroupedSuperpixels));
+            this.selectedReviewSuperpixels = _.union(...this.filteredSortedGroupedSuperpixels.values());
         },
         updateObserved() {
             if (this.observedSuperpixel) {
@@ -686,10 +717,14 @@ export default Vue.extend({
                 const data = this.groupSuperpixels(filtered);
                 if (!changedSuperpixel) {
                     this.totalSuperpixels = filtered.length;
-                    this.filteredSortedGroupedSuperpixels = _.mapObject(data, (value) => this.sortSuperpixels(value));
+                    this.filteredSortedGroupedSuperpixels = [...data].reduce(
+                        (acc, [key, value]) => {
+                            acc.set(key, this.sortSuperpixels(value));
+                            return acc;
+                        }, new Map());
                 } else if (data) {
-                    const [group] = Object.keys(data);
-                    const superpixels = this.filteredSortedGroupedSuperpixels;
+                    const [group] = data.keys().toArray();
+                    const superpixels = this.filteredSortedGroupedSuperpixels.get(group);
                     let index = -1;
                     switch (this.sortBy) {
                         case 1:
@@ -712,10 +747,10 @@ export default Vue.extend({
                             index = _.sortedIndex(superpixels, 'certainty');
                             break;
                     }
-                    this.filteredSortedGroupedSuperpixels[group].splice(index, 0, changedSuperpixel);
+                    superpixels.splice(index, 0, changedSuperpixel);
                 }
-                if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.data) {
-                    this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.data[0];
+                if (!this.selectedSuperpixel && this.filteredSortedGroupedSuperpixels.has('data')) {
+                    this.selectedSuperpixel = this.filteredSortedGroupedSuperpixels.get('data')[0];
                 }
                 this.$nextTick(() => this.hideProgressBar());
             }, 0);
@@ -2041,13 +2076,13 @@ export default Vue.extend({
     >
       <div id="superpixelChips">
         <h3
-          v-if="Object.values(trimmedSuperpixels).length === 0"
+          v-if="trimmedSuperpixels.size === 0"
           :style="{'text-align': 'center'}"
         >
           No Results Found
         </h3>
         <div
-          v-for="[label, value] in Object.entries(trimmedSuperpixels)"
+          v-for="[label, value] in trimmedSuperpixels.entries()"
           :key="label"
         >
           <h3
@@ -2061,11 +2096,11 @@ export default Vue.extend({
             :class="[groupBy >= 2 && 'group-header']"
             :style="[{'margin-left': '5px'}]"
           >
-            {{ label === 'default' ? 'None' : label }} ({{ filteredSortedGroupedSuperpixels[label].length }})
+            {{ label === 'default' ? 'None' : label }} ({{ filteredSortedGroupedSuperpixels.get(label).length }})
             <i
               v-if="groupBy >= 2"
               class="icon-blank"
-              :class="[groupBy === 2 && 'group-icon']"
+              :class="[groupBy >= 2 && 'group-icon']"
               :style="{'background-color': catColorByLabel(label)}"
             />
           </h4>
