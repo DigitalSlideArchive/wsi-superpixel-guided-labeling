@@ -51,7 +51,7 @@ export default Vue.extend({
             return `Certainty ${this.superpixelDecision.certainty.toFixed(5)}`;
         },
         validCategories() {
-            const categories = this.superpixelDecision.labelCategories;
+            const categories = store.categories;
             return _.filter(categories, (c) => !['default'].includes(c.label));
         },
         wsiRegionUrl() {
