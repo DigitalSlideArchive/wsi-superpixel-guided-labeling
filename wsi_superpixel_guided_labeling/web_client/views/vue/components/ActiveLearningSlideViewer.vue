@@ -75,7 +75,7 @@ export default Vue.extend({
                         this.boundingBoxFeature.visible(false);
                         this.featureLayer.draw();
                     }
-                } else if (store.mode === viewMode.Guided) {
+                } else {
                     if (this.boundingBoxFeature) {
                         this.boundingBoxFeature.visible(true);
                     }
