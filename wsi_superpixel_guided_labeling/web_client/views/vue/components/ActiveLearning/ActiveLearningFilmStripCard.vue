@@ -3,7 +3,7 @@ import Vue from 'vue';
 import _ from 'underscore';
 
 import { store, nextCard } from '../store';
-import { updateMetadata } from '../utils';
+import { isValidNumber, updateMetadata } from '../utils';
 
 export default Vue.extend({
     props: ['index'],
@@ -51,7 +51,7 @@ export default Vue.extend({
             return `Certainty ${this.superpixelDecision.certainty.toFixed(5)}`;
         },
         validCategories() {
-            const categories = this.superpixelDecision.labelCategories;
+            const categories = store.categories;
             return _.filter(categories, (c) => !['default'].includes(c.label));
         },
         wsiRegionUrl() {
@@ -117,19 +117,25 @@ export default Vue.extend({
             store.labelingChangeLog.push(this.superpixelDecision);
         },
         lastCategorySelected(categoryNumber) {
-            if (!this.isSelected || typeof categoryNumber !== 'number') {
+            if (!this.isSelected || !isValidNumber(categoryNumber)) {
                 return;
             }
-            if (categoryNumber <= this.superpixelDecision.predictionCategories.length) {
-                // Be extra careful to select the correct category
-                const newCategory = store.categories[categoryNumber];
-                const newCategoryIndex = this.categoryIndex(newCategory.label);
-                this.superpixelDecision.selectedCategory = newCategoryIndex;
-                this.$nextTick(() => {
-                    store.lastCategorySelected = null;
-                    nextCard();
-                });
+
+            if (
+                categoryNumber === 0 ||
+                categoryNumber >= this.superpixelDecision.labelCategories.length
+            ) {
+                // Be careful to select a valid category
+                return;
             }
+
+            const newCategory = store.categories[categoryNumber];
+            const newCategoryIndex = this.categoryIndex(newCategory.label);
+            this.superpixelDecision.selectedCategory = newCategoryIndex;
+            this.$nextTick(() => {
+                store.lastCategorySelected = null;
+                nextCard();
+            });
             store.lastCategorySelected = null; // reset state
         }
     },

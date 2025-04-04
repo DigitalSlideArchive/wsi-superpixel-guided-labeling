@@ -64,10 +64,19 @@ export default {
         },
         updateAll(usePrediction) {
             _.forEach(store.superpixelsToDisplay, (superpixel) => {
-                // Account for missing "default" category in predictions
-                const value = usePrediction ? superpixel.prediction + 1 : 0;
-                superpixel.selectedCategory = value;
-                updateMetadata(superpixel, value, false);
+                let categoryIndex = 0;
+                if (usePrediction) {
+                    // Try to match prediction category to label category
+                    const prediction = superpixel.predictionCategories[superpixel.prediction];
+                    const predictionCategory = prediction.label;
+                    categoryIndex = superpixel.labelCategories.findIndex((cat) => {
+                        return cat.label === predictionCategory;
+                    });
+                }
+                // Default to "no label" if no match found
+                categoryIndex = categoryIndex === -1 ? 0 : categoryIndex;
+                superpixel.selectedCategory = categoryIndex;
+                updateMetadata(superpixel, categoryIndex, false);
                 store.labelingChangeLog.push(superpixel);
             });
         },
