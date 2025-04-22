@@ -2,7 +2,7 @@
 WSI Superpixel Guided Labeling
 ==============================
 
-WSI Superpixel Guided Labeling is a `Girder 3 <https://github.com/girder>`_ plugin designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ to facilitate active learning on whole slide images.
+WSI Superpixel Guided Labeling is a `Girder 5 <https://github.com/girder>`_ plugin designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ to facilitate active learning on whole slide images.
 
 This plugin leverages the output of certain HistomicsTK/SlicerCLI jobs to allow end users to label superpixel regions of whole slide images to be used as input for machine learning algorithms.
 
@@ -13,13 +13,14 @@ Once the appropriate data is generated, a new view becomes available for labelin
 Installation
 ------------
 
-The recommended way to use this plugin is by adding it to the Digital Slide Archive's ``docker-compose`` deployment. First, check out both this repository and ``digital_slide_archive`` from Github, if you do not yet have a running instance of the Digital Slide Archive.
+The recommended way to use this plugin is by adding it to the Digital Slide Archive's ``docker-compose`` deployment. First, check out both this repository and `digital_slide_archive <https://github.com/DigitalSlideArchive/digital_slide_archive>`_ from Github, if you do not yet have a running instance of the Digital Slide Archive.
 
 If you don't already use a provisioning yaml file as part of your DSA deployment, you'll want to create one, e.g. ``provision.local.yaml``. Make sure this file contains the following: ::
 
     pip:
-        - /opt/wsi-superpixel-guided-labeling
-    rebuild-client: True
+      - /opt/wsi-superpixel-guided-labeling
+    shell:
+      - cd /opt/wsi-superpixel-guided-labeling/wsi_superpixel_guided_labeling/web_client && npm install && npm run build
     resources:
         - model: collection
           name: Tasks
