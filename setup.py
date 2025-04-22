@@ -4,7 +4,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = [
-    'girder>=3.0.0a1'
+    'girder>=5.0.0a2'
 ]
 
 setup(
@@ -22,10 +22,10 @@ setup(
     ],
     description='Perform active learning with superpixel classification.',
     install_requires=[
-        'histomicsui',
-        'large_image[tiff,openslide,memcached,openjpeg,converter]>=1.20.6',
-        'girder-large-image-annotation>=1.20.6',
-        'girder-slicer-cli-web>=1.2.3',
+        'histomicsui @ git+https://github.com/DigitalSlideArchive/HistomicsUI.git@girder-5',
+        'large_image[tiff,openslide,memcached,openjpeg,converter]==1.32.2a115',
+        'girder-large-image-annotation>=1.32.2a115',
+        # 'girder-slicer-cli-web>=1.2.3',
     ],
     license='Apache Software License 2.0',
     long_description=readme,
@@ -33,12 +33,12 @@ setup(
     include_package_data=True,
     keywords='girder-plugin, wsi_superpixel_guided_labeling',
     packages=find_packages(exclude=['test', 'test.*']),
-    url='https://github.com/DigitalSlideArchive/wsi_superpixel_guided_labeling',
+    url='https://github.com/DigitalSlideArchive/wsi-superpixel-guided-labeling',
     version='0.1.0',
     zip_safe=False,
     entry_points={
         'girder.plugin': [
-            'wsi_superpixel_guided_labeling = wsi_superpixel_guided_labeling:GirderPlugin'
+            'wsi_superpixel_guided_labeling = wsi_superpixel_guided_labeling:WSISuperpixelGuidedLabelingPlugin'
         ]
     }
 )
