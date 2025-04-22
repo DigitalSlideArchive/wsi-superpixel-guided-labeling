@@ -1,9 +1,9 @@
 <script>
 /* global geo */ // eslint-disable-line no-unused-vars
 import Vue from 'vue';
-import _ from 'underscore';
-import { restRequest } from '@girder/core/rest';
-import { ViewerWidget } from '@girder/large_image_annotation/views';
+const _ = girder._;
+const { restRequest } = girder.rest;
+const { ViewerWidget } = girder.plugins.large_image_annotation.views;
 
 import { activeLearningSteps, boundaryColor, viewMode } from './constants.js';
 import { store, updatePixelmapLayerStyle } from './store.js';

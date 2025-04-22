@@ -1,7 +1,6 @@
-import router from '@girder/histomicsui/router';
-import { registerPluginNamespace } from '@girder/core/pluginUtils';
-import { exposePluginConfig } from '@girder/core/utilities/PluginUtils';
-import girderEvents from '@girder/core/events';
+const events = girder.events;
+const { registerPluginNamespace } = girder.pluginUtils;
+const { exposePluginConfig } = girder.utilities.PluginUtils;
 
 import ActiveLearningView from './views/body/ActiveLearningView';
 import './views/itemAndFolderList';
@@ -15,6 +14,11 @@ const configRoute = `plugins/${pluginName}/config`;
 registerPluginNamespace(pluginName, WSISuperpixelGuidedLabeling);
 exposePluginConfig(pluginName, configRoute);
 
-router.route('active-learning', 'active-learning', function () {
-    girderEvents.trigger('g:navigateTo', ActiveLearningView, {});
+// g:appload.before runs after all plugin static files have been loaded
+events.on('g:appload.before', () => {
+    console.log("g:appload.before event triggered", girder);
+    const router = girder.plugins.histomicsui.router;
+    router.route('active-learning', 'active-learning', function () {
+        events.trigger('g:navigateTo', ActiveLearningView, {});
+    });
 });

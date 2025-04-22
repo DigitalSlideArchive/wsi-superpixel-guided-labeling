@@ -1,5 +1,5 @@
-import { wrap } from '@girder/core/utilities/PluginUtils';
-import HeaderImageView from '@girder/histomicsui/views/layout/HeaderImageView.js';
+const { wrap } = girder.utilities.PluginUtils;
+const HeaderImageView = girder.plugins.histomicsui.views.layout.HeaderImageView;
 
 wrap(HeaderImageView, 'render', function (render) {
     render.call(this);

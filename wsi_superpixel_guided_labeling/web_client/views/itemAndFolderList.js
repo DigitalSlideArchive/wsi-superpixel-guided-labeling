@@ -1,8 +1,9 @@
-import { wrap } from '@girder/core/utilities/PluginUtils';
-import ItemListWidget from '@girder/core/views/widgets/ItemListWidget';
-import FolderListWidget from '@girder/core/views/widgets/FolderListWidget';
-import _ from 'underscore';
-import { restRequest } from '@girder/core/rest';
+const {wrap} = girder.utilities.PluginUtils;
+const ItemListWidget = girder.views.widgets.ItemListWidget;
+const FolderListWidget = girder.views.widgets.FolderListWidget;
+const {restRequest} = girder.rest;
+
+const _ = girder._;
 
 const specialFolders = ['Annotations', 'Models', 'Features'];
 

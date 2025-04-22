@@ -1,15 +1,15 @@
-/* global $, __webpack_public_path__ */
-import View from '@girder/core/views/View';
-import { restRequest, getApiRoot } from '@girder/core/rest';
-import { confirm } from '@girder/core/dialog';
-import _ from 'underscore';
+const $ = girder.$;
+const View = girder.views.View;
+const { restRequest, getApiRoot } = girder.rest;
+const { confirm } = girder.dialog;
+const _ = girder._;
 
-import router from '@girder/histomicsui/router';
-import FolderCollection from '@girder/core/collections/FolderCollection';
-import AnnotationModel from '@girder/large_image_annotation/models/AnnotationModel';
-import ItemCollection from '@girder/core/collections/ItemCollection';
-import JobStatus from '@girder/jobs/JobStatus.js';
-import { parse } from '@girder/slicer_cli_web/parser';
+const router = girder.plugins.histomicsui.router;
+const FolderCollection = girder.collections.FolderCollection;
+const AnnotationModel = girder.plugins.large_image_annotation.models.AnnotationModel;
+const ItemCollection = girder.collections.ItemCollection;
+const JobStatus = girder.plugins.jobs.JobStatus;
+const { parse } = girder.plugins.slicer_cli_web.parser;
 
 import learningTemplate from '../../templates/body/activeLearningView.pug';
 import ActiveLearningGlobalContainer from '../vue/components/ActiveLearningGlobalContainer.vue';
@@ -20,10 +20,9 @@ import { debounce, isValidNumber } from '../vue/components/utils.js';
 
 import '../../stylesheets/body/learning.styl';
 
-const yaml = require('js-yaml');
+import * as yaml from 'js-yaml';
 // Only necessary until we have native support for Promises with es6.
 // Used for Promise.all() and Promise.resolve() support.
-const Promise = require('bluebird');
 
 const epochRegex = /epoch (\d+)/i;
 
@@ -269,33 +268,23 @@ const ActiveLearningView = View.extend({
             this.vueApp.$destroy();
         }
         const el = this.$('.h-active-learning-container').get(0);
-        // eslint-disable-next-line
-        const root = (__webpack_public_path__ || '/status/built').replace(/\/$/, '');
-        const geojsUrl = root + '/plugins/large_image/extra/geojs.js';
-        // Make sure geojs is available, as it required by the image viewer widgets
-        $.ajax({
-            url: geojsUrl,
-            dataType: 'script',
-            cache: true
-        }).done(() => {
-            const imageNamesById = {};
-            _.forEach(Object.keys(this.imageItemsById), (imageId) => {
-                imageNamesById[imageId] = this.imageItemsById[imageId].name;
-            });
-            this.vueApp = new ActiveLearningGlobalContainer({
-                el,
-                propsData: {
-                    backboneParent: this,
-                    imageNamesById,
-                    annotationsByImageId: this.annotationsByImageId,
-                    certaintyMetrics: this.certaintyMetrics,
-                    featureShapes: this.featureShapes,
-                    apiRoot: getApiRoot(),
-                    currentAverageCertainty: this.currentAverageCertainty,
-                    availableImages: this.availableImages,
-                    categoryMap: this.categoryMap
-                }
-            });
+        const imageNamesById = {};
+        _.forEach(Object.keys(this.imageItemsById), (imageId) => {
+            imageNamesById[imageId] = this.imageItemsById[imageId].name;
+        });
+        this.vueApp = new ActiveLearningGlobalContainer({
+            el,
+            propsData: {
+                backboneParent: this,
+                imageNamesById,
+                annotationsByImageId: this.annotationsByImageId,
+                certaintyMetrics: this.certaintyMetrics,
+                featureShapes: this.featureShapes,
+                apiRoot: getApiRoot(),
+                currentAverageCertainty: this.currentAverageCertainty,
+                availableImages: this.availableImages,
+                categoryMap: this.categoryMap
+            }
         });
     },
 

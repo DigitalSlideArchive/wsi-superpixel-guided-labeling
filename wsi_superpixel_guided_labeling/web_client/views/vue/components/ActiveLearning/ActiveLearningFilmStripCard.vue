@@ -1,6 +1,6 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
+const _ = girder._;
 
 import { store, nextCard } from '../store';
 import { isValidNumber, updateMetadata } from '../utils';

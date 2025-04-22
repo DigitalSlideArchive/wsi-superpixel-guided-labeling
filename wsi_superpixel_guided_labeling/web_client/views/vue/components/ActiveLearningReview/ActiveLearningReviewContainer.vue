@@ -1,6 +1,6 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
+const _ = girder._;
 
 import ActiveLearningReviewCard from './ActiveLearningReviewCard.vue';
 import ActiveLearningLabeling from '../ActiveLearningLabeling.vue';

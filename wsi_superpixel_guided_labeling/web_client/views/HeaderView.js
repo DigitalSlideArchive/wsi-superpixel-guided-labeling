@@ -1,5 +1,5 @@
-import { wrap } from '@girder/core/utilities/PluginUtils';
-import HeaderView from '@girder/histomicsui/views/layout/HeaderView';
+const { wrap } = girder.utilities.PluginUtils;
+const HeaderView = girder.plugins.histomicsui.views.layout.HeaderView;
 
 wrap(HeaderView, 'render', function (render) {
     const isActiveLearning = window.location.href.includes('active-learning');
