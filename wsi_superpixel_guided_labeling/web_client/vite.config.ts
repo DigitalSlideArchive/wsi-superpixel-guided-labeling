@@ -24,7 +24,7 @@ export default defineConfig({
     vue()
   ],
   build: {
-    sourcemap: !process.env.SKIP_SOURCE_MAPS,
+    sourcemap: true,
     lib: {
       entry: resolve(__dirname, 'main.js'),
       name: 'GirderPluginWSISuperpixelGuidedLabeling',

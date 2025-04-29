@@ -22,7 +22,7 @@ setup(
     ],
     description='Perform active learning with superpixel classification.',
     install_requires=[
-        'histomicsui @ git+https://github.com/DigitalSlideArchive/HistomicsUI.git@girder-5',
+        'histomicsui @ file:../HistomicsUI',
         'large_image[tiff,openslide,memcached,openjpeg,converter]==1.32.2a115',
         'girder-large-image-annotation>=1.32.2a115',
         # 'girder-slicer-cli-web>=1.2.3',
