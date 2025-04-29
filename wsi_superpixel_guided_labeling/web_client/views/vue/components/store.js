@@ -50,7 +50,8 @@ const store = Vue.observable({
     selectedLabels: new Map(),
     selectedReviewSuperpixels: [],
     filterBy: ['no review'],
-    predictionCounts: []
+    predictionCounts: [],
+    blockingJobRunning: false
 });
 
 const previousCard = () => {

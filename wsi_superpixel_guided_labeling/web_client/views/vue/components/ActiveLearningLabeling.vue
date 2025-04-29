@@ -122,6 +122,9 @@ export default Vue.extend({
         },
         exclusions() {
             return store.exclusions;
+        },
+        blockingJobRunning() {
+            return store.blockingJobRunning;
         }
     },
     watch: {
@@ -784,8 +787,10 @@ export default Vue.extend({
         v-if="showLabelingContainer"
         class="btn btn-block"
         :class="[activeLearningStep < activeLearningSteps.GuidedLabeling ? 'btn-primary' : 'btn-success']"
-        :disabled="!currentCategoryFormValid || !currentLabelsValid"
+        :disabled="!currentCategoryFormValid || !currentLabelsValid || blockingJobRunning"
         @click="beginTraining"
+        data-toggle="tooltip"
+        :title="blockingJobRunning ? 'Training in progress' : ''"
       >
         <i class="icon-star" />
         {{ activeLearningStep < activeLearningSteps.GuidedLabeling ? 'Begin training' : 'Retrain' }}
