@@ -13,7 +13,7 @@ Once the appropriate data is generated, a new view becomes available for labelin
 Installation
 ------------
 
-The recommended way to use this plugin is by adding it to the Digital Slide Archive's ``docker-compose`` deployment. First, check out both this repository and ``digital_slide_archive`` from Github, if you do not yet have a running instance of the Digital Slide Archive.
+The recommended way to use this plugin is by adding it to the `Digital Slide Archive's <https://github.com/DigitalSlideArchive/digital_slide_archive>`_ ``docker-compose`` deployment. First, check out both this repository and ``digital_slide_archive`` from Github, if you do not yet have a running instance of the Digital Slide Archive.
 
 If you don't already use a provisioning yaml file as part of your DSA deployment, you'll want to create one, e.g. ``provision.local.yaml``. Make sure this file contains the following: ::
 
@@ -94,29 +94,35 @@ To enable launching the Active Learning UI from a folder, you'll need to set met
 .. image:: docs/screenshots/active_learning_metadata.png
    :alt: Metadata to add. Key: active_learning, Value: true
 
+Alternatively, you can set the ``activeLearning`` key to ``true`` in the ``.histomicsui_config.yaml`` file for the folder.
+
+.. code-block:: yaml
+
+   activeLearning: true
+
 Upload the whole slide images you'd like to use for active learning to this folder, using the green upload button. Once your images have been uploaded, the ``Active Learning`` button should appear in the top right. If not, try refreshing the page. Click the ``Active Learning`` button to begin generating features and models for active learning.
 
 .. image:: docs/screenshots/active_learning_button.png
     :alt: Button to launch the Active Learning workflow
 
-The first step is to generate the superpixels and feature vectors. Using the form, you can control the approximate size of the superpixels generated (default is 100 pixels), and the magnification level at which to generate the superpixels (default is 5). Once you have chosen values for these fields, click the ``Generate Superpixels`` button. This will start a background process which can be monitored from the Girder Admin Console. This job could take some time to finish, and will take longer the more images you have in your folder. Feel free to close the page or navigate away while the work is being done. If you remain on the page, you will be taken to the next step automatically once the job has finished.
+The first step is to generate the superpixels and feature vectors. Using the form, you can control the approximate size of the superpixels generated (default is 100 pixels), and the magnification level at which to generate the superpixels (default is 5). You can also set the ``certainty metric`` (the default is ``confidence``) and the ``feature shape`` (the default is ``image``). Once you have chosen values for these fields, click the ``Generate Superpixels`` button. This will start a background process which can be monitored from the Girder Admin Console. This job could take some time to finish, and will take longer the more images you have in your folder. If you remain on the page, you will be taken to the next step automatically and as superpixels become available for each image you can begin labeling while the job completes.
 
 .. image:: docs/screenshots/superpixel_generation.png
     :alt: The form for superpixel generation
 
-Once superpixels and features have been generated, you will be able to create a set of categories for the superpixels, and label superpixels across your dataset to begin training the active learning models.
+In the initial labeling step, you will be able to create a set of categories for the superpixels, and label superpixels across your dataset to begin training the active learning models.
 
 .. image:: docs/screenshots/initial_labels.png
     :alt: The initial label user interface
 
-This view allows users to create new categories, and use those categories to label superpixels by interacting with the image viewer. The top form and buttons underneath are for creating the categories, and navigating between them. Right below that, the ``Image`` drop down menu allows switching the current image shown in the image viewer. Clicking on a superpixel in the image viewer will label that superpixel with the currently displayed category. Clicking again on that superpixel will remove the label. A running total of superpixels labeled per category is available to the right of the image viewer.
+This view allows users to create new categories, set category colors, rename categories, and delete and/or merge categories. You can then use those categories to label superpixels by interacting with the image viewer. The ``Image`` drop down menu allows switching the current image shown in the image viewer. Clicking on a superpixel in the image viewer will label that superpixel with the currently displayed category. Clicking again on that superpixel will remove the label. Select the crosshairs on the labeling dialog to enable painting mode where you can continuously label or unlabel superpixels. A running total of superpixels labeled per category is available to the right of the image viewer.
 
 Clicking on ``Begin Training`` will kick off a background process to begin training the active learning model using the labels provided in this step. Once that task is completed, you will be presented with a new view containing predictions as described below.
 
 .. image:: docs/screenshots/active_learning_view.png
     :alt: The active learning view
 
-From here, you can label superpixel features using the film strip area at the bottom to retrain the model. Each block of the film strip depicts one superpixel. The bar at the top of each block shows the most recent prediction. Hovering over this section shows the confidence of that prediction. The superpixels shown are sorted so that users are shown the least confident predictions first. Users can add a label by either agreeing or disagreeing by using the radio buttons. If disagree is chosen, the drop down menu becomes active, and users can add a label by selecting the correct category from the drop down menu.
+From here, you can label superpixel features using the film strip area at the bottom to retrain the model. Each block of the film strip depicts one superpixel. The bar at the top of each block shows the most recent prediction. The superpixels shown are sorted so that users are shown the least confident predictions first. Users can add a label by either selecting a category that matches or differs from the prediction. Either the drop down menu can be used or you can use the hotkey assigned to the category. This hotkey value can also be changed in the labeling dialog.
 
 In order to clear all user inputs on this screen , a ``Reset All`` button is provided. If the predictions for all of the visible blocks matches the actual class of the regions shown, there is an ``Agree to All`` button. You can also view a color-coded pixelmap of the current batch of predictions by clicking the ``Show/hide Predictions`` button.
 
