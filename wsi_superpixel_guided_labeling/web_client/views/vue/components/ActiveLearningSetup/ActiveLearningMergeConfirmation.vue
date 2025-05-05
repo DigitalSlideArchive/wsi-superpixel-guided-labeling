@@ -1,8 +1,8 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
+const _ = girder._;
 
-import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
+const ColorPickerInput = girder.plugins.histomicsui.vue.ColorPickerInput;
 
 import { store } from '../store.js';
 

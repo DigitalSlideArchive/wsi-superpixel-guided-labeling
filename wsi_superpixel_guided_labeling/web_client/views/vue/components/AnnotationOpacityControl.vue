@@ -1,5 +1,5 @@
 <script>
-import _ from 'underscore';
+const _ = girder._;
 
 import { store, updatePixelmapLayerStyle } from './store.js';
 

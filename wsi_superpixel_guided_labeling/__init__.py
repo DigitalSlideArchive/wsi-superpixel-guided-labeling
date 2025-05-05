@@ -1,10 +1,17 @@
+from pathlib import Path
+
 from girder import plugin
 
-
-class GirderPlugin(plugin.GirderPlugin):
+class WSISuperpixelGuidedLabelingPlugin(plugin.GirderPlugin):
     DISPLAY_NAME = 'WSI Superpixel Guided Labeling'
-    CLIENT_SOURCE_PATH = 'web_client'
 
     def load(self, info):
-        # add plugin loading logic here
         plugin.getPlugin('histomicsui').load(info)
+        # add plugin loading logic here
+        plugin.registerPluginStaticContent(
+            plugin='wsi_superpixel_guided_labeling',
+            css=['/style.css'],
+            js=['/girder-plugin-wsi-superpixel-guided-labeling.umd.js'],
+            staticDir=Path(__file__).parent / 'web_client' / 'dist',
+            tree=info['serverRoot'],
+        )

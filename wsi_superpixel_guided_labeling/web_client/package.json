@@ -3,44 +3,34 @@
     "version": "0.1.0",
     "private": true,
     "description": "Perform active learning with superpixel classification.",
-    "homepage": "https://github.com/DigitalSlideArchive/wsi_superpixel_guided_labeling",
+    "homepage": "https://github.com/DigitalSlideArchive/wsi-superpixel-guided-labeling",
     "license": "Apache-2.0",
-    "peerDependencies": {
-        "@girder/core": "*",
-        "@girder/histomicsui": "*"
-    },
-    "girderPlugin": {
-        "name": "wsi_superpixel_guided_labeling",
-        "main": "./main.js",
-        "dependencies": [
-            "histomicsui",
-            "large_image",
-            "large_image_annotation",
-            "slicer_cli_web"
-        ],
-        "webpack": "webpack.helper"
-    },
+    "main": "./main.js",
     "scripts": {
         "lint": "eslint . && pug-lint . && stylint",
-        "format": "eslint --cache --fix ."
+        "format": "eslint --cache --fix .",
+        "dev": "vite",
+        "build": "vite build"
     },
     "dependencies": {
+        "@girder/core": "^5.0.0-beta.2",
+        "@girder/histomicsui": "file:../../../HistomicsUI/histomicsui/web_client",
         "@vue/compiler-sfc": "^3.2.33",
         "backbone.localstorage": "^2.0.2",
         "bootstrap-submenu": "^2.0.4",
-        "copy-webpack-plugin": "^4.5.2",
+        "js-yaml": "^4.1.0",
         "petite-vue": "^0.4.1",
         "sinon": "^2.1.0",
         "tinycolor2": "^1.4.1",
         "url-search-params-polyfill": "^8.1.1",
-        "vue": "~2.6.14",
-        "vue-template-compiler": "~2.6.14",
-        "vue-loader": "~15.9.8",
-        "webpack": "^3"
+        "vue": "^2.7.16",
+        "vue-template-compiler": "~2.6.14"
     },
     "devDependencies": {
         "@girder/eslint-config": "*",
         "@girder/pug-lint-config": "*",
+        "@types/node": "^20.11.24",
+        "@vitejs/plugin-vue2": "^2.2.0",
         "eslint": "^8.20.0",
         "eslint-config-semistandard": "17.0.0",
         "eslint-config-standard": "^17.0.0",
@@ -49,8 +39,11 @@
         "eslint-plugin-n": "^15.2.4",
         "eslint-plugin-promise": "^6.0.0",
         "eslint-plugin-vue": "^9.10.0",
+        "pug": "^3.0.3",
         "pug-lint": "^2",
-        "stylint": "^2"
+        "stylint": "^2",
+        "stylus": "^0.64.0",
+        "vite": "^5.0.0"
     },
     "eslintConfig": {
         "extends": [

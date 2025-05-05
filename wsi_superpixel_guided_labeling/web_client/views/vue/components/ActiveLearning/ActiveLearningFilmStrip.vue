@@ -1,5 +1,5 @@
 <script>
-import _ from 'underscore';
+const _ = girder._;
 
 import ActiveLearningFilmStripCard from './ActiveLearningFilmStripCard.vue';
 import ActiveLearningStats from './ActiveLearningStats.vue';

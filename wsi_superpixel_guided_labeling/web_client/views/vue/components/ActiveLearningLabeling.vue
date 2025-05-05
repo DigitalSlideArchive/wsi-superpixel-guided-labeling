@@ -1,9 +1,9 @@
 <script>
 import Vue from 'vue';
-import _ from 'underscore';
+const _ = girder._;
 
-import { confirm } from '@girder/core/dialog';
-import ColorPickerInput from '@girder/histomicsui/vue/components/ColorPickerInput.vue';
+const { confirm } = girder.dialog;
+const ColorPickerInput = girder.plugins.histomicsui.vue.ColorPickerInput;
 
 import { store, assignHotkey, nextCard, previousCard, updatePixelmapLayerStyle } from './store.js';
 import { boundaryColor, comboHotkeys, viewMode, activeLearningSteps } from './constants.js';

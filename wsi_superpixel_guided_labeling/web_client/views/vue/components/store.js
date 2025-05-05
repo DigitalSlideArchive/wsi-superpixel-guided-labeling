@@ -1,6 +1,6 @@
 import Vue from 'vue';
 
-import _ from 'underscore';
+const _ = girder._;
 
 import { hotkeys as hotkeysConsts, activeLearningSteps } from './constants';
 import { rgbStringToArray } from './utils';
