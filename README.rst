@@ -122,6 +122,11 @@ In order to clear all user inputs on this screen , a ``Reset All`` button is pro
 
 After labeling some superpixels, a retrain can be triggered with the ``Retrain`` button. This will kick off a job to generate a new batch of predictions, using the newly created labels as input. This job should not take as long as the first, since superpixel and feature generation only needs to be performed once. While that job is running, interactions with this view are disabled. Once the job is finished, new superpixels will be shown to the user for labeling.
 
+You can review trained or predicted superpixels via the review mode. This allows grouping by label, filtering, comparisons, and checking on another user's labeling choices.
+
+.. image:: docs/screenshots/reviewmode.png
+    :alt: The review mode
+
 Features
 --------
 
@@ -133,4 +138,10 @@ Updating CLI Images
 The Superpixel CLI Docker image that is used for computing superpixels, extracting features, training models, and predicting labels can be updated without updating the whole system.  This can be done by selecting ``Collections`` -> ``Tasks`` -> ``Slicer CLI Web Tasks`` -> ``dsarchive/superpixel`` -> ``latest`` and then clicking on the ``Pull Latest`` button near the upper right.
 
 In the provisioning yaml file, if ``slicer-cli-image-pull`` is used rather than ``slicer-cli-image``, this will also ensure the latest version of the docker image is available when the system is restarted with docker compose.
+
+
+Acknowledgements
+----------------
+
+This work has been funded in part by National Library of Medicine grant 5R01LM013523 entitled "Guiding humans to create better labeled datasets for machine learning in biomedical research".
 
