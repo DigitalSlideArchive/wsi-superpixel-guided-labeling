@@ -100,6 +100,27 @@ export default Vue.extend({
             if (store.mode === viewMode.Labeling) {
                 store.labels = true;
             }
+        },
+        selectedImageId(newImageId, oldImageId) {
+            if (newImageId === oldImageId) {
+                return;
+            }
+            const selectedImage = document.getElementById('currentImage');
+            if (selectedImage) {
+                selectedImage.classList.remove('highlight');
+            }
+        },
+        availableImages() {
+            const selectedImage = document.getElementById('currentImage');
+            if (selectedImage) {
+                selectedImage.classList.add('highlight');
+            }
+            this.availableImages.forEach((imageId) => {
+                const image = document.getElementById(imageId);
+                if (image) {
+                    image.style.fontWeight = 'bold';
+                }
+            });
         }
     },
     mounted() {
@@ -169,6 +190,7 @@ export default Vue.extend({
           >
             <option
               v-for="imageId in Object.keys(imageNamesById)"
+              :id="imageId"
               :key="imageId"
               :value="imageId"
             >
@@ -285,5 +307,9 @@ export default Vue.extend({
     to {
         transform: translateX(400%);
     }
+}
+
+.highlight {
+    box-shadow: 0px 0px 2px 3px rgba(51, 122, 183, 0.5);
 }
 </style>
