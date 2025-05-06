@@ -221,7 +221,6 @@ const ActiveLearningView = View.extend({
                 });
             } else {
                 // There is a job running
-                store.activeLearningStep = activeLearningSteps.InitialLabeling;
                 this.waitForJobCompletion(previousJobs[0]._id);
                 this.watchForSuperpixels();
             }
@@ -787,10 +786,12 @@ const ActiveLearningView = View.extend({
             '<i class="icon-spin4 animate-spin"><i>' +
             '</div></div>'
         );
+        store.blockingJobRunning = true;
     },
 
     hideSpinner() {
         $('.g-hui-loading-overlay').remove();
+        store.blockingJobRunning = false;
     },
 
     waitForJobCompletion(jobId, goToNextStep) {
