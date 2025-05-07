@@ -25,6 +25,7 @@ authors:
     affiliation: 2
   - name: Anders Sildnes
     affiliation: 2
+    orcid: 0009-0003-0141-6112
   - name: Faiza Ahmed
     affiliation: 1
     orcid: 0000-0001-6687-9941
