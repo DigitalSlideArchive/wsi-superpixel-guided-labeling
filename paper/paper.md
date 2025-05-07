@@ -65,7 +65,7 @@ We had a placental pathologist provide feedback to validate the efficiency of th
 
 # Basic Workflow
 
-When starting a new labeling project, the user selects how superpixels are generated, which certainty metric is used for determining the optimal labeling order, and what features are used for model training.  The labeling mode allows defining project labels and performing initial labeling.  This mode can also be used to add new label categories or combine two categories if they should not have been distinct.
+When starting a new labeling project, the user selects how superpixels are generated, which certainty metric is used for determining the optimal labeling order, and what features are used for model training.  The labeling mode allows defining project labels and performing initial labeling.  This mode can also be used to add new label categories or combine two categories if they should not have been distinct. Label categories can additionally be marked as excluded, which removes them from training and ensures that superpixels with those labels are no longer suggested for labeling.
 
 ![The Bulk Labeling interface showing one of the project images divided into superpixels with some categories defined.  A user can "paint" areas with known labels as an initial seed for the guided labeling process](../docs/screenshots/initial_labels.png)
 
