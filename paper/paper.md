@@ -2,9 +2,9 @@
 title: 'WSI Superpixel Guided Labeling'
 tags:
   - Python
-  - histology 
-  - bioimage informatics 
-  - whole slide annotation 
+  - histology
+  - bioimage informatics
+  - whole slide annotation
   - whole slide images
   - guided labeling
 # (add orcid for anyone who has one)
@@ -50,7 +50,7 @@ bibliography: paper.bib
 
 # Summary
 
-`WSI Superpixel Guided Labeling` facilitates active learning on whole slide images.  It has a user interface built on top of the HistomicsUI [@histomicsui] base and deployed as part of the Digital Slide Archive [@Gutman2017, @digitalslidearchive], and uses the HistomicsTK [@histomicstk] tool kit as part of the process. 
+`WSI Superpixel Guided Labeling` facilitates active learning on whole slide images.  It has a user interface built on top of the HistomicsUI [@histomicsui] base and deployed as part of the Digital Slide Archive [@Gutman2017, @digitalslidearchive], and uses the HistomicsTK [@histomicstk] tool kit as part of the process.
 
 Users label superpixel regions or other segmented areas of whole slide images to be used as classification input for machine learning algorithms.  An example algorithm is included which generates superpixels, features, and machine learning models for active learning on a directory of images.  The interface allows bulk labeling, labeling the most impactful superpixels to improve the model, and reviewing labeled and predicted categories.
 
@@ -60,13 +60,13 @@ One of the limitations in generating accurate models is the need for labeled dat
 
 `WSI Superpixel Guided Labeling` provides a user interface and workflow for this guided labeling process.  Given a set of whole slide images, the images are segmented based on a some user choices.  This segmentation is the basis for labeling.  The user can specify any number of label categories, including labels that will be excluded from training (for instance, for segmented regions whose categories cannot be accurately determined).  After labeling a few initial segments, a model is generated and used to both predict the category of all segments and the segments that would result in the best improvement in the model if they were also labeled.  The user can retrain the model at any time and review the results of both the predictions and other users.
 
-For development, the initial segmentation uses superpixels generated with the SLIC algorithm.  These are computed on whole slide images in a tiled manner so that they can work on arbitrarily large images, and the tile boundaries are properly handled to avoid visible artifacts.  Either of two basic models can be trained and used for predictions: small-scale CNN using image features implemented in tensorflow/keras or torch, or a huggingface foundation model that generates a one-dimensional feature vector.  The certainty criteria for which segments should be labeled next can also be selected, and includes confidence, margin, negative entropy, and the BatchBALD [@batchbald2019] algorithm.
+For development, the initial segmentation uses superpixels generated with the SLIC [@SLIC2012] algorithm.  These are computed on whole slide images in a tiled manner so that they can work on arbitrarily large images, and the tile boundaries are properly handled to avoid visible artifacts.  Once generated, segments are represented in one of two ways, either as two-dimensional patches, each centered in a fixed-sized square of pixels with non-segment pixels set to black, or as one-dimensional vectors, such as those generated from the huggingface UNI [@huggingface2024uni] foundation model.  One of two basic models is trained based upon the segment representation.  For two-dimensional patches, the model to be trained is a small-scale CNN implemented in tensorflow/keras or torch.  For one-dimensional vectors, the model to be trained is a single-layer linear classifier.  The certainty criteria for which segments should be labeled next can also be selected, and includes confidence, margin, negative entropy, and the BatchBALD [@batchbald2019] algorithm.
 
 We had a placental pathologist provide feedback to validate the efficiency of the user interface and utility of the process.
 
 # Basic Workflow
 
-When starting a new labeling project, the user selects how superpixels are generated, which certainty metric is used for determining the optimal labeling order, and what features are used for model training.  The labeling mode allows defining project labels and performing initial labeling.  This mode can also be used to add new label categories or combine two categories if they should not have been distinct. Label categories can additionally be marked as excluded, which removes them from training and ensures that superpixels with those labels are no longer suggested for labeling.
+When starting a new labeling project, the user selects how superpixels are generated, which certainty metric is used for determining the optimal labeling order, and what features are used for model training.  The labeling mode allows defining project labels and performing initial labeling.  This mode can also be used to add new label categories or combine two categories if they should not have been distinct.  Label categories can additionally be marked as excluded, which removes them from training and ensures that superpixels with those labels are no longer suggested for labeling.
 
 ![The Bulk Labeling interface showing one of the project images divided into superpixels with some categories defined.  A user can "paint" areas with known labels as an initial seed for the guided labeling process](../docs/screenshots/initial_labels.png)
 
