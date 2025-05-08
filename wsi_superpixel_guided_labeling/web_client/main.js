@@ -16,7 +16,6 @@ exposePluginConfig(pluginName, configRoute);
 
 // g:appload.before runs after all plugin static files have been loaded
 events.on('g:appload.before', () => {
-    console.log("g:appload.before event triggered", girder);
     const router = girder.plugins.histomicsui.router;
     router.route('active-learning', 'active-learning', function () {
         events.trigger('g:navigateTo', ActiveLearningView, {});

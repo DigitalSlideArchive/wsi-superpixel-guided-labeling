@@ -14,7 +14,7 @@
     },
     "dependencies": {
         "@girder/core": "^5.0.0-beta.2",
-        "@girder/histomicsui": "file:../../../HistomicsUI/histomicsui/web_client",
+        "@girder/histomicsui": "file:///opt/HistomicsUI/histomicsui/web_client",
         "@vue/compiler-sfc": "^3.2.33",
         "backbone.localstorage": "^2.0.2",
         "bootstrap-submenu": "^2.0.4",

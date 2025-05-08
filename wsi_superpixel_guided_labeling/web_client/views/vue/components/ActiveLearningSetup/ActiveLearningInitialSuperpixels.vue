@@ -16,10 +16,6 @@ export default Vue.extend({
             return this.radius > 0 && this.magnification > 0;
         }
     },
-    mounted() {
-        this.certaintyChoice = this.certaintyMetrics[0];
-        this.featureChoice = this.featureShapes[0];
-    },
     methods: {
         generateInitialSuperpixels() {
             this.backboneParent.generateInitialSuperpixels(
@@ -28,6 +24,24 @@ export default Vue.extend({
                 this.certaintyChoice,
                 this.featureChoice
             );
+        }
+    },
+    watch: {
+        certaintyMetrics: {
+            handler() {
+                if (this.certaintyChoice === '' && this.certaintyMetrics) {
+                    this.certaintyChoice = this.certaintyMetrics[0];
+                }
+            },
+            immediate: true
+        },
+        featureShapes: {
+            handler() {
+                if (this.featureChoice === '' && this.featureShapes) {
+                    this.featureChoice = this.featureShapes[0];
+                }
+            },
+            immediate: true
         }
     }
 });
