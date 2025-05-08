@@ -23,6 +23,7 @@ authors:
     orcid: 0000-0003-4644-8874
   - name: Abhishek Sharma
     affiliation: 2
+    orcid: 0000-0001-6666-2179
   - name: Anders Sildnes
     affiliation: 2
     orcid: 0009-0003-0141-6112
