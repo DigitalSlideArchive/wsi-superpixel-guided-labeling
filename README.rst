@@ -2,13 +2,15 @@
 WSI Superpixel Guided Labeling
 ==============================
 
-WSI Superpixel Guided Labeling is a `Girder 3 <https://github.com/girder>`_ plugin designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ to facilitate active learning on whole slide images.
+WSI Superpixel Guided Labeling is a `Girder 3 <https://github.com/girder>`_ plugin for interactive development of image classifiers. It is designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ and enables rapid development of classifiers with whole slide images using active learning.
 
-This plugin leverages the output of certain HistomicsTK/SlicerCLI jobs to allow end users to label superpixel regions of whole slide images to be used as input for machine learning algorithms.
+This plugin can be used to classify objects ranging from cell nuclei to high-power fields, and can operate on user provided data or data from a built-in pipeline that parcellates a whole-slide image into superpixels (see ``dsarchive/superpixel:latest``).
 
-An example algorithm is contained within the ``dsarchive/superpixel:latest`` docker image. This can be used to generate superpixels, features, and machine learning models for active learning on a directory of images. See the installation instructions below for how to include the image as part of your Digital Slide Archive deployment.
+The `Installation`_ instructions below describe how to install the plugin for your existing `Digital Slide Archive deployment <https://github.com/DigitalSlideArchive/digital_slide_archive/tree/master/devops/dsa>`_.
 
-Once the appropriate data is generated, a new view becomes available for labeling and retraining.
+See the `Data Import`_ section for details on the data import script and data formatting.
+
+.. contents:: Table of Contents:
 
 Installation
 ------------
@@ -132,6 +134,46 @@ You can review trained or predicted superpixels via the review mode. This allows
 
 .. image:: docs/screenshots/reviewmode.png
     :alt: The review mode
+
+Data Import
+-----------
+Users can provide their own data for use with the platform, providing flexibility in the type of objects, and methods of detection/segmentation and encoding. A command-line import script is provided for the upload or import of this data. The required file formats and script details are described below.
+
+Data formats
+~~~~~~~~~~~~~~~~~~~~~~~~
+Each slide in the dataset requires four files:
+
+whole-slide image (various formats)
+    Any format that is supported by `large image <https://girder.github.io/large_image/formats.html>`_ can be used.
+feature (.h5)
+    This file contains a single array where each row is a feature embedding for the object. A single blank row should be prepended if the image contains non-object background pixels.
+pixelmap (.tiff)
+    This image is used as a `pixelmap overlay <https://girder.github.io/large_image/annotations.html#tiled-pixelmap-overlays>`_ to define object locations for visualization and interactivity. Pixel values reflect the position of the object embedding in the feature file. For an object embedding in row 'i' of the feature array (zero-index), the corresponding pixels for that object should have value 2i, and the border pixels 2i+1. Non-object background pixels should be encoded using zero values.
+bounding boxes (.csv)
+    Each row of this .csv defines the left, top, right, and bottom pixel for a single object. Objects should be listed in the same order as they appear in the feature.h5 file. 
+
+Command-line Import Tool
+~~~~~~~~~~~~~~~~~~~~~~~~
+data_import.py is provided to import or upload user-generated data into the plugin.
+
+Import requires a csv file defining the paths to input files, an API key for your DSA instance, and a project name: ::
+
+    > data_import inputs.csv UI65ixMezye0LpBOyYozArB9czPu3PLNpq0RGlGn new_project
+
+Here, input.csv lists the whole-slide image, feature h5 file, pixelmap .tiff image, bounding box csv, and pixelmap downscale factor on each row: ::
+
+    > more inputs.csv
+    /remote/a.svs,/remote/a.svs.feature.h5,/remote/a.svs.pixelmap.tiff,/local/a.svs.boxes.csv,4
+    /remote/b.svs,/remote/b.svs.feature.h5,/remote/b.svs.pixelmap.tiff,/local/b.svs.boxes.csv,4
+
+Feature h5 filenames should follow the pattern [slide_filename].*.feature.h5, but other filenames are unrestricted.
+
+If importing data from DSA mounted storage, provide an identifier for the assetstore where the files are mounted using the -a option. This
+identifier can be determined from the DSA Admin console.
+
+-a, --assetstore  Identifier for storage assetstore if importing files
+-u, --url         URL for server. Defaults to http://localhost:8080/api/v1
+-r, --replace     Replace existing wsis, features, or pixelmaps
 
 Features
 --------
