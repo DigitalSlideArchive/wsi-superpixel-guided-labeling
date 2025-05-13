@@ -191,7 +191,7 @@ def main():
         'key',
         type=str,
         help=(
-            'URL for the (ex. http://dsa.university.edu/api/v1).'
+            'API key for the server (see /api/v1#/api_key/api_key_createKey_post_api_key).'
         ),
     )
     parser.add_argument(
