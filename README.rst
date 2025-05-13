@@ -149,8 +149,12 @@ feature (.h5)
     This file contains a single array where each row is a feature embedding for the object. A single blank row should be prepended if the image contains non-object background pixels.
 pixelmap (.tiff)
     This image is used as a `pixelmap overlay <https://girder.github.io/large_image/annotations.html#tiled-pixelmap-overlays>`_ to define object locations for visualization and interactivity. Pixel values reflect the position of the object embedding in the feature file. For an object embedding in row 'i' of the feature array (zero-index), the corresponding pixels for that object should have value 2i, and the border pixels 2i+1. Non-object background pixels should be encoded using zero values.
+    The below example shows an example pixelmap.
+
+    .. image:: docs/screenshots/pixelmap.png
+       :alt: Pixelmap example
 bounding boxes (.csv)
-    Each row of this .csv defines the left, top, right, and bottom pixel for a single object. Objects should be listed in the same order as they appear in the feature.h5 file. 
+    Each row of this .csv defines the left, top, right, and bottom pixel for a single object. Objects should be listed in the same order as they appear in the feature.h5 file.
 
 Command-line Import Tool
 ~~~~~~~~~~~~~~~~~~~~~~~~
