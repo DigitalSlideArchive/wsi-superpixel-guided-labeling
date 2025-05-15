@@ -89,9 +89,16 @@ def pixelmap_annotation(pixelmap_id, scale, boxes):
         values=values,
         categories=categories,
     )
+    attr = dict(
+        cli = None,
+        metadata = {},
+        params = {"scale_x": scale, "scale_y": scale},
+        version = None
+    )
     annotation = dict(
         name='Superpixel Epoch 0',
         elements=[pixelmap],
+        attributes = attr    
     )
     return annotation
 
