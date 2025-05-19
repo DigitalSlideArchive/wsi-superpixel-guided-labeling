@@ -139,6 +139,15 @@ const ActiveLearningView = View.extend({
         // Make sure the flag to enable active learning is set to true
         this.histomicsUIConfig.activeLearning = true;
 
+        // Remember the initial training parameters if they are set
+        if (!_.isEmpty(store.initialTrainingParameters)) {
+            const { radius, magnification, certaintyMetric, featureShape } = store.initialTrainingParameters;
+            this.histomicsUIConfig.radius = radius;
+            this.histomicsUIConfig.magnification = magnification;
+            this.histomicsUIConfig.certaintyMetric = certaintyMetric;
+            this.histomicsUIConfig.featureShape = featureShape;
+        }
+
         const groups = new Map();
         this.categoryMap.clear(); // Keep the internal categoryMap in sync with changes
         _.forEach(store.categories, (category, index) => {
@@ -749,6 +758,12 @@ const ActiveLearningView = View.extend({
             train: false
         });
         store.activeLearningStep = activeLearningSteps.InitialLabeling;
+        store.initialTrainingParameters = {
+            radius,
+            magnification,
+            certaintyMetric,
+            featureShape
+        };
         this.getAnnotations();
         this.triggerJob(data, true);
     },

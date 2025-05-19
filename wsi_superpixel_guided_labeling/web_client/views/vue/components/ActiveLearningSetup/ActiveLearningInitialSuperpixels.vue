@@ -28,6 +28,7 @@ export default Vue.extend({
                 this.certaintyChoice,
                 this.featureChoice
             );
+            this.backboneParent.updateHistomicsYamlConfig();
         }
     }
 });

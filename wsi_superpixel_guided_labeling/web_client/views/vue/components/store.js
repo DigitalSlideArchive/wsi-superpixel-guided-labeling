@@ -29,6 +29,7 @@ const store = Vue.observable({
     userNames: {},
     exclusions: [],
     tileMetadata: {},
+    initialTrainingParameters: {},
     /*********
      * UI
      *********/
