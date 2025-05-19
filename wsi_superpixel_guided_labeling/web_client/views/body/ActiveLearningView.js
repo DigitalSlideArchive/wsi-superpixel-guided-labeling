@@ -704,6 +704,31 @@ const ActiveLearningView = View.extend({
         const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
         data.exclude = JSON.stringify(excluded);
         if (!this.lastRunJobId) {
+            const { radius, magnification, certaintyMetric, featureShape } = this.histomicsUIConfig;
+            if ([radius, magnification, certaintyMetric, featureShape].some((value) => !value)) {
+                restRequest({
+                    url: 'item',
+                    data: {
+                        folderId: this.trainingDataFolderId,
+                        name: '.histomicsui_config.yaml'
+                    }
+                }).done((response) => {
+                    const configUrl = `${window.location.origin}/#item/${response[0]._id}`;
+                    confirm({
+                        text: '<p>ERROR - Job request cannot be completed.</p>' +
+                        '<p>Please set the required keys in the histomicsui config file:</p>' +
+                        `<ul>${!radius ? `<li>radius</li>` : ''}` +
+                        `${!magnification ? `<li>magnification</li>` : ''}` +
+                        `${!certaintyMetric ? `<li>certaintyMetric</li>` : ''}` +
+                        `${!featureShape ? `<li>featureShape</li>` : ''}</ul>`,
+                        yesText: 'View config',
+                        noText: 'Okay',
+                        confirmCallback: () => { window.open(configUrl, '_blank'); },
+                        escapedHtml: true
+                    });
+                });
+                return;
+            }
             this.initialTraining(radius, magnification, certaintyMetric, featureShape);
             return;
         }
