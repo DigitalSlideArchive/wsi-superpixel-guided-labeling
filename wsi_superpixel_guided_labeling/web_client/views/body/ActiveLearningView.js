@@ -690,18 +690,20 @@ const ActiveLearningView = View.extend({
         this.applyReviews();
         // Make sure that our folder ids are up-to-date
         const data = this.generateClassificationJobData();
-        data.jobId = this.lastRunJobId;
         data.randomInput = false;
+        data.train = true;
         const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
+        data.exclude = JSON.stringify(excluded);
+        if (!this.lastRunJobId) {
+            const { radius, magnification, certaintyMetric, featureShape } = this.histomicsUIConfig;
+            this.generateInitialSuperpixels(radius, magnification, certaintyMetric, featureShape);
+            return;
+        }
+        data.jobId = this.lastRunJobId;
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
-            data: {
-                jobId: this.lastRunJobId,
-                randominput: false,
-                train: true,
-                exclude: JSON.stringify(excluded)
-            }
+            data
         }).done((job) => {
             store.page = 0;
             store.selectedIndex = 0;
