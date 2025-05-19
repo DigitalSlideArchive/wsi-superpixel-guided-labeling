@@ -695,8 +695,7 @@ const ActiveLearningView = View.extend({
         const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
         data.exclude = JSON.stringify(excluded);
         if (!this.lastRunJobId) {
-            const { radius, magnification, certaintyMetric, featureShape } = this.histomicsUIConfig;
-            this.generateInitialSuperpixels(radius, magnification, certaintyMetric, featureShape);
+            this.initialTraining(radius, magnification, certaintyMetric, featureShape);
             return;
         }
         data.jobId = this.lastRunJobId;
@@ -737,7 +736,7 @@ const ActiveLearningView = View.extend({
         };
     },
 
-    generateInitialSuperpixels(radius, magnification, certaintyMetric, featureShape) {
+    initialTraining(radius, magnification, certaintyMetric, featureShape) {
         const data = this.generateClassificationJobData();
         Object.assign(data, {
             labels: JSON.stringify([]),
