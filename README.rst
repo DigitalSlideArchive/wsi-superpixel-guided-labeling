@@ -1,8 +1,8 @@
 ==============================
-WSI Superpixel Guided Labeling
+Histomics Label
 ==============================
 
-WSI Superpixel Guided Labeling is a `Girder 3 <https://github.com/girder>`_ plugin designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ to facilitate active learning on whole slide images.
+Histomics Label is a `Girder 3 <https://github.com/girder>`_ plugin designed to be used in conjunction with `HistomicsUI <https://github.com/DigitalSlideArchive/HistomicsUI>`_ and `HistomicsTK <https://github.com/DigitalSlideArchive/HistomicsTK>`_ to facilitate active learning on whole slide images.
 
 This plugin leverages the output of certain HistomicsTK/SlicerCLI jobs to allow end users to label superpixel regions of whole slide images to be used as input for machine learning algorithms.
 
@@ -79,7 +79,7 @@ Where ``<path>/<to>/wsi-superpixel-guided-labeling`` is the path to this directo
 
 In the same directory, run ``DSA_USER=$(id -u):$(id -g) docker compose up``. (If that and ``docker compose version`` fail you may first need to invoke ``sudo apt install docker-compose-plugin``.) Once the deployment is stood up, you can verify that everything has been provisioned correctly by visiting ``localhost:8080``.
 
-To verify, login as the provisioned admin user and check that the "WSI Superpixel Guided Labeling" plugin is installed by navigating to the Admin console from the sidebar and clicking "Plugins." Additionally there should be a collection called "Active Learning", which should contain one folder called "Data", which in turn should contain folders "Annotations," "Features," and "Models."
+To verify, login as the provisioned admin user and check that the "Histomics Label" plugin is installed by navigating to the Admin console from the sidebar and clicking "Plugins." Additionally there should be a collection called "Active Learning", which should contain one folder called "Data", which in turn should contain folders "Annotations," "Features," and "Models."
 
 Using the Plugin
 ----------------
