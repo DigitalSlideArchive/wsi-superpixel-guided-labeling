@@ -8,7 +8,7 @@ requirements = [
 ]
 
 setup(
-    name='wsi_superpixel_guided_labeling',
+    name='histomics_label',
     author='Kitware, Inc.',
     author_email='kitware@kitware.com',
     classifiers=[
@@ -31,14 +31,14 @@ setup(
     long_description=readme,
     long_description_content_type='text/x-rst',
     include_package_data=True,
-    keywords='girder-plugin, wsi_superpixel_guided_labeling',
+    keywords='girder-plugin, histomics_label',
     packages=find_packages(exclude=['test', 'test.*']),
     url='https://github.com/DigitalSlideArchive/wsi_superpixel_guided_labeling',
     version='0.1.0',
     zip_safe=False,
     entry_points={
         'girder.plugin': [
-            'wsi_superpixel_guided_labeling = wsi_superpixel_guided_labeling:GirderPlugin'
+            'histomics_label = histomics_label:GirderPlugin'
         ]
     }
 )

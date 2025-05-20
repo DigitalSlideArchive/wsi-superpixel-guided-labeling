@@ -9,7 +9,7 @@ import './views/HeaderView';
 import './views/HeaderImageView';
 import * as WSISuperpixelGuidedLabeling from './index';
 
-const pluginName = 'wsi_superpixel_guided_labeling';
+const pluginName = 'histomics_label';
 const configRoute = `plugins/${pluginName}/config`;
 
 registerPluginNamespace(pluginName, WSISuperpixelGuidedLabeling);
