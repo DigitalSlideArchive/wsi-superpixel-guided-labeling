@@ -251,7 +251,7 @@ def main():
     features = [row[1] for row in inputs]
     pixelmaps = [row[2] for row in inputs]
     boxes = [row[3] for row in inputs]
-    scales = [row[4] for row in inputs]
+    scales = [int(row[4]) for row in inputs]
 
     # build list of bounding boxes
     bounding = []
