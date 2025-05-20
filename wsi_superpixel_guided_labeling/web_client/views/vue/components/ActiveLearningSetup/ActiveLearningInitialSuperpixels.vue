@@ -21,13 +21,14 @@ export default Vue.extend({
         this.featureChoice = this.featureShapes[0];
     },
     methods: {
-        generateInitialSuperpixels() {
-            this.backboneParent.generateInitialSuperpixels(
+        initialTraining() {
+            this.backboneParent.initialTraining(
                 this.radius,
                 this.magnification,
                 this.certaintyChoice,
                 this.featureChoice
             );
+            this.backboneParent.updateHistomicsYamlConfig();
         }
     }
 });
@@ -98,7 +99,7 @@ export default Vue.extend({
     <button
       class="btn btn-primary h-generate-superpixel-btn"
       :disabled="!validForm"
-      @click="generateInitialSuperpixels"
+      @click="initialTraining"
     >
       Generate Superpixels
     </button>

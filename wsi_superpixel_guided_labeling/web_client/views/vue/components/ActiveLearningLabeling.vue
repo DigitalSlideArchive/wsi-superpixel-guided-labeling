@@ -788,9 +788,9 @@ export default Vue.extend({
         class="btn btn-block"
         :class="[activeLearningStep < activeLearningSteps.GuidedLabeling ? 'btn-primary' : 'btn-success']"
         :disabled="!currentCategoryFormValid || !currentLabelsValid || blockingJobRunning"
-        @click="beginTraining"
         data-toggle="tooltip"
         :title="blockingJobRunning ? 'Training in progress' : ''"
+        @click="beginTraining"
       >
         <i class="icon-star" />
         {{ activeLearningStep < activeLearningSteps.GuidedLabeling ? 'Begin training' : 'Retrain' }}

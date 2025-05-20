@@ -139,6 +139,15 @@ const ActiveLearningView = View.extend({
         // Make sure the flag to enable active learning is set to true
         this.histomicsUIConfig.activeLearning = true;
 
+        // Remember the initial training parameters if they are set
+        if (!_.isEmpty(store.initialTrainingParameters)) {
+            const { radius, magnification, certaintyMetric, featureShape } = store.initialTrainingParameters;
+            this.histomicsUIConfig.radius = radius;
+            this.histomicsUIConfig.magnification = magnification;
+            this.histomicsUIConfig.certaintyMetric = certaintyMetric;
+            this.histomicsUIConfig.featureShape = featureShape;
+        }
+
         const groups = new Map();
         this.categoryMap.clear(); // Keep the internal categoryMap in sync with changes
         _.forEach(store.categories, (category, index) => {
@@ -690,18 +699,44 @@ const ActiveLearningView = View.extend({
         this.applyReviews();
         // Make sure that our folder ids are up-to-date
         const data = this.generateClassificationJobData();
-        data.jobId = this.lastRunJobId;
         data.randomInput = false;
+        data.train = true;
         const excluded = _.map(store.exclusions, (idx) => store.categories[idx + 1].label);
+        data.exclude = JSON.stringify(excluded);
+        if (!this.lastRunJobId) {
+            const { radius, magnification, certaintyMetric, featureShape } = this.histomicsUIConfig;
+            if ([radius, magnification, certaintyMetric, featureShape].some((value) => !value)) {
+                restRequest({
+                    url: 'item',
+                    data: {
+                        folderId: this.trainingDataFolderId,
+                        name: '.histomicsui_config.yaml'
+                    }
+                }).done((response) => {
+                    const configUrl = `${window.location.origin}/#item/${response[0]._id}`;
+                    confirm({
+                        text: '<p>ERROR - Job request cannot be completed.</p>' +
+                        '<p>Please set the required keys in the histomicsui config file:</p>' +
+                        `<ul>${!radius ? `<li>radius</li>` : ''}` +
+                        `${!magnification ? `<li>magnification</li>` : ''}` +
+                        `${!certaintyMetric ? `<li>certaintyMetric</li>` : ''}` +
+                        `${!featureShape ? `<li>featureShape</li>` : ''}</ul>`,
+                        yesText: 'View config',
+                        noText: 'Okay',
+                        confirmCallback: () => { window.open(configUrl, '_blank'); },
+                        escapedHtml: true
+                    });
+                });
+                return;
+            }
+            this.initialTraining(radius, magnification, certaintyMetric, featureShape);
+            return;
+        }
+        data.jobId = this.lastRunJobId;
         restRequest({
             method: 'POST',
             url: `slicer_cli_web/${this.activeLearningJobUrl}/rerun`,
-            data: {
-                jobId: this.lastRunJobId,
-                randominput: false,
-                train: true,
-                exclude: JSON.stringify(excluded)
-            }
+            data
         }).done((job) => {
             store.page = 0;
             store.selectedIndex = 0;
@@ -735,7 +770,7 @@ const ActiveLearningView = View.extend({
         };
     },
 
-    generateInitialSuperpixels(radius, magnification, certaintyMetric, featureShape) {
+    initialTraining(radius, magnification, certaintyMetric, featureShape) {
         const data = this.generateClassificationJobData();
         Object.assign(data, {
             labels: JSON.stringify([]),
@@ -748,6 +783,12 @@ const ActiveLearningView = View.extend({
             train: false
         });
         store.activeLearningStep = activeLearningSteps.InitialLabeling;
+        store.initialTrainingParameters = {
+            radius,
+            magnification,
+            certaintyMetric,
+            featureShape
+        };
         this.getAnnotations();
         this.triggerJob(data, true);
     },
