@@ -88,6 +88,7 @@ def pixelmap_annotation(pixelmap_id, scale, boxes):
         transform=transform,
         values=values,
         categories=categories,
+        user= {'bbox': boxes}, 
     )
     attr = dict(
         cli = None,
