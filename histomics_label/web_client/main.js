@@ -7,12 +7,12 @@ import ActiveLearningView from './views/body/ActiveLearningView';
 import './views/itemAndFolderList';
 import './views/HeaderView';
 import './views/HeaderImageView';
-import * as WSISuperpixelGuidedLabeling from './index';
+import * as HistomicsLabel from './index';
 
-const pluginName = 'wsi_superpixel_guided_labeling';
+const pluginName = 'histomics_label';
 const configRoute = `plugins/${pluginName}/config`;
 
-registerPluginNamespace(pluginName, WSISuperpixelGuidedLabeling);
+registerPluginNamespace(pluginName, HistomicsLabel);
 exposePluginConfig(pluginName, configRoute);
 
 router.route('active-learning', 'active-learning', function () {

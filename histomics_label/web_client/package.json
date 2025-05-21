@@ -1,16 +1,16 @@
 {
-    "name": "@girder/wsi_superpixel_guided_labeling",
+    "name": "@girder/histomics_label",
     "version": "0.1.0",
     "private": true,
     "description": "Perform active learning with superpixel classification.",
-    "homepage": "https://github.com/DigitalSlideArchive/wsi_superpixel_guided_labeling",
+    "homepage": "https://github.com/DigitalSlideArchive/histomics-label",
     "license": "Apache-2.0",
     "peerDependencies": {
         "@girder/core": "*",
         "@girder/histomicsui": "*"
     },
     "girderPlugin": {
-        "name": "wsi_superpixel_guided_labeling",
+        "name": "histomics_label",
         "main": "./main.js",
         "dependencies": [
             "histomicsui",

@@ -3,6 +3,6 @@ import pytest
 from girder.plugin import loadedPlugins
 
 
-@pytest.mark.plugin('wsi_superpixel_guided_labeling')
+@pytest.mark.plugin('histomics_label')
 def test_import(server):
-    assert 'wsi_superpixel_guided_labeling' in loadedPlugins()
+    assert 'histomics_label' in loadedPlugins()
