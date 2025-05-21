@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "description": "Perform active learning with superpixel classification.",
-    "homepage": "https://github.com/DigitalSlideArchive/wsi_superpixel_guided_labeling",
+    "homepage": "https://github.com/DigitalSlideArchive/histomics_label",
     "license": "Apache-2.0",
     "peerDependencies": {
         "@girder/core": "*",

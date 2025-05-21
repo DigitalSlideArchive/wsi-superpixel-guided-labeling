@@ -33,7 +33,7 @@ setup(
     include_package_data=True,
     keywords='girder-plugin, histomics_label',
     packages=find_packages(exclude=['test', 'test.*']),
-    url='https://github.com/DigitalSlideArchive/wsi_superpixel_guided_labeling',
+    url='https://github.com/DigitalSlideArchive/histomics_label',
     version='0.1.0',
     zip_safe=False,
     entry_points={
