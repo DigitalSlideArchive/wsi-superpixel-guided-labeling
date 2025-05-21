@@ -221,7 +221,6 @@ const ActiveLearningView = View.extend({
                 });
             } else {
                 // There is a job running
-                store.activeLearningStep = activeLearningSteps.InitialLabeling;
                 this.waitForJobCompletion(previousJobs[0]._id);
                 this.watchForSuperpixels();
             }
@@ -569,8 +568,7 @@ const ActiveLearningView = View.extend({
             if (!jobInfo) {
                 throw new Error('Unable to find specified superpixel classification image.');
             }
-            this.getJobCertaintyChoices(jobInfo.xmlspec);
-            return this.getJobFeatureChoices(jobInfo.xmlspec);
+            return this.getJobCertaintyAndFeatureChoices(jobInfo.xmlspec);
         });
     },
 
@@ -608,10 +606,10 @@ const ActiveLearningView = View.extend({
     },
 
     /**
-     * Extract the certainty options from the superpixel predictions job.
+     * Extract the certainty and feature options from the superpixel predictions job.
      * @param {string} xmlUrl
      */
-    getJobCertaintyChoices(xmlUrl) {
+    getJobCertaintyAndFeatureChoices(xmlUrl) {
         restRequest({
             url: xmlUrl
         }).then((xmlSpec) => {
@@ -623,20 +621,6 @@ const ActiveLearningView = View.extend({
                 flattenedSpec.parameters.certainty.values.length
             );
             this.certaintyMetrics = hasCertaintyMetrics ? flattenedSpec.parameters.certainty.values : null;
-            return this.vueComponentChanged();
-        });
-    },
-
-    /**
-     * Extract the feature options from the superpixel predictions job.
-     * @param {string} xmlUrl
-     */
-    getJobFeatureChoices(xmlUrl) {
-        restRequest({
-            url: xmlUrl
-        }).then((xmlSpec) => {
-            const gui = parse(xmlSpec);
-            const flattenedSpec = this.flattenParse(gui);
             const hasFeatureShapes = (
                 flattenedSpec.parameters.feature &&
                 flattenedSpec.parameters.feature.values &&
@@ -787,10 +771,12 @@ const ActiveLearningView = View.extend({
             '<i class="icon-spin4 animate-spin"><i>' +
             '</div></div>'
         );
+        store.blockingJobRunning = true;
     },
 
     hideSpinner() {
         $('.g-hui-loading-overlay').remove();
+        store.blockingJobRunning = false;
     },
 
     waitForJobCompletion(jobId, goToNextStep) {
